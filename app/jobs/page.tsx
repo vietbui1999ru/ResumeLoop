@@ -43,7 +43,7 @@ export default function JobsPage() {
     const res = await fetch('/api/batch/run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ job_ids: [...selected] }),
+      body: JSON.stringify({ job_ids: Array.from(selected) }),
     })
     const reader = res.body!.getReader()
     const dec = new TextDecoder()
