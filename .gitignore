@@ -1,0 +1,22 @@
+# Next.js
+.next/
+out/
+node_modules/
+
+# Local env
+.env.local
+.env*.local
+
+# SQLite
+resume.db
+resume.db-wal
+resume.db-shm
+
+# Pipeline working dir
+pipeline/batch-build/
+
+# macOS
+.DS_Store
+
+# Build
+*.docx.tmp
