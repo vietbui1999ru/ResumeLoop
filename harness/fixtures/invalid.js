@@ -3,14 +3,14 @@ const {build, T, TL} = require('./buildv2');
 build({
   file: 'Test_Invalid_VietBui',
 
-  // VIOLATION 1: tagline 80c (over 76)
+  // VIOLATION 1: tagline 83c (limit: 76)
   tagline: TL('Full-Stack Software Engineer building distributed systems with Go, Python, and Rust'),
 
   work: [
     {
       id: 'gitlab',
       bullets: [
-        // VIOLATION 2: bullet 120c (over 116)
+        // VIOLATION 2: bullet 117c (limit: 116)
         T('Contributed to GitLab CE in Ruby; shipped bug fixes reviewed and merged by senior platform engineers on the core team'),
         T('Automated infrastructure provisioning with Ansible and Terraform for reproducible deployment workflows'),
         T('Configured GitLab CI/CD pipelines with lint, test, and deploy stages for automated quality gating'),
@@ -24,8 +24,8 @@ build({
         T('Implemented async Python services for distributed simulation pipelines handling concurrent state transitions'),
         T('Deployed Docker and GitHub Actions CI/CD, cutting simulation release cycles from 2 hours to 30 minutes'),
         T('Developed monitoring tooling tracking 50+ system health metrics across distributed simulation clusters'),
-        T('Diagnosed and resolved failures in distributed systems by tracing logs and isolating root causes'),
-        T('Wrote runbooks for 3 distributed simulation systems; reduced onboarding time and improved handoffs'),
+        T('Diagnosed and resolved failures in distributed systems by tracing logs, isolating root causes, shipping fixes'),
+        T('Wrote runbooks for 3 distributed simulation systems; reduced onboarding time and improved cross-team handoffs'),
       ],
     },
     {
@@ -34,7 +34,7 @@ build({
         T('Engineered Coq framework for Program Graph safety proofs; detected integer overflow and injection attacks'),
         T('Co-authored IEEE KSE 2024 paper on adversarial RL robustness; entropy-based detection at 97%+ accuracy'),
         T('Scripted Python and TypeScript tooling for data processing, automation, and multi-system state management'),
-        // VIOLATION 3: only 3 bullets for udayton instead of 5 (DOCX para count becomes ~41, not 44)
+        // VIOLATION 3: udayton has 3 bullets (requires 5 — causes para count violation)
       ],
     },
   ],
@@ -68,9 +68,9 @@ build({
 
   // VIOLATION 4: only 4 skills rows (need 5)
   skills: [
-    'Languages: Python · Go · TypeScript · Ruby · Bash · SQL',
-    'Backend: FastAPI · PostgreSQL · Redis · REST · gRPC · Docker',
-    'Systems: Linux · goroutines · channels · multithreaded design',
-    'DevOps: GitHub Actions · GitLab CI/CD · Terraform · Ansible',
+    'Languages: Python · Go · TypeScript · Ruby · Bash · SQL · Rust',
+    'Backend: FastAPI · PostgreSQL · Redis · REST · gRPC · Docker · Kubernetes',
+    'Systems: Linux · goroutines · channels · multithreaded design · IEEE 802.3',
+    'DevOps: GitHub Actions · GitLab CI/CD · Terraform · Ansible · Prometheus · Grafana',
   ],
 });
