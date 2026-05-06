@@ -149,6 +149,8 @@ Run:
 cd harness/batch-build && node {company}_{role}.js && cd ../..
 ```
 
+If the build exits non-zero (missing ID in master_resume_data.json, require error, etc.): print the error, stop this JD, do NOT proceed to 2h.
+
 ### 2h. VALIDATE (full pass)
 
 ```bash
