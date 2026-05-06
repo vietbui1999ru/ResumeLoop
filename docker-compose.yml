@@ -1,0 +1,26 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3010:3000"
+    environment:
+      OBSIDIAN_JOBS_PATH: /jobs
+      OUTPUT_PATH: /output
+      DB_PATH: /app/resume.db
+      LITELLM_URL: http://host.docker.internal:11434/v1
+      LITELLM_MODEL: gemma4:e2b
+      BATCH_CONCURRENCY: "3"
+    volumes:
+      # JD source files (read + write — scan tags JDs as resume-ed)
+      - /Users/vietquocbui/repos/Obsidian/References/Jobs:/jobs
+      # DOCX output
+      - /Users/vietquocbui/Desktop/Resume Templates:/output
+      # SQLite DB — persists across rebuilds
+      - ./resume.db:/app/resume.db
+      # Pipeline data files — edits via /config page persist to host
+      - ./pipeline/master_resume_data.json:/app/pipeline/master_resume_data.json
+      - ./pipeline/buildv2.js:/app/pipeline/buildv2.js
+    extra_hosts:
+      # Lets the container reach Ollama running on the Mac host
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped

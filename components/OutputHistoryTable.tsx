@@ -1,4 +1,4 @@
-interface Output {
+export interface Output {
   company: string; role_title: string; role_track: string
   job_fit: number; docx_path: string; built_at: string
 }

@@ -16,5 +16,5 @@
     "paths": { "@/*": ["./*"] }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "pipeline/batch-build"]
+  "exclude": ["node_modules", "pipeline/batch-build", "vitest.config.ts"]
 }

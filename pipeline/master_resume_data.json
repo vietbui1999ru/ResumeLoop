@@ -2,28 +2,28 @@
   "_meta": {
     "version": "2.3",
     "updated": "2026-03-26",
-    "format": "plain-text. Bullet formula: 'Built A doing B using C, which produced D \u2014 quantify D'. Buzzwords front-loaded. No professional summary. No new-grad language.",
+    "format": "plain-text. Bullet formula: 'Built A doing B using C, which produced D — quantify D'. Buzzwords front-loaded. No professional summary. No new-grad language.",
     "positioning": "Software engineer with production deployments, open-source contributions, and research publications. Builds API platforms, AI workflows, and cloud infrastructure. FastAPI/Python, Go, TypeScript, Terraform.",
     "usage": "v2.3: use data.work=[{id,bullets[]}] in build scripts. Work IDs: gitlab|carboncopies|udayton|augustana. All bullets pre-validated at 116 chars max. Do NOT add bullets outside this file without running validate.py.",
     "bullet_rules": [
-      "Max 116 chars WITH spaces \u2014 hard limit, guaranteed 1-line at 11pt Calibri, Letter, 0.5in margins",
-      "Tagline max 76 chars WITH spaces \u2014 hard limit, 1-line at 12pt Calibri",
-      "Project header (name + ' | ' + stack + GitHub + date) max 116 chars \u2014 hard limit",
-      "Lead with varied non-repeated action verbs \u2014 no two bullets in one resume should start with the same verb",
+      "Max 116 chars WITH spaces — hard limit, guaranteed 1-line at 11pt Calibri, Letter, 0.5in margins",
+      "Tagline max 76 chars WITH spaces — hard limit, 1-line at 12pt Calibri",
+      "Project header (name + ' | ' + stack + GitHub + date) max 116 chars — hard limit",
+      "Lead with varied non-repeated action verbs — no two bullets in one resume should start with the same verb",
       "Lead with the most ATS-important keyword or tool",
-      "IMPACT IS MANDATORY: every bullet must answer 'so what?' \u2014 add before/after, time saved, % improvement, or business outcome. Activity-only bullets (no outcome) are disallowed.",
-      "BUSINESS CONTEXT: at least 1 bullet per work experience should explain WHY the work mattered \u2014 what did the team/user/business gain? Not just what was built, but the consequence.",
-      "ACTIVITY-ONLY RED FLAGS \u2014 always rewrite: 'Collaborated with...', 'Participated in...', 'Assisted with...', 'Worked on...' unless followed by a concrete quantified outcome.",
-      "Research bullets: state PURPOSE + ACHIEVEMENT + IMPACT \u2014 no fabrication",
+      "IMPACT IS MANDATORY: every bullet must answer 'so what?' — add before/after, time saved, % improvement, or business outcome. Activity-only bullets (no outcome) are disallowed.",
+      "BUSINESS CONTEXT: at least 1 bullet per work experience should explain WHY the work mattered — what did the team/user/business gain? Not just what was built, but the consequence.",
+      "ACTIVITY-ONLY RED FLAGS — always rewrite: 'Collaborated with...', 'Participated in...', 'Assisted with...', 'Worked on...' unless followed by a concrete quantified outcome.",
+      "Research bullets: state PURPOSE + ACHIEVEMENT + IMPACT — no fabrication",
       "Do not fabricate stack items, metrics, or features not actually built",
       "Bullets should tell a story a non-technical HM can understand",
-      "Use short_stack field for project header (3-4 most ATS-important techs, \u226440 chars)"
+      "Use short_stack field for project header (3-4 most ATS-important techs, ≤40 chars)"
     ],
     "tagline_rules": [
-      "AVOID generic 'experienced in Tech1, Tech2, Tech3, Tech4' \u2014 it differentiates nothing",
-      "USE value-oriented format: '{Job Title} building {what} with {tech}' or '{Job Title} \u2014 {achievement/differentiator}'",
+      "AVOID generic 'experienced in Tech1, Tech2, Tech3, Tech4' — it differentiates nothing",
+      "USE value-oriented format: '{Job Title} building {what} with {tech}' or '{Job Title} — {achievement/differentiator}'",
       "GOOD: 'Software Engineer building REST APIs in Python and Go with cloud automation' (73c)",
-      "GOOD: 'Backend Engineer \u2014 4+ prod features/sprint; FastAPI, distributed systems' (71c)",
+      "GOOD: 'Backend Engineer — 4+ prod features/sprint; FastAPI, distributed systems' (71c)",
       "BAD: 'Software Engineer experienced in Python, REST APIs, Go, and Cloud Services' (generic, no proof)"
     ]
   },
@@ -36,16 +36,16 @@
     "portfolio": "https://vietbui1999ru.github.io/",
     "work_auth": "OPT + STEM OPT (up to 3 years, no H-1B sponsorship needed yet)"
   },
-  "tagline_note": "DO NOT use 'experienced in Tech1, Tech2, Tech3, Tech4' \u2014 that is generic and differentiates nothing. Use a VALUE-ORIENTED format: '{Job Title} building {what you build} with {tech1} and {tech2}' OR '{Job Title} \u2014 {brief proof-point or differentiator}'. Keep exact job title from JD. \u226476 chars. Never use 'graduate' or 'new grad' language. Examples: 'Software Engineer building REST APIs in Python and Go with cloud automation' | 'Backend Engineer \u2014 4+ prod features/sprint; FastAPI, distributed systems'",
+  "tagline_note": "DO NOT use 'experienced in Tech1, Tech2, Tech3, Tech4' — that is generic and differentiates nothing. Use a VALUE-ORIENTED format: '{Job Title} building {what you build} with {tech1} and {tech2}' OR '{Job Title} — {brief proof-point or differentiator}'. Keep exact job title from JD. ≤76 chars. Never use 'graduate' or 'new grad' language. Examples: 'Software Engineer building REST APIs in Python and Go with cloud automation' | 'Backend Engineer — 4+ prod features/sprint; FastAPI, distributed systems'",
   "education": [
     {
-      "display": "University of Dayton \u2013 Master of Science in Computer Science",
-      "dates": "Aug. 2023 \u2013 Dec. 2025",
+      "display": "University of Dayton – Master of Science in Computer Science",
+      "dates": "Aug. 2023 – Dec. 2025",
       "notes": "Research: adversarial RL robustness (KSE 2024, NSF-funded) + Coq formal verification of program security (MEMOCODE draft)"
     },
     {
-      "display": "Augustana College \u2013 B.A. Applied Mathematics & Computer Science",
-      "dates": "Aug. 2019 \u2013 May 2023"
+      "display": "Augustana College – B.A. Applied Mathematics & Computer Science",
+      "dates": "Aug. 2019 – May 2023"
     }
   ],
   "experience": [
@@ -54,7 +54,7 @@
       "title": "Complex Systems Research Engineer",
       "company": "Carboncopies Foundation",
       "location": "Remote, US",
-      "dates": "Jul. 2025 \u2013 Present",
+      "dates": "Jul. 2025 – Present",
       "actual_work": "Emulating biophysical brain neurons and networks; building Python data pipelines for analyzing neural simulation data; developing React dashboards and FastAPI microservices for simulation validation",
       "tools_used": "Python, React, FastAPI, Docker, GitHub Actions, WebSocket, NumPy",
       "bullets": {
@@ -109,7 +109,7 @@
       "title": "Open Source Contributor",
       "company": "GitLab / CodePath",
       "location": "Remote, US",
-      "dates": "Feb. 2026 \u2013 Present",
+      "dates": "Feb. 2026 – Present",
       "actual_work": "Contributing to GitLab CE open-source via CodePath mentorship program; Ruby codebase fixes and features, Git automation scripting, infrastructure provisioning with Ansible and Terraform, GitLab CI/CD pipeline configuration, LLM tooling prototypes, mentored by experienced GitLab engineers",
       "tools_used": "Ruby, Git, Ansible, Terraform, GitLab CI/CD, LLMs, Bash",
       "bullets": {
@@ -159,19 +159,19 @@
       "title": "Graduate Research Assistant",
       "company": "University of Dayton",
       "location": "Dayton, OH",
-      "dates": "Aug. 2023 \u2013 Aug. 2025",
+      "dates": "Aug. 2023 – Aug. 2025",
       "tools_used": "Python, TypeScript, Coq/Rocq, PyTorch, PPO, ARS, Gymnasium",
       "research_papers": {
         "kse2024": {
-          "status": "PUBLISHED \u2014 IEEE KSE 2024",
-          "title": "Imposter Injection \u2014 adversarial RL robustness via entropy-based imposter detection",
+          "status": "PUBLISHED — IEEE KSE 2024",
+          "title": "Imposter Injection — adversarial RL robustness via entropy-based imposter detection",
           "viet_role": "2nd author",
           "funding": "NSF-funded",
           "result": "97%+ detection accuracy"
         },
         "memocode": {
-          "status": "IN PROGRESS \u2014 MEMOCODE 2024 target",
-          "title": "From Program Graphs to Proofs \u2014 Coq formal verification of software security",
+          "status": "IN PROGRESS — MEMOCODE 2024 target",
+          "title": "From Program Graphs to Proofs — Coq formal verification of software security",
           "viet_role": "1st author",
           "what": "Translates Program Graphs to Transition Systems in Coq; proves integer overflow and HTTP injection absence"
         }
@@ -229,7 +229,7 @@
       "title": "Research Assistant & Peer Tutor",
       "company": "Augustana College",
       "location": "Rock Island, IL",
-      "dates": "Aug. 2020 \u2013 May 2023",
+      "dates": "Aug. 2020 – May 2023",
       "actual_work": "Beling Scholar funded research on elliptic integrals; presented at MAA Illinois 2023 regional conference; peer tutored 300+ students over 3 years in algorithms, data structures, and applied math; IT Help Desk support for hardware diagnostics and network troubleshooting",
       "tools_used": "Python, MATLAB, C++, LaTeX",
       "bullets": {
@@ -277,11 +277,33 @@
   ],
   "projects": [
     {
+      "id": "outfit_tracker",
+      "name": "OutfitTracker",
+      "tech": "SwiftUI, SwiftData, PhotosUI, Vision, Swift Charts, Swift async/await, Core ML",
+      "short_stack": "SwiftUI, SwiftData, Vision",
+      "dates": "Apr. 2026 – Present",
+      "url": "https://github.com/vietbui1999ru/OutfitTracker",
+      "use_for": [
+        "iOS",
+        "Frontend/Product",
+        "AI Tooling"
+      ],
+      "bullets": [
+        "Built SwiftUI outfit tracker with SwiftData persistence tracking wear frequency across 365-day history",
+        "Implemented Vision-based dominant color extraction for wardrobe analysis, eliminating manual color tagging",
+        "Engineered two-tier image cache (NSCache L1 + disk L2) reducing wardrobe grid load time by ~80%",
+        "Designed async/await service layer with Swift actors for thread-safe image and analytics operations",
+        "Built Swift Charts analytics dashboard visualizing outfit rotation and color palette distribution",
+        "Integrated PhotosUI with async image processing pipeline for wardrobe uploads with real-time previews",
+        "Achieved full VoiceOver accessibility coverage with Dynamic Type support across all views"
+      ]
+    },
+    {
       "id": "obsidian_ai_workflow",
       "name": "Obsidian AI Workflow Engine",
       "tech": "TypeScript, Claude API, Gemini AI, MCP, Agent Orchestrator, React Flow",
       "short_stack": "TypeScript, Claude API, MCP",
-      "dates": "Oct. 2025 \u2013 Present",
+      "dates": "Oct. 2025 – Present",
       "url": "https://github.com/vietbui1999ru/ObsidianTasks",
       "use_for": [
         "AI/Agents",
@@ -297,10 +319,10 @@
     },
     {
       "id": "claude_tui",
-      "name": "claude-tui \u2014 Rust Terminal Dashboard",
+      "name": "claude-tui — Rust Terminal Dashboard",
       "tech": "Rust, Tokio, Ratatui, SQLite WAL, JSON-RPC 2.0, Unix Domain Sockets",
       "short_stack": "Rust, Tokio, SQLite, JSON-RPC",
-      "dates": "Jan. 2026 \u2013 Present",
+      "dates": "Jan. 2026 – Present",
       "url": "https://github.com/vietbui1999ru/claude-tui",
       "use_for": [
         "Systems/Infra",
@@ -321,7 +343,7 @@
       "name": "MRR Analytics Dashboard",
       "tech": "FastAPI, Python, React, Recharts, BigQuery, SQL, Stripe API",
       "short_stack": "FastAPI, Python, BigQuery, SQL",
-      "dates": "Feb. 2026 \u2013 Present",
+      "dates": "Feb. 2026 – Present",
       "url": "https://github.com/vietbui1999ru/MRR-Analytics-Dashboard",
       "use_for": [
         "Full-Stack",
@@ -342,7 +364,7 @@
       "name": "AI Calendar Scheduler",
       "tech": "Next.js, LangChain, Claude API, Gemini AI, Google Calendar API, OAuth 2.0",
       "short_stack": "Next.js, LangChain, Gemini AI",
-      "dates": "Oct. 2025 \u2013 Present",
+      "dates": "Oct. 2025 – Present",
       "url": "https://github.com/vietbui1999ru/perpetuallylearningscheduler",
       "use_for": [
         "GenAI",
@@ -362,7 +384,7 @@
       "name": "Interactive PDE Simulation Platform",
       "tech": "FastAPI, Python, React, TypeScript, Plotly.js, NumPy, Docker, Nginx",
       "short_stack": "FastAPI, Python, NumPy, Docker",
-      "dates": "Jan. 2025 \u2013 Present",
+      "dates": "Jan. 2025 – Present",
       "url": "https://github.com/vietbui1999ru/Heat-Wave-PDE-Simulation",
       "use_for": [
         "Full-Stack",
@@ -382,7 +404,7 @@
       "name": "Music Social Board",
       "tech": "Next.js, React, TypeScript, tRPC, Prisma ORM, PostgreSQL, OAuth 2.0, Docker",
       "short_stack": "Next.js, tRPC, PostgreSQL, Docker",
-      "dates": "May 2025 \u2013 Present",
+      "dates": "May 2025 – Present",
       "url": "https://github.com/vietbui1999ru/spotifyswipe",
       "use_for": [
         "Full-Stack",
@@ -398,10 +420,10 @@
     },
     {
       "id": "homeboard",
-      "name": "HomeBoard \u2014 Self-Hosted Dashboard",
+      "name": "HomeBoard — Self-Hosted Dashboard",
       "tech": "ASP.NET Core 8, C#, React, TypeScript, PostgreSQL, Redis, Docker, xUnit",
       "short_stack": "ASP.NET Core 8, C#, PostgreSQL",
-      "dates": "Feb. 2026 \u2013 Present",
+      "dates": "Feb. 2026 – Present",
       "url": "https://github.com/vietbui1999ru/hosted-dashboard",
       "use_for": [
         ".NET/Full-Stack",
@@ -418,10 +440,10 @@
     },
     {
       "id": "ethswitch",
-      "name": "EthSwitch \u2014 Ethernet Switch",
+      "name": "EthSwitch — Ethernet Switch",
       "tech": "Go, IEEE 802.3, Goroutines, Channels, CRC32",
       "short_stack": "Go, Goroutines, Channels",
-      "dates": "Dec. 2024 \u2013 Feb. 2025",
+      "dates": "Dec. 2024 – Feb. 2025",
       "url": "https://github.com/vietbui1999ru/ethswitch-vietbui1999ru",
       "use_for": [
         "Systems",
@@ -441,7 +463,7 @@
       "name": "Proxmox Homelab",
       "tech": "Proxmox, Prometheus, Grafana, Terraform, Ansible, WireGuard, Docker, BIOS/UEFI, GRUB, Kubernetes, physical network switch, dual-NIC, VLAN, CPU/GPU undervolting, cron power scheduling",
       "short_stack": "Proxmox, Terraform, Prometheus",
-      "dates": "Jul. 2025 \u2013 Present",
+      "dates": "Jul. 2025 – Present",
       "url": "https://github.com/vietbui1999ru/homelab-scripts",
       "use_for": [
         "SRE/DevOps",
@@ -465,10 +487,10 @@
     },
     {
       "id": "maze_drl",
-      "name": "Maze Solver \u2014 Deep RL",
+      "name": "Maze Solver — Deep RL",
       "tech": "Python, PyTorch, Deep Q-Network (DQN), NumPy, Matplotlib",
       "short_stack": "Python, PyTorch, DQN",
-      "dates": "May 2024 \u2013 Aug. 2024",
+      "dates": "May 2024 – Aug. 2024",
       "url": "https://github.com/vietbui1999ru/pacman-maze-solver",
       "use_for": [
         "ML/AI",
@@ -483,9 +505,9 @@
     },
     {
       "id": "coq_verification",
-      "name": "Coq Security Verification \u2014 Program Graphs",
+      "name": "Coq Security Verification — Program Graphs",
       "tech": "Coq/Rocq, Program Graphs, Transition Systems, Dependent Types",
-      "dates": "Aug. 2023 \u2013 Aug. 2025",
+      "dates": "Aug. 2023 – Aug. 2025",
       "url": null,
       "note": "1st-author research project. Do NOT conflate with KSE 2024 paper (different work).",
       "use_for": [
@@ -563,7 +585,7 @@
     },
     {
       "id": "pe_hackathon",
-      "name": "MLH PE Hackathon \u2014 URL Shortener + SRE",
+      "name": "MLH PE Hackathon — URL Shortener + SRE",
       "tech": "Flask, Peewee ORM, PostgreSQL, Redis, Nginx, Gunicorn, Prometheus, Grafana, Alertmanager, Docker, GitHub Actions, pytest, k6",
       "short_stack": "Flask, Nginx, Prometheus, Docker",
       "dates": "Apr. 2026",
@@ -659,9 +681,9 @@
       "homelab"
     ],
     "Frontend/Product": [
+      "outfit_tracker",
       "cal_ai",
-      "spotiswipe",
-      "homeboard"
+      "spotiswipe"
     ],
     "AI Tooling/DevTools": [
       "obsidian_ai_workflow",
@@ -682,6 +704,11 @@
       "coq_verification",
       "homelab",
       "claude_tui"
+    ],
+    "iOS": [
+      "outfit_tracker",
+      "cal_ai",
+      "spotiswipe"
     ]
   },
   "resume_rules": {
@@ -706,48 +733,48 @@
     "tools_in_bullets": "Every bullet should mention at least one specific tool/tech used",
     "research_bullets": "State PURPOSE + ACHIEVEMENT + IMPACT. Mention co-authorship, venue, and result. Never conflate KSE2024 (RL) with Coq paper (formal verification).",
     "security_framing": "Frame research as improving software/hardware security and safety through experimentation and verification.",
-    "project_github": "Name bold, GitHub hyperlink right-aligned before date. Use short_stack (3-4 techs). Format: 'Name | short_stack    GitHub  Date' (all \u2264116 chars).",
-    "work_line_format": "Combined: 'Bold Title | Company \u2014 Location    Bold Dates' (single line). Titles from WORK_META in buildv2.js.",
+    "project_github": "Name bold, GitHub hyperlink right-aligned before date. Use short_stack (3-4 techs). Format: 'Name | short_stack    GitHub  Date' (all ≤116 chars).",
+    "work_line_format": "Combined: 'Bold Title | Company — Location    Bold Dates' (single line). Titles from WORK_META in buildv2.js.",
     "3_job_layout": "Use gitlab + carboncopies + udayton for most roles. Add augustana for academic/research roles. 3-job + 3-proj x 3b = 44 paras (likely 1-page; verify in Word)."
   },
   "fabrication_warnings": {
     "kse2024_is_rl_NOT_coq": "KSE 2024 paper = Adversarial RL robustness + entropy-based imposter detection. Viet = 2nd author. NSF-funded. NOT about Coq or formal verification.",
-    "coq_paper_is_NOT_published_at_kse": "Coq/MEMOCODE paper = Program Graphs to Proofs. Viet = 1st author. DRAFT \u2014 not yet published. NOT published at KSE 2024.",
+    "coq_paper_is_NOT_published_at_kse": "Coq/MEMOCODE paper = Program Graphs to Proofs. Viet = 1st author. DRAFT — not yet published. NOT published at KSE 2024.",
     "mrr_is_python_NOT_csharp": "MRR Dashboard = Python/FastAPI/BigQuery. HomeBoard = C#/ASP.NET Core 8.",
-    "no_500_code_paths": "Never say 'eliminated manual inspection across 500+ code paths' \u2014 fabricated metric not from any paper.",
-    "no_webassembly": "Never mention WebAssembly \u2014 not in any verified project or paper.",
-    "no_websocket_unless_homelab": "WebSocket not used in Carboncopies work \u2014 only in homelab monitoring stack."
+    "no_500_code_paths": "Never say 'eliminated manual inspection across 500+ code paths' — fabricated metric not from any paper.",
+    "no_webassembly": "Never mention WebAssembly — not in any verified project or paper.",
+    "no_websocket_unless_homelab": "WebSocket not used in Carboncopies work — only in homelab monitoring stack."
   },
   "quality_review": {
-    "_note": "Bullets flagged as activity-only or missing business context. Improve when real numbers are available \u2014 DO NOT fabricate. Ask Viet for the actual before/after or outcome.",
+    "_note": "Bullets flagged as activity-only or missing business context. Improve when real numbers are available — DO NOT fabricate. Ask Viet for the actual before/after or outcome.",
     "weak_bullets": {
       "gitlab_collaborated": {
         "current": "Collaborated with senior engineers on code review, iterating Ruby implementations to meet production standards",
-        "problem": "Activity-only \u2014 'to meet production standards' is vague. No outcome.",
+        "problem": "Activity-only — 'to meet production standards' is vague. No outcome.",
         "improve_to": "Collaborated with senior engineers on code review, refactoring Ruby pipeline logic to cut [X] edge-case failures per week",
         "needs_from_viet": "What specific improvement came out of the code review cycles? Bug rate? Performance? Latency?"
       },
       "gitlab_built_git_scripts": {
         "current": "Built Git scripting workflows for repository automation and CI/CD integration across open-source projects",
-        "problem": "No outcome \u2014 what time or errors did the automation save?",
+        "problem": "No outcome — what time or errors did the automation save?",
         "improve_to": "Built Git automation scripts reducing [X] hours/week of manual repository maintenance across [N] open-source repos",
         "needs_from_viet": "How many repos? Time saved per week?"
       },
       "carb_wrote_runbooks": {
         "current": "Wrote runbooks for distributed simulation systems; reduced onboarding time and improved cross-team handoffs",
-        "problem": "Vague \u2014 'reduced onboarding time' by how much? From what to what?",
+        "problem": "Vague — 'reduced onboarding time' by how much? From what to what?",
         "improve_to": "Wrote runbooks for 3 distributed simulation systems, cutting new-engineer onboarding from [X days] to [Y hours]",
         "needs_from_viet": "Actual before/after onboarding time. Even approximate is fine."
       },
       "homelab_provisioned": {
         "current": "Provisioned 15+ VM cluster on Proxmox at 99.5% uptime with VLAN segmentation, dual-NIC routing, and health checks",
-        "problem": "Missing business context \u2014 WHY does this cluster exist? What does it enable?",
+        "problem": "Missing business context — WHY does this cluster exist? What does it enable?",
         "improve_to": "Provisioned 15+ VM homelab at 99.5% uptime; validated infrastructure patterns (Terraform, VLAN, monitoring) later applied to production deployments",
         "needs_from_viet": "Confirm: did homelab patterns actually inform production work at Carboncopies or elsewhere?"
       },
       "udra_authored_docs": {
         "current": "Authored technical documentation for 3 systems; presented research to cross-functional teams of 100+ students",
-        "problem": "Weak \u2014 '100+ students' is the audience size, not the impact. What changed after the presentation?",
+        "problem": "Weak — '100+ students' is the audience size, not the impact. What changed after the presentation?",
         "improve_to": "Authored technical documentation for 3 research systems; led cross-team presentations that [informed X decisions / led to Y adoption]",
         "needs_from_viet": "What happened as a result of the presentations? Any adoption, follow-up research, citations?"
       }
@@ -755,9 +782,9 @@
     "tagline_retrospective": {
       "akamai_v23": {
         "used": "Software Engineer experienced in Python, REST APIs, Go, and Cloud Services",
-        "problem": "Generic \u2014 'experienced in Tech1-4' differentiates nothing. Every candidate says this.",
+        "problem": "Generic — 'experienced in Tech1-4' differentiates nothing. Every candidate says this.",
         "better": "Software Engineer building REST APIs in Python and Go with cloud automation",
-        "or": "Software Engineer \u2014 FastAPI, Terraform/Ansible, open-source contributor (GitLab CE)"
+        "or": "Software Engineer — FastAPI, Terraform/Ansible, open-source contributor (GitLab CE)"
       }
     }
   }

@@ -27,6 +27,7 @@ function initSchema(db: DB): void {
       role_track  TEXT,
       fit_pct     INTEGER,
       raw_content TEXT,
+      file_mtime  TEXT,
       scanned_at  DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -48,5 +49,14 @@ function initSchema(db: DB): void {
       role_track_dist  TEXT,
       fit_dist         TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key   TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `)
+
+  // Migrate existing DBs that predate file_mtime column
+  const hasMtime = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_jobs') WHERE name='file_mtime'`).get() as { c: number }).c > 0
+  if (!hasMtime) db.exec(`ALTER TABLE jd_jobs ADD COLUMN file_mtime TEXT`)
 }

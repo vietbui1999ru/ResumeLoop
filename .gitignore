@@ -20,3 +20,4 @@ pipeline/batch-build/
 
 # Build
 *.docx.tmp
+*.png

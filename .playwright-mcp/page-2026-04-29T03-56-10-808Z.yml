@@ -1,0 +1,53 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - paragraph [ref=e3]: ResumeAnalyze
+    - link "Dashboard" [ref=e4] [cursor=pointer]:
+      - /url: /
+    - link "Jobs" [ref=e5] [cursor=pointer]:
+      - /url: /jobs
+    - link "Chat" [ref=e6] [cursor=pointer]:
+      - /url: /chat
+    - link "Config" [ref=e7] [cursor=pointer]:
+      - /url: /config
+  - main [ref=e8]:
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - heading "Jobs" [level=1] [ref=e11]
+        - generic [ref=e12]: 0 shown
+        - button "Scan" [ref=e13]
+        - button "Build selected" [disabled] [ref=e14]
+      - generic [ref=e15]:
+        - textbox "Search company, role, track…" [ref=e16]
+        - combobox [ref=e17]:
+          - option "All tracks" [selected]
+        - generic [ref=e18]:
+          - text: Fit ≥
+          - spinbutton [ref=e19]: "0"
+          - text: "%"
+        - combobox [ref=e20]:
+          - 'option "Visa: proceed" [selected]'
+          - 'option "Visa: kill"'
+          - 'option "Visa: all"'
+        - combobox [ref=e21]:
+          - option "Pending only" [selected]
+          - option "All jobs"
+      - table [ref=e22]:
+        - rowgroup [ref=e23]:
+          - row "Company Role Track Fit% Clipped ↓ Scanned Visa" [ref=e24]:
+            - columnheader [ref=e25]:
+              - checkbox [ref=e26]
+            - columnheader "Company" [ref=e27]:
+              - generic [ref=e28]: Company
+            - columnheader "Role" [ref=e29]:
+              - generic [ref=e30]: Role
+            - columnheader "Track" [ref=e31]:
+              - generic [ref=e32]: Track
+            - columnheader "Fit%" [ref=e33]:
+              - generic [ref=e34]: Fit%
+            - columnheader "Clipped ↓" [ref=e35]:
+              - generic [ref=e36]: Clipped ↓
+            - columnheader "Scanned" [ref=e37]:
+              - generic [ref=e38]: Scanned
+            - columnheader "Visa" [ref=e39]
+        - rowgroup
+      - paragraph [ref=e40]: No jobs match current filters.

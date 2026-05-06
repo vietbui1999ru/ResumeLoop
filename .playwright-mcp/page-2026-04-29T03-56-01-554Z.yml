@@ -1,0 +1,133 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - paragraph [ref=e3]: ResumeAnalyze
+    - link "Dashboard" [ref=e4] [cursor=pointer]:
+      - /url: /
+    - link "Jobs" [ref=e5] [cursor=pointer]:
+      - /url: /jobs
+    - link "Chat" [ref=e6] [cursor=pointer]:
+      - /url: /chat
+    - link "Config" [ref=e7] [cursor=pointer]:
+      - /url: /config
+  - main [ref=e8]:
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - heading "Dashboard" [level=1] [ref=e11]
+        - paragraph [ref=e12]: 542 JDs · 20 visa-kill
+      - generic [ref=e13]:
+        - heading "Role-Track Distribution" [level=2] [ref=e15]
+        - heading "Fit% Distribution" [level=2] [ref=e18]
+      - generic [ref=e20]:
+        - heading "Application Pipeline" [level=2] [ref=e21]
+        - paragraph [ref=e23]:
+          - text: Tag jobs with
+          - code [ref=e24]: applied
+          - text: ·
+          - code [ref=e25]: interviewed
+          - text: ·
+          - code [ref=e26]: rejected
+          - text: ·
+          - code [ref=e27]: offer
+          - text: to fill downstream stages.
+      - generic [ref=e28]:
+        - heading "Resume Output History" [level=2] [ref=e29]
+        - table [ref=e31]:
+          - rowgroup [ref=e32]:
+            - row "Company Role Track Fit% Built" [ref=e33]:
+              - columnheader "Company" [ref=e34]
+              - columnheader "Role" [ref=e35]
+              - columnheader "Track" [ref=e36]
+              - columnheader "Fit%" [ref=e37]
+              - columnheader "Built" [ref=e38]
+          - rowgroup [ref=e39]:
+            - row "Associate Software Development Engineer (SDET), IT Software Engineers Associate Software Development Engineer (SDET), IT Software Engineers Embedded/Systems 38% 4/29/2026" [ref=e40]:
+              - cell "Associate Software Development Engineer (SDET), IT Software Engineers" [ref=e41]
+              - cell "Associate Software Development Engineer (SDET), IT Software Engineers" [ref=e42]
+              - cell "Embedded/Systems" [ref=e43]
+              - cell "38%" [ref=e44]:
+                - generic [ref=e45]: 38%
+              - cell "4/29/2026" [ref=e46]
+            - row "Career Center Career Center AI/LLM/Agents 25% 4/29/2026" [ref=e47]:
+              - cell "Career Center" [ref=e48]
+              - cell "Career Center" [ref=e49]
+              - cell "AI/LLM/Agents" [ref=e50]
+              - cell "25%" [ref=e51]:
+                - generic [ref=e52]: 25%
+              - cell "4/29/2026" [ref=e53]
+            - row "6191408Career Search 6191408Career Search AI/LLM/Agents 100% 4/29/2026" [ref=e54]:
+              - cell "6191408Career Search" [ref=e55]
+              - cell "6191408Career Search" [ref=e56]
+              - cell "AI/LLM/Agents" [ref=e57]
+              - cell "100%" [ref=e58]:
+                - generic [ref=e59]: 100%
+              - cell "4/29/2026" [ref=e60]
+            - row "iOS Software Engineer, Airbnb - New Grad 1 iOS Software Engineer, Airbnb - New Grad 1 AI/LLM/Agents 38% 4/29/2026" [ref=e61]:
+              - cell "iOS Software Engineer, Airbnb - New Grad 1" [ref=e62]
+              - cell "iOS Software Engineer, Airbnb - New Grad 1" [ref=e63]
+              - cell "AI/LLM/Agents" [ref=e64]
+              - cell "38%" [ref=e65]:
+                - generic [ref=e66]: 38%
+              - cell "4/29/2026" [ref=e67]
+            - row "JR Developer - Reston, VA JR Developer - Reston, VA AI/LLM/Agents 25% 4/29/2026" [ref=e68]:
+              - cell "JR Developer - Reston, VA" [ref=e69]
+              - cell "JR Developer - Reston, VA" [ref=e70]
+              - cell "AI/LLM/Agents" [ref=e71]
+              - cell "25%" [ref=e72]:
+                - generic [ref=e73]: 25%
+              - cell "4/29/2026" [ref=e74]
+            - row "Member of Engineering (Technical Support Engineer) Member of Engineering (Technical Support Engineer) AI/LLM/Agents 38% 4/27/2026" [ref=e75]:
+              - cell "Member of Engineering (Technical Support Engineer)" [ref=e76]
+              - cell "Member of Engineering (Technical Support Engineer)" [ref=e77]
+              - cell "AI/LLM/Agents" [ref=e78]
+              - cell "38%" [ref=e79]:
+                - generic [ref=e80]: 38%
+              - cell "4/27/2026" [ref=e81]
+            - row "Predoctoral Young Investigator, Robotics 1 Predoctoral Young Investigator, Robotics 1 AI/LLM/Agents 38% 4/27/2026" [ref=e82]:
+              - cell "Predoctoral Young Investigator, Robotics 1" [ref=e83]
+              - cell "Predoctoral Young Investigator, Robotics 1" [ref=e84]
+              - cell "AI/LLM/Agents" [ref=e85]
+              - cell "38%" [ref=e86]:
+                - generic [ref=e87]: 38%
+              - cell "4/27/2026" [ref=e88]
+            - row "Solutions Engineer - Post Sales 1 Solutions Engineer - Post Sales 1 AI/LLM/Agents 25% 4/27/2026" [ref=e89]:
+              - cell "Solutions Engineer - Post Sales 1" [ref=e90]
+              - cell "Solutions Engineer - Post Sales 1" [ref=e91]
+              - cell "AI/LLM/Agents" [ref=e92]
+              - cell "25%" [ref=e93]:
+                - generic [ref=e94]: 25%
+              - cell "4/27/2026" [ref=e95]
+            - row "Solutions Engineer - Pre Sales 1 Solutions Engineer - Pre Sales 1 Software Engineer 50% 4/27/2026" [ref=e96]:
+              - cell "Solutions Engineer - Pre Sales 1" [ref=e97]
+              - cell "Solutions Engineer - Pre Sales 1" [ref=e98]
+              - cell "Software Engineer" [ref=e99]
+              - cell "50%" [ref=e100]:
+                - generic [ref=e101]: 50%
+              - cell "4/27/2026" [ref=e102]
+            - row "Design Engineer 1 Design Engineer 1 AI/LLM/Agents 25% 4/27/2026" [ref=e103]:
+              - cell "Design Engineer 1" [ref=e104]
+              - cell "Design Engineer 1" [ref=e105]
+              - cell "AI/LLM/Agents" [ref=e106]
+              - cell "25%" [ref=e107]:
+                - generic [ref=e108]: 25%
+              - cell "4/27/2026" [ref=e109]
+            - row "Anthropic Fellows Program Anthropic Fellows Program AI/LLM/Agents 38% 4/27/2026" [ref=e110]:
+              - cell "Anthropic Fellows Program" [ref=e111]
+              - cell "Anthropic Fellows Program" [ref=e112]
+              - cell "AI/LLM/Agents" [ref=e113]
+              - cell "38%" [ref=e114]:
+                - generic [ref=e115]: 38%
+              - cell "4/27/2026" [ref=e116]
+            - row "Junior Security Operations Engineer Junior Security Operations Engineer Security 75% 4/27/2026" [ref=e117]:
+              - cell "Junior Security Operations Engineer" [ref=e118]
+              - cell "Junior Security Operations Engineer" [ref=e119]
+              - cell "Security" [ref=e120]
+              - cell "75%" [ref=e121]:
+                - generic [ref=e122]: 75%
+              - cell "4/27/2026" [ref=e123]
+            - row "2026 Software Development Engineer AI/LLM/Agents 50% 4/26/2026" [ref=e124]:
+              - cell "2026" [ref=e125]
+              - cell "Software Development Engineer" [ref=e126]
+              - cell "AI/LLM/Agents" [ref=e127]
+              - cell "50%" [ref=e128]:
+                - generic [ref=e129]: 50%
+              - cell "4/26/2026" [ref=e130]

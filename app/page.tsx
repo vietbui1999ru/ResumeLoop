@@ -1,18 +1,20 @@
 import { RoleTrackChart } from '@/components/RoleTrackChart'
 import { FitDistChart } from '@/components/FitDistChart'
 import { OutputHistoryTable } from '@/components/OutputHistoryTable'
+import { PipelineSankeyChart } from '@/components/PipelineSankeyChart'
+import { computeMetrics } from '@/lib/get-metrics'
 
-async function getMetrics() {
-  try {
-    const res = await fetch('http://localhost:3000/api/metrics', { cache: 'no-store' })
-    return res.ok ? res.json() : null
-  } catch { return null }
-}
+export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
-  const data = await getMetrics()
+  let data
+  try {
+    data = computeMetrics()
+  } catch {
+    data = null
+  }
 
-  if (!data) {
+  if (!data || data.total === 0) {
     return (
       <div className="space-y-4">
         <h1 className="text-xl font-semibold">Dashboard</h1>
@@ -34,6 +36,7 @@ export default async function DashboardPage() {
         <RoleTrackChart data={data.role_track_dist} />
         <FitDistChart data={data.fit_dist} />
       </div>
+      {data.pipeline && <PipelineSankeyChart data={data.pipeline} />}
       <OutputHistoryTable outputs={data.outputs} />
     </div>
   )

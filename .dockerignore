@@ -1,0 +1,11 @@
+.next/
+node_modules/
+pipeline/batch-build/node_modules/
+resume.db
+resume.db-wal
+resume.db-shm
+.env.local
+.env*.local
+*.docx
+*.docx.tmp
+.DS_Store

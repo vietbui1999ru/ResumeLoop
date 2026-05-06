@@ -84,7 +84,7 @@ Work IDs: `gitlab` | `carboncopies` | `udayton` | `augustana`. WORK_META headers
 - **Education**: M.S. CS, Univ. of Dayton (Dec 2025) | Dual B.A. Applied Math + CS, Augustana College (May 2023)
 - **Work auth**: OPT + STEM OPT (up to 3 years total, no H-1B needed yet)
 - **Current roles**: Open Source Contributor @ GitLab/CodePath (Feb 2026–) + Complex Systems Research Eng @ Carboncopies (Jul 2025–)
-- **Positioning**: Full-stack SWE — GenAI, Go, distributed systems, Linux
+- **Positioning**: Full-stack SWE — GenAI, Go, distributed systems, Linux; iOS (SwiftUI/SwiftData, targeting new-grad iOS roles)
 
 ## Work Track Variants
 
@@ -99,9 +99,10 @@ Two bullet tracks per employer. Pick based on role:
 ### Core SWE
 | Track | Projects | Work variant |
 |---|---|---|
+| iOS Engineer | OutfitTracker + CalAI + SpotiSwipe | genai |
 | Software Engineer / Full-Stack | HomeBoard + MRR Dashboard + SpotiSwipe | genai |
 | Backend / API Engineer | MRR Dashboard + HomeBoard + EthSwitch | systems |
-| Frontend / Product Engineer | CalAI + SpotiSwipe + HomeBoard | genai |
+| Frontend / Product Engineer | OutfitTracker + CalAI + SpotiSwipe | genai |
 | GenAI / AI Engineer | ObsidianTasks + CalAI + MRR Dashboard | genai |
 | AI/LLM/Agents | ObsidianTasks + claude-tui + CalAI | genai |
 | Vibe Coding / AI Dev Tools | ObsidianTasks + claude-tui + CalAI | genai |
@@ -155,6 +156,7 @@ Two bullet tracks per employer. Pick based on role:
 
 | Project | Stack |
 |---|---|
+| OutfitTracker | SwiftUI, SwiftData, PhotosUI, Vision, Swift Charts, async/await, Core ML (iOS 17+) |
 | MRR Dashboard | FastAPI, React, Recharts, BigQuery, Python, Stripe API |
 | HomeBoard | ASP.NET Core 8, C#, React, TypeScript, PostgreSQL, Redis, Docker, xUnit, Testcontainers |
 | SpotiSwipe | Next.js, React, TypeScript, tRPC, Prisma, PostgreSQL, OAuth 2.0, Docker |
@@ -191,3 +193,5 @@ Two bullet tracks per employer. Pick based on role:
 - buildv2.js project format is `{id, bullets}` — do NOT pass `{name, url, stack, date, bullets}` manually
 - buildv2.js skills format is plain strings `'Python · SQL · ...'` — NOT `{label, vals}` objects
 - Low-fit rule: state fit % and flag missing tools, but still generate the resume — let Viet decide
+- OutfitTracker URL is TBD (placeholder: github.com/vietbui1999ru/OutfitTracker) — update when repo is public
+- OutfitTracker bullets are estimates (metrics: ~80% cache speedup) — update with Instruments data as features ship
