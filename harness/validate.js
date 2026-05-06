@@ -32,13 +32,13 @@ if (!tlMatch) {
 } else {
   const tagline = decodeUnicode(tlMatch[2]);
   if (tagline.length > 76) {
-    violations.push(`FAIL tagline: ${tagline.length}c — trim ${tagline.length - 76} (must be <=76c)`);
+    violations.push(`FAIL tagline: ${tagline.length}c — trim ${tagline.length - 76} (must be ≤76c)`);
   }
 }
 
 // ── 2. BULLETS ────────────────────────────────────────────────────────────────
 // Split at "projects:" to count work vs project bullets separately for para calc
-const projectsStart = src.indexOf('projects:');
+const projectsStart = src.search(/^\s*projects\s*:/m);
 const workSection    = projectsStart === -1 ? src : src.slice(0, projectsStart);
 const projectSection = projectsStart === -1 ? ''  : src.slice(projectsStart);
 
@@ -49,7 +49,7 @@ let wIdx = 0;
 while ((wm = workBulletRe.exec(workSection)) !== null) {
   const text = decodeUnicode(wm[2]);
   if (text.length > 116) {
-    violations.push(`FAIL bullet [work.${wIdx}]: ${text.length}c — trim ${text.length - 116} (must be <=116c)`);
+    violations.push(`FAIL bullet [work.${wIdx}]: ${text.length}c — trim ${text.length - 116} (must be ≤116c)`);
   }
   workBullets++;
   wIdx++;
@@ -62,7 +62,7 @@ let pIdx = 0;
 while ((pm = projBulletRe.exec(projectSection)) !== null) {
   const text = decodeUnicode(pm[2]);
   if (text.length > 116) {
-    violations.push(`FAIL bullet [proj.${pIdx}]: ${text.length}c — trim ${text.length - 116} (must be <=116c)`);
+    violations.push(`FAIL bullet [proj.${pIdx}]: ${text.length}c — trim ${text.length - 116} (must be ≤116c)`);
   }
   projBullets++;
   pIdx++;
