@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
+import { extractAllTags, jobMatchesTagFilter, parseTags } from '@/lib/tag-filter'
 
 interface Job {
   id: string
@@ -45,6 +46,7 @@ export default function JobsPage() {
   const [fitMin, setFitMin] = useState(0)
   const [visaFilter, setVisaFilter] = useState<'all' | 'proceed' | 'kill'>('proceed')
   const [showMode, setShowMode] = useState<'pending' | 'all'>('pending')
+  const [tagFilter, setTagFilter] = useState('')
 
   // Sort state — default: newest file first
   const [sort, setSort] = useState<{ col: SortCol; dir: SortDir }>({ col: 'file_mtime', dir: 'desc' })
@@ -59,6 +61,8 @@ export default function JobsPage() {
     [jobs]
   )
 
+  const allTags = useMemo(() => extractAllTags(jobs), [jobs])
+
   const onSort = (col: SortCol) => {
     setSort(prev =>
       prev.col === col
@@ -69,9 +73,10 @@ export default function JobsPage() {
 
   const visible = useMemo(() => {
     let list = jobs.filter(j => {
-      const tags: string[] = JSON.parse(j.tags ?? '[]')
+      const tags = parseTags(j)
 
       if (showMode === 'pending' && !tags.includes('un-resume')) return false
+      if (!jobMatchesTagFilter(j, tagFilter)) return false
       if (visaFilter === 'proceed' && j.visa_status === 'kill') return false
       if (visaFilter === 'kill' && j.visa_status !== 'kill') return false
       if (trackFilter && j.role_track !== trackFilter) return false
@@ -99,7 +104,7 @@ export default function JobsPage() {
     })
 
     return list
-  }, [jobs, q, trackFilter, fitMin, visaFilter, showMode, sort])
+  }, [jobs, q, trackFilter, tagFilter, fitMin, visaFilter, showMode, sort])
 
   const scan = async () => {
     setScanStatus('Scanning…')
@@ -152,6 +157,15 @@ export default function JobsPage() {
         >
           <option value="">All tracks</option>
           {tracks.map(t => <option key={t} value={t}>{t}</option>)}
+        </select>
+
+        <select
+          value={tagFilter}
+          onChange={e => setTagFilter(e.target.value)}
+          className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-sm text-zinc-300"
+        >
+          <option value="">All tags</option>
+          {allTags.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
 
         <div className="flex items-center gap-1.5 bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-sm">
