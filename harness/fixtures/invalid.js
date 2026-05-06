@@ -34,7 +34,7 @@ build({
         T('Engineered Coq framework for Program Graph safety proofs; detected integer overflow and injection attacks'),
         T('Co-authored IEEE KSE 2024 paper on adversarial RL robustness; entropy-based detection at 97%+ accuracy'),
         T('Scripted Python and TypeScript tooling for data processing, automation, and multi-system state management'),
-        // VIOLATION 3: only 4 bullets total for udayton (para count becomes 43, not 44)
+        // VIOLATION 3: only 3 bullets for udayton instead of 5 (DOCX para count becomes ~41, not 44)
       ],
     },
   ],
