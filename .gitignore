@@ -15,6 +15,9 @@ resume.db-shm
 # Pipeline working dir
 pipeline/batch-build/
 
+# Harness working dir
+harness/batch-build/
+
 # macOS
 .DS_Store
 
