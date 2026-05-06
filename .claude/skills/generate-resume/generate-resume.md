@@ -15,10 +15,13 @@ Run once before processing any JDs:
 mkdir -p harness/batch-build
 cp pipeline/master_resume_data.json harness/batch-build/
 cp pipeline/buildv2.js harness/batch-build/
-cd harness/batch-build && [ ! -d node_modules ] && npm install
+cd harness/batch-build && [ ! -d node_modules ] && npm install && echo "✓ npm install done" || echo "✓ node_modules already present"
 ```
 
-Confirm: `master_resume_data.json` and `buildv2.js` both present in `harness/batch-build/`.
+Confirm before proceeding:
+- `master_resume_data.json` and `buildv2.js` present in `harness/batch-build/`
+- `node_modules/` present in `harness/batch-build/` (if npm install failed, stop and report error)
+- `OUTPUT_PATH` is set: run `echo ${OUTPUT_PATH}` — if empty, stop and tell user: "Set OUTPUT_PATH before running /generate. Example: export OUTPUT_PATH=~/Desktop/Resumes"
 
 ---
 
@@ -29,6 +32,11 @@ grep -rl "un-resume" ./jobs/ 2>/dev/null
 ```
 
 Print the queue:
+```bash
+grep -rl "resume-ed" ./jobs/ 2>/dev/null | wc -l
+```
+
+Print: "Already processed (resume-ed): K files — will be skipped"
 ```
 Queue (N files):
   1. jobs/company-role.md
@@ -62,7 +70,7 @@ Apply visa rules from CLAUDE.md:
 
 ### 2c. TRACK
 
-Map role to role-track table in CLAUDE.md. Select and print:
+Map role to "Work Track Variants" and "Role-Track Project Picks" tables in CLAUDE.md. Select and print:
 ```
 Track: systems
 Work:  gitlab (systems), carboncopies (systems), udayton (systems)
@@ -77,6 +85,8 @@ Print all bullets you will use. Verify count: 3 jobs × 5 bullets + 3 projects �
 
 IMPORTANT: Copy verbatim. No paraphrasing, no rewrites, no synonym substitution.
 
+NOTE: Bullets in master_resume_data.json are pre-validated to ≤116c. If validate.js flags a bullet violation, the source JSON may have been manually edited — re-read it and re-copy the correct version.
+
 ### 2e. PERSONA TITLE
 
 Derive from candidate positioning and role track. NEVER use the JD job title verbatim.
@@ -87,6 +97,9 @@ By track:
 - genai:    "Full-Stack SWE building LLM pipelines with Python and Go"
 - systems:  "Software Engineer specializing in distributed systems and Go"
 - IT-track: "Systems Engineer — Linux infrastructure and automation"
+
+For any other track not listed above: derive the title from the role's primary skill area.
+Formula: "{Primary Skill Area} Engineer {building/specializing in} {key differentiator from role}"
 
 Confirm: printed title does NOT match JD role title verbatim.
 
@@ -133,7 +146,7 @@ build({
 
 Run:
 ```bash
-cd harness/batch-build && node {company}_{role}.js
+cd harness/batch-build && node {company}_{role}.js && cd ../..
 ```
 
 ### 2h. VALIDATE (full pass)
@@ -145,7 +158,7 @@ node harness/validate.js harness/batch-build/{company}_{role}.js
 If exit 1:
 1. Read each `FAIL` line
 2. Fix ONLY flagged items in the build script
-3. Re-run: `cd harness/batch-build && node {company}_{role}.js`
+3. Re-run: `cd harness/batch-build && node {company}_{role}.js && cd ../..`
 4. Re-run validator
 5. Repeat until exit 0
 
