@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Repo Is
 
-Resume + outreach automation for Quoc-Viet Bui. Given JD markdown file, produce tailored ATS-optimized 1-page DOCX resume, fit assessment, outreach drafts.
+Resume + outreach automation for Quoc-Viet Bui. Given a job description (JD) markdown file, produce a tailored ATS-optimized 1-page DOCX resume, fit assessment, and outreach drafts.
 
 ## Build Commands
 
@@ -51,11 +51,11 @@ ls batch-build/*.docx
 - `{Title} — {differentiator or achievement}` — proof-point-first
 - AVOID: "Software Engineer experienced in Python, REST APIs, Go, and Cloud Services"
 
-**Bullet formula**: "Built A doing B using C, which produced D" — impact mandatory. Every bullet: ≥1 tool/tech + ≥1 result. Activity-only red flags (always rewrite): "Collaborated with...", "Participated in...", "Assisted with...".
+**Bullet formula**: "Built A doing B using C, which produced D" — impact mandatory, not optional. Every bullet: ≥1 tool/tech + ≥1 result. Activity-only red flags (always rewrite): "Collaborated with...", "Participated in...", "Assisted with...".
 
-**Action verb variety**: no two bullets in one resume start with same verb.
+**Action verb variety**: no two bullets in one resume start with the same verb.
 
-**NO** professional summary — tagline only. **NO** "new grad" language.
+**NO** professional summary section — tagline only. **NO** "new grad" language.
 
 ## Architecture
 
@@ -70,10 +70,10 @@ JD markdown → visa check → role-track lookup → bullet selection from JSON
 - `buildv2.js` — DOCX generation engine. Project input: `{id, bullets}` only — metadata auto-resolved from JSON. Skills: plain strings, NOT `{label, vals}` objects.
 - `batch-build/` — working dir for build execution; copy both files here each session
 - `JobData/Jobs/` — 558 JD markdown files with frontmatter tags (`un-resume` → `resume-ed`)
-- `7. CLAUDE.md` — full authoritative rules doc (this file is condensed version)
+- `7. CLAUDE.md` — full authoritative rules doc (this file is the condensed version)
 
 ### buildv2.js Data Shape (v2.3)
-Work IDs: `gitlab` | `carboncopies` | `udayton` | `augustana`. WORK_META headers live in buildv2.js. Project IDs resolved from `master_resume_data.json`. Sync both files to `batch-build/` before running.
+Work IDs: `gitlab` | `carboncopies` | `udayton` | `augustana`. WORK_META headers live in buildv2.js. Project IDs resolved from `master_resume_data.json`. Always sync both files to `batch-build/` before running.
 
 ## Candidate
 
@@ -185,27 +185,13 @@ Two bullet tracks per employer. Pick based on role:
 | KSE 2024 | "Imposter Injection" | RL adversarial robustness, entropy-based feature selection | **2nd author** | Published |
 | Coq/Rocq | "From Program Graphs to Proofs" | Formal security verification via Program Graphs + Transition Systems | **1st author** | Draft (NOT published at KSE 2024) |
 
-## Feedback Loop
-
-After each resume generation, if Viet flags issues or requests changes:
-
-1. **Rate (optional)** — prefix message with `rate: X/3` (1=bad, 2=ok, 3=good)
-2. **I apply the fix**, then invoke `capture-mistake` → appends structured entry to `feedback/raw-log.md`
-3. **Synthesize** — when `feedback/raw-log.md` has ≥5 entries, or on demand ("synthesize feedback"), invoke `synthesize-mistakes` → distills patterns into "Key Errors to Avoid" below
-
-Trigger phrases:
-- `"synthesize feedback"` → run `synthesize-mistakes` on `feedback/raw-log.md`
-- `"rate: X/3 — <note>"` → I log it even if no code change needed
-
-`feedback/raw-log.md` — running log of all issues + fixes across JDs.
-
 ## Key Errors to Avoid
 
 - MRR Dashboard is Python/FastAPI — NOT C#/ASP.NET (HomeBoard is C#)
-- EthSwitch too technical for most roles — use ONLY for Systems/Go/Networking roles
+- EthSwitch is too technical for most roles — use ONLY for Systems/Go/Networking roles
 - pe_hackathon b0 starts as "Built" → override to "Scaled" to avoid verb conflict with gitlab work track
 - buildv2.js project format is `{id, bullets}` — do NOT pass `{name, url, stack, date, bullets}` manually
 - buildv2.js skills format is plain strings `'Python · SQL · ...'` — NOT `{label, vals}` objects
-- Low-fit rule: state fit % + flag missing tools, but still generate resume — let Viet decide
-- OutfitTracker URL is TBD (placeholder: github.com/vietbui1999ru/OutfitTracker) — update when repo public
+- Low-fit rule: state fit % and flag missing tools, but still generate the resume — let Viet decide
+- OutfitTracker URL is TBD (placeholder: github.com/vietbui1999ru/OutfitTracker) — update when repo is public
 - OutfitTracker bullets are estimates (metrics: ~80% cache speedup) — update with Instruments data as features ship
