@@ -15,7 +15,7 @@ export function getDb(): DB {
   return _db
 }
 
-function initSchema(db: DB): void {
+export function initSchema(db: DB): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS jd_jobs (
       id          TEXT PRIMARY KEY,
@@ -59,4 +59,8 @@ function initSchema(db: DB): void {
   // Migrate existing DBs that predate file_mtime column
   const hasMtime = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_jobs') WHERE name='file_mtime'`).get() as { c: number }).c > 0
   if (!hasMtime) db.exec(`ALTER TABLE jd_jobs ADD COLUMN file_mtime TEXT`)
+
+  // Migrate existing DBs that predate action column
+  const hasAction = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_jobs') WHERE name='action'`).get() as { c: number }).c > 0
+  if (!hasAction) db.exec(`ALTER TABLE jd_jobs ADD COLUMN action TEXT`)
 }

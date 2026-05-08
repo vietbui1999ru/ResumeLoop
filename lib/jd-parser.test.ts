@@ -39,4 +39,21 @@ describe('parseJd', () => {
     const r = parseJd('/fake/(1) IT Intern  Alta Equipment Group.md', SAMPLE)
     expect(r.id).toMatch(/^[a-z0-9-]+$/)
   })
+
+  it('action_FrontmatterHasValidAction_ReturnsIt', () => {
+    const content = SAMPLE.replace('tags:', 'Action: "1-Applied"\ntags:')
+    const r = parseJd('/fake/test.md', content)
+    expect(r.action).toBe('1-Applied')
+  })
+
+  it('action_FrontmatterMissingAction_ReturnsNull', () => {
+    const r = parseJd('/fake/test.md', SAMPLE)
+    expect(r.action).toBeNull()
+  })
+
+  it('action_FrontmatterHasInvalidValue_ReturnsNull', () => {
+    const content = SAMPLE.replace('tags:', 'Action: "typo-value"\ntags:')
+    const r = parseJd('/fake/test.md', content)
+    expect(r.action).toBeNull()
+  })
 })

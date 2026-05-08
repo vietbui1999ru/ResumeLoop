@@ -1,5 +1,6 @@
 import matter from 'gray-matter'
 import path from 'path'
+import { VALID_ACTIONS } from './actions'
 
 export interface JdJob {
   id: string
@@ -8,6 +9,7 @@ export interface JdJob {
   role_title: string
   tags: string        // JSON-encoded string[]
   visa_status: string // 'proceed' | 'kill' | 'unknown'
+  action: string | null // null when no Action key in frontmatter (DB preserves existing value on scan)
   raw_content: string
 }
 
@@ -113,6 +115,7 @@ export function parseJd(filePath: string, content: string): JdJob {
     role_title,
     tags: JSON.stringify(tags),
     visa_status: detectVisa(body),
+    action: fm.Action != null && (VALID_ACTIONS as readonly string[]).includes(String(fm.Action)) ? String(fm.Action) : null,
     raw_content: body,
   }
 }
