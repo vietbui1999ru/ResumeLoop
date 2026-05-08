@@ -6,6 +6,7 @@ import { reasonForJob, type ReasoningResult } from './ai-reason'
 import { getDb } from './db'
 import { getSetting } from './settings'
 import { PATHS } from './paths'
+import { GenerationLogger } from './generation-logger'
 
 export interface SSEEvent {
   stage: 'preflight' | 'ai-reason' | 'write-script' | 'build' | 'validate' | 'fix-loop' | 'finalize' | 'done' | 'error'
@@ -35,27 +36,35 @@ export async function* runPipeline(jobId: string): AsyncGenerator<SSEEvent> {
 
   if (!job) { yield errEvent('preflight', `Job not found: ${jobId}`); return }
 
+  const logger = new GenerationLogger(jobId, job.company, job.role_title)
+
+  function emit(event: SSEEvent): SSEEvent {
+    logger.stage({ stage: event.stage, status: event.status, data: event.data })
+    return event
+  }
+
   // Stage 0: Preflight
-  yield { stage: 'preflight', status: 'running', data: {} }
+  yield emit({ stage: 'preflight', status: 'running', data: {} })
   try {
     await preflight()
   } catch (e) {
-    yield errEvent('preflight', String(e)); return
+    yield emit(errEvent('preflight', String(e))); logger.finish('failed'); return
   }
-  yield { stage: 'preflight', status: 'ok', data: {} }
+  yield emit({ stage: 'preflight', status: 'ok', data: {} })
 
   // Stage 1: AI reasoning
-  yield { stage: 'ai-reason', status: 'running', data: {} }
+  yield emit({ stage: 'ai-reason', status: 'running', data: {} })
   let decision: ReasoningResult
   try {
     decision = await reasonForJob(job.raw_content)
   } catch (e) {
-    yield errEvent('ai-reason', String(e)); return
+    yield emit(errEvent('ai-reason', String(e))); logger.finish('failed'); return
   }
-  yield { stage: 'ai-reason', status: 'ok', data: decision as unknown as Record<string, unknown> }
+  logger.setAIDecision(decision as unknown as Record<string, unknown>)
+  yield emit({ stage: 'ai-reason', status: 'ok', data: decision as unknown as Record<string, unknown> })
 
   // Stage 2: Write build script
-  yield { stage: 'write-script', status: 'running', data: {} }
+  yield emit({ stage: 'write-script', status: 'running', data: {} })
   const slug = toSlug(`${job.company}_${job.role_title}`)
   const scriptName = `${slug}.js`
   const scriptPath = path.join(BATCH_BUILD, scriptName)
@@ -64,25 +73,26 @@ export async function* runPipeline(jobId: string): AsyncGenerator<SSEEvent> {
   try {
     const script = buildScript(decision, slug, docxName)
     fs.writeFileSync(scriptPath, script, 'utf8')
+    logger.setScript(scriptPath, script)
   } catch (e) {
-    yield errEvent('write-script', String(e)); return
+    yield emit(errEvent('write-script', String(e))); logger.finish('failed'); return
   }
-  yield { stage: 'write-script', status: 'ok', data: { script: scriptName } }
+  yield emit({ stage: 'write-script', status: 'ok', data: { script: scriptName } })
 
   // Stages 3+4+5: Build → Validate → Fix loop
   let docxPath: string | null = null
   for await (const event of buildValidateLoop(scriptPath, docxName)) {
-    yield event
+    yield emit(event)
     if (event.stage === 'finalize' && event.status === 'ok') {
       docxPath = event.data.docx as string
     }
-    if (event.status === 'fail') return
+    if (event.status === 'fail') { logger.finish('failed'); return }
   }
 
-  if (!docxPath) { yield errEvent('finalize', 'DOCX path not set after pipeline'); return }
+  if (!docxPath) { yield emit(errEvent('finalize', 'DOCX path not set after pipeline')); logger.finish('failed'); return }
 
   // Stage 6: DB + tag JD
-  yield { stage: 'finalize', status: 'running', data: {} }
+  yield emit({ stage: 'finalize', status: 'running', data: {} })
   try {
     const outputId = randomUUID()
     const outputDir = getSetting('output_path')
@@ -104,11 +114,13 @@ export async function* runPipeline(jobId: string): AsyncGenerator<SSEEvent> {
     )
 
     tagJdFile(job.file_path)
+    logger.finish('success')
 
-    yield { stage: 'finalize', status: 'ok', data: { path: destPath } }
-    yield { stage: 'done', status: 'ok', data: { outputId } }
+    yield emit({ stage: 'finalize', status: 'ok', data: { path: destPath } })
+    yield emit({ stage: 'done', status: 'ok', data: { outputId } })
   } catch (e) {
-    yield errEvent('finalize', String(e))
+    yield emit(errEvent('finalize', String(e)))
+    logger.finish('failed')
   }
 }
 
@@ -207,19 +219,36 @@ function buildScript(d: ReasoningResult, _slug: string, docxName: string): strin
 
   const skillRows = d.skillsRows
 
-  const serialize = (v: unknown) => JSON.stringify(v, null, 2)
+  // validate.js requires unquoted JS object keys (not JSON) and T() wrappers on bullets
+  const fmtWork = workEntries.map(w => {
+    const bullets = w.bullets.map(b => `      T(${JSON.stringify(b)})`).join(',\n')
+    return `    {\n      id: ${JSON.stringify(w.id)},\n      bullets: [\n${bullets},\n      ],\n    }`
+  }).join(',\n')
+
+  const fmtProj = projectEntries.map(p => {
+    const bullets = p.bullets.map(b => `      T(${JSON.stringify(b)})`).join(',\n')
+    return `    {\n      id: ${JSON.stringify(p.id)},\n      bullets: [\n${bullets},\n      ],\n    }`
+  }).join(',\n')
+
+  const fmtSkills = skillRows.map(s => `    ${JSON.stringify(s)}`).join(',\n')
 
   return `// Generated by ResumeAnalyze — ${new Date().toISOString()}
-const { makeDoc, TL } = require('./buildv2.js');
+const { makeDoc, TL, T } = require('./buildv2.js');
 const { Packer } = require('docx');
 const fs = require('fs');
 const path = require('path');
 
 const doc = makeDoc({
   tagline: TL(${JSON.stringify(d.tagline)}),
-  work: ${serialize(workEntries)},
-  projects: ${serialize(projectEntries)},
-  skills: ${serialize(skillRows)},
+  work: [
+${fmtWork}
+  ],
+  projects: [
+${fmtProj}
+  ],
+  skills: [
+${fmtSkills}
+  ],
 });
 
 Packer.toBuffer(doc).then(buf => {

@@ -69,6 +69,14 @@ function validateResult(r: ReasoningResult): void {
   if (!r.workIds || r.workIds.length !== 3) throw new Error(`workIds must have 3 entries, got ${r.workIds?.length}`)
   if (!r.projects || r.projects.length !== 3) throw new Error(`projects must have 3 entries, got ${r.projects?.length}`)
   if (!r.skillsRows || r.skillsRows.length !== 5) throw new Error(`skillsRows must have 5 entries, got ${r.skillsRows?.length}`)
-  if (r.tagline.length > 76) throw new Error(`tagline too long: ${r.tagline.length} chars`)
-  if (r.personaTitle.length > 60) throw new Error(`personaTitle too long: ${r.personaTitle.length} chars`)
+
+  // Auto-trim instead of throwing — fix-loop handles tagline constraints downstream
+  if (r.tagline.length > 76) {
+    let t = r.tagline.slice(0, 76)
+    const sp = t.lastIndexOf(' ')
+    r.tagline = sp > 60 ? t.slice(0, sp) : t
+  }
+  if (r.personaTitle.length > 60) {
+    r.personaTitle = r.personaTitle.slice(0, 60).trimEnd()
+  }
 }
