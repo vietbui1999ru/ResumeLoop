@@ -1,7 +1,13 @@
 'use client'
 import { useState, useEffect } from 'react'
 
-type FileKey = 'buildv2.js' | 'master_resume_data.json'
+type FileKey =
+  | 'buildv2.js'
+  | 'master_resume_data.json'
+  | 'ats-optimized-resume-system.md'
+  | 'ats-optimization-guidelines.md'
+  | 'CLAUDE-full.md'
+  | 'spec-job-match-resume-generator.md'
 
 function ConfigEditor({ file }: { file: FileKey }) {
   const [content, setContent] = useState('')
@@ -56,6 +62,18 @@ export default function ConfigPage() {
       </div>
       <ConfigEditor file="master_resume_data.json" />
       <ConfigEditor file="buildv2.js" />
+      <div>
+        <h2 className="text-sm font-semibold text-zinc-400 mb-4">Reference Docs</h2>
+        <p className="text-xs text-zinc-600 mb-4">
+          These files are injected into every AI reasoning call. Edit to tune resume generation behavior.
+        </p>
+        <div className="space-y-8">
+          <ConfigEditor file="ats-optimization-guidelines.md" />
+          <ConfigEditor file="CLAUDE-full.md" />
+          <ConfigEditor file="ats-optimized-resume-system.md" />
+          <ConfigEditor file="spec-job-match-resume-generator.md" />
+        </div>
+      </div>
     </div>
   )
 }
