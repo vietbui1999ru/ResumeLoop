@@ -70,7 +70,7 @@ JD markdown → visa check → role-track lookup → bullet selection from JSON
 - `buildv2.js` — DOCX generation engine. Project input: `{id, bullets}` only — metadata auto-resolved from JSON. Skills: plain strings, NOT `{label, vals}` objects.
 - `batch-build/` — working dir for build execution; copy both files here each session
 - `JobData/Jobs/` — 558 JD markdown files with frontmatter tags (`un-resume` → `resume-ed`)
-- `7. CLAUDE.md` — full authoritative rules doc (this file is condensed version)
+- `docs/reference/CLAUDE-full.md` — full authoritative rules doc (this file is condensed version)
 
 ### buildv2.js Data Shape (v2.3)
 Work IDs: `gitlab` | `carboncopies` | `udayton` | `augustana`. WORK_META headers live in buildv2.js. Project IDs resolved from `master_resume_data.json`. Sync both files to `batch-build/` before running.

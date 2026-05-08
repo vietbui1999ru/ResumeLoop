@@ -21,6 +21,13 @@ harness/batch-build/
 # macOS
 .DS_Store
 
-# Build
+# Build artifacts
 *.docx.tmp
+tsconfig.tsbuildinfo
+
+# Backups (write API + caveman compress)
+*.bak
+*.original.md
+
+# Generated screenshots
 *.png
