@@ -13,8 +13,7 @@ export interface MetricsResult {
   }
 }
 
-export function computeMetrics(): MetricsResult {
-  const db = getDb()
+export function computeMetrics(db = getDb()): MetricsResult {
 
   const total = (db.prepare('SELECT COUNT(*) as n FROM jd_jobs').get() as { n: number }).n
   const visaKill = (db.prepare("SELECT COUNT(*) as n FROM jd_jobs WHERE visa_status='kill'").get() as { n: number }).n
@@ -40,17 +39,18 @@ export function computeMetrics(): MetricsResult {
     ORDER BY o.built_at DESC LIMIT 50
   `).all() as Output[]
 
-  const tagRows = db.prepare('SELECT tags FROM jd_jobs').all() as Array<{ tags: string }>
+  const actionRows = db.prepare('SELECT action FROM jd_jobs').all() as Array<{ action: string | null }>
   const pipeline = { scraped: total, visa_kill: visaKill, pending: 0, resume_built: 0, applied: 0, interviewed: 0, rejected: 0, offer: 0 }
-  for (const { tags } of tagRows) {
-    let t: string[] = []
-    try { t = JSON.parse(tags ?? '[]') } catch { /* skip malformed row */ }
-    if (t.includes('un-resume'))   pipeline.pending++
-    if (t.includes('resume-ed'))   pipeline.resume_built++
-    if (t.includes('applied'))     pipeline.applied++
-    if (t.includes('interviewed')) pipeline.interviewed++
-    if (t.includes('rejected'))    pipeline.rejected++
-    if (t.includes('offer'))       pipeline.offer++
+  for (const { action } of actionRows) {
+    const a = action ?? '0-Saved'
+    if (a === '0-Saved') { pipeline.pending++; continue }
+    // Everything from 1-Applied onward has had a resume built and been applied
+    pipeline.resume_built++
+    pipeline.applied++
+    if (a === '2-Phone Screen' || a === '3-Interview' || a === '4-Offer' || a === '5-Rejected') pipeline.interviewed++
+    if (a === '4-Offer')    pipeline.offer++
+    if (a === '5-Rejected') pipeline.rejected++
+    // 6-Ghosted: counted in applied but not interviewed → becomes no_response in Sankey
   }
 
   db.prepare(`
