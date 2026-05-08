@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
-import path from 'path'
+import { PATHS } from '@/lib/paths'
 
 const ALLOWED: Record<string, string> = {
-  'buildv2.js':               path.join(process.cwd(), 'pipeline', 'buildv2.js'),
-  'master_resume_data.json':  path.join(process.cwd(), 'pipeline', 'master_resume_data.json'),
+  'buildv2.js':                        PATHS.pipeline.builder,
+  'master_resume_data.json':           PATHS.pipeline.masterData,
+  'ats-optimized-resume-system.md':    PATHS.docs.atsSystem,
+  'ats-optimization-guidelines.md':    PATHS.docs.atsGuidelines,
+  'CLAUDE-full.md':                    PATHS.docs.claudeFull,
+  'spec-job-match-resume-generator.md': PATHS.docs.spec,
 }
 
 export async function GET(req: NextRequest) {
