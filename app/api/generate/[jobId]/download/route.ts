@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
+import { getSetting } from '@/lib/settings'
 import fs from 'fs'
 import path from 'path'
 
@@ -19,7 +20,10 @@ export async function GET(
 
   const resolvedDocx = path.resolve(output.docx_path)
   const cwd = process.cwd()
-  if (!resolvedDocx.startsWith(cwd + path.sep)) {
+  const outputDir = path.resolve(getSetting('output_path'))
+  const inCwd = resolvedDocx.startsWith(cwd + path.sep)
+  const inOutputDir = resolvedDocx.startsWith(outputDir + path.sep)
+  if (!inCwd && !inOutputDir) {
     return NextResponse.json({ error: 'Invalid path' }, { status: 403 })
   }
 

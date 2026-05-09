@@ -397,9 +397,9 @@ export default function JobsPage() {
                   ) : job.has_reasoning ? (
                     <button
                       onClick={e => { e.stopPropagation(); setReasoningJobId(job.id) }}
-                      className="text-yellow-400 hover:text-yellow-300 text-xs"
+                      className="text-yellow-400 hover:text-yellow-300 text-xs whitespace-nowrap"
                       title="AI reasoning"
-                    >★</button>
+                    >★ Why?</button>
                   ) : job.has_output ? (
                     <span className="text-zinc-400 text-xs" title="Resume generated">doc</span>
                   ) : null}

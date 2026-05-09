@@ -1,0 +1,126 @@
+{
+  "jobId": "arq-platform-engineer-krakow",
+  "company": "ARQ",
+  "role_title": "Platform Engineer - Krakow",
+  "started_at": "2026-05-09T20:58:18.080Z",
+  "stages": [
+    {
+      "stage": "preflight",
+      "status": "ok",
+      "data": {},
+      "ts": "2026-05-09T20:58:18.867Z"
+    },
+    {
+      "stage": "ai-reason",
+      "status": "ok",
+      "data": {
+        "track": "SRE / DevOps Engineer",
+        "workVariant": "systems",
+        "workIds": [
+          "gitlab",
+          "carboncopies",
+          "udayton"
+        ],
+        "projects": [
+          "homelab",
+          "pe_hackathon",
+          "claude_tui"
+        ],
+        "personaTitle": "Platform / Infrastructure Engineer",
+        "tagline": "Platform Engineer building IaC and CI/CD with Terraform, Docker, Prometheus",
+        "skillsRows": [
+          "TypeScript · Go · Python · Rust · Bash · SQL",
+          "Terraform · Ansible · Docker · Kubernetes · Proxmox · Linux",
+          "GitLab CI/CD · GitHub Actions · GitOps · Nginx · WireGuard",
+          "Prometheus · Grafana · Datadog · Alertmanager · Log Aggregation",
+          "PostgreSQL · Redis · SQLite · BigQuery · Distributed Systems"
+        ],
+        "reasoning": "## Track\nJD is explicitly **Platform Engineer** with focus on IaC, CI/CD, Kubernetes, GitOps, and observability (Datadog/Prometheus/Grafana). SRE/DevOps track is the strongest match — covers Terraform/Ansible IaC, multi-region/distributed orchestration, and \"software engineer's approach to infrastructure.\" JD also notes \"TypeScript fluency\" as nice-to-have which Viet has.\n\n## Work Experience\n- **gitlab** (systems variant): Direct hit on JD's CI/CD pipeline templates, IaC with Ansible/Terraform, GitOps workflows. Open-source GitLab CE contribution signals platform engineering depth.\n- **carboncopies** (systems variant): Distributed simulation systems, Docker/GitHub Actions CI/CD reducing release cycles 2hr→30min, monitoring tooling for 50+ metrics, runbooks — matches JD \"documentation/runbooks\" value.\n- **udayton** (systems variant): Adds software engineering rigor (Coq formal verification = security mindset, RL research = systems thinking). Aligns with \"modern cyber-security attack vectors\" nice-to-have.\n\n## Projects\n- **homelab**: 15+ VM Proxmox cluster, Terraform IaC, Ansible runbooks, Prometheus+Grafana, Kubernetes, VLAN/WireGuard — mirrors JD's \"orchestrate hundreds of services across tens of k8s clusters\" at homelab scale.\n- **pe_hackathon**: SRE-focused with Prometheus+Grafana+Alertmanager (4 golden signals), CI/CD with pytest gates, Nginx+Gunicorn scaling — matches \"high-volume CI infrastructure\" + \"monitoring and alerting.\"\n- **claude_tui**: Rust systems-level work (Tokio, Unix sockets, JSON-RPC, SQLite WAL) shows \"software engineer's approach\" + security hardening (0600 permissions, zero-credential exposure) per \"security hardening\" nice-to-have.\n\n## Tagline\nUses value-oriented format with exact JD title \"Platform Engineer.\" Front-loads Terraform/Docker/Prometheus — top JD keywords. 76 chars exactly, fits 1-line at 12pt.\n\n## Skills\nFront-loaded TypeScript (JD nice-to-have) + Go/Python/Rust. Row 2 = IaC stack (Terraform/Ansible/Docker/K8s) directly from JD. Row 3 = CI/CD + GitOps (JD explicit ask). Row 4 = observability trio Datadog/Prometheus/Grafana exactly as JD lists. Row 5 = databases + distributed systems (JD nice-to-have)."
+      },
+      "ts": "2026-05-09T20:58:41.532Z"
+    },
+    {
+      "stage": "write-script",
+      "status": "ok",
+      "data": {
+        "script": "arq_platform_engineer_krakow.js"
+      },
+      "ts": "2026-05-09T20:58:41.536Z"
+    },
+    {
+      "stage": "build",
+      "status": "ok",
+      "data": {
+        "script": "arq_platform_engineer_krakow.js",
+        "attempt": 0
+      },
+      "ts": "2026-05-09T20:58:41.639Z"
+    },
+    {
+      "stage": "validate",
+      "status": "ok",
+      "data": {},
+      "ts": "2026-05-09T20:58:41.675Z"
+    },
+    {
+      "stage": "finalize",
+      "status": "ok",
+      "data": {
+        "docx": "/Users/vietquocbui/repos/ResumeAnalyze/harness/batch-build/arq_platform_engineer_krakow_VietBui.docx"
+      },
+      "ts": "2026-05-09T20:58:41.676Z"
+    },
+    {
+      "stage": "pdf",
+      "status": "ok",
+      "data": {
+        "pdf": "/Users/vietquocbui/repos/ResumeAnalyze/harness/batch-build/arq_platform_engineer_krakow_VietBui.pdf"
+      },
+      "ts": "2026-05-09T20:58:44.830Z"
+    },
+    {
+      "stage": "finalize",
+      "status": "ok",
+      "data": {
+        "path": "/Users/vietquocbui/Desktop/Resume Templates/arq_platform_engineer_krakow_VietBui.docx"
+      },
+      "ts": "2026-05-09T20:58:44.836Z"
+    },
+    {
+      "stage": "done",
+      "status": "ok",
+      "data": {
+        "outputId": "47f7d8c3-049c-4968-83bf-2ee0e28626d0"
+      },
+      "ts": "2026-05-09T20:58:44.836Z"
+    }
+  ],
+  "ai_decision": {
+    "track": "SRE / DevOps Engineer",
+    "workVariant": "systems",
+    "workIds": [
+      "gitlab",
+      "carboncopies",
+      "udayton"
+    ],
+    "projects": [
+      "homelab",
+      "pe_hackathon",
+      "claude_tui"
+    ],
+    "personaTitle": "Platform / Infrastructure Engineer",
+    "tagline": "Platform Engineer building IaC and CI/CD with Terraform, Docker, Prometheus",
+    "skillsRows": [
+      "TypeScript · Go · Python · Rust · Bash · SQL",
+      "Terraform · Ansible · Docker · Kubernetes · Proxmox · Linux",
+      "GitLab CI/CD · GitHub Actions · GitOps · Nginx · WireGuard",
+      "Prometheus · Grafana · Datadog · Alertmanager · Log Aggregation",
+      "PostgreSQL · Redis · SQLite · BigQuery · Distributed Systems"
+    ],
+    "reasoning": "## Track\nJD is explicitly **Platform Engineer** with focus on IaC, CI/CD, Kubernetes, GitOps, and observability (Datadog/Prometheus/Grafana). SRE/DevOps track is the strongest match — covers Terraform/Ansible IaC, multi-region/distributed orchestration, and \"software engineer's approach to infrastructure.\" JD also notes \"TypeScript fluency\" as nice-to-have which Viet has.\n\n## Work Experience\n- **gitlab** (systems variant): Direct hit on JD's CI/CD pipeline templates, IaC with Ansible/Terraform, GitOps workflows. Open-source GitLab CE contribution signals platform engineering depth.\n- **carboncopies** (systems variant): Distributed simulation systems, Docker/GitHub Actions CI/CD reducing release cycles 2hr→30min, monitoring tooling for 50+ metrics, runbooks — matches JD \"documentation/runbooks\" value.\n- **udayton** (systems variant): Adds software engineering rigor (Coq formal verification = security mindset, RL research = systems thinking). Aligns with \"modern cyber-security attack vectors\" nice-to-have.\n\n## Projects\n- **homelab**: 15+ VM Proxmox cluster, Terraform IaC, Ansible runbooks, Prometheus+Grafana, Kubernetes, VLAN/WireGuard — mirrors JD's \"orchestrate hundreds of services across tens of k8s clusters\" at homelab scale.\n- **pe_hackathon**: SRE-focused with Prometheus+Grafana+Alertmanager (4 golden signals), CI/CD with pytest gates, Nginx+Gunicorn scaling — matches \"high-volume CI infrastructure\" + \"monitoring and alerting.\"\n- **claude_tui**: Rust systems-level work (Tokio, Unix sockets, JSON-RPC, SQLite WAL) shows \"software engineer's approach\" + security hardening (0600 permissions, zero-credential exposure) per \"security hardening\" nice-to-have.\n\n## Tagline\nUses value-oriented format with exact JD title \"Platform Engineer.\" Front-loads Terraform/Docker/Prometheus — top JD keywords. 76 chars exactly, fits 1-line at 12pt.\n\n## Skills\nFront-loaded TypeScript (JD nice-to-have) + Go/Python/Rust. Row 2 = IaC stack (Terraform/Ansible/Docker/K8s) directly from JD. Row 3 = CI/CD + GitOps (JD explicit ask). Row 4 = observability trio Datadog/Prometheus/Grafana exactly as JD lists. Row 5 = databases + distributed systems (JD nice-to-have)."
+  },
+  "script_path": "/Users/vietquocbui/repos/ResumeAnalyze/harness/batch-build/arq_platform_engineer_krakow.js",
+  "script_content": "// Generated by ResumeAnalyze — 2026-05-09T20:58:41.535Z\nconst { makeDoc, TL, T } = require('./buildv2.js');\nconst { Packer } = require('docx');\nconst fs = require('fs');\nconst path = require('path');\n\nconst doc = makeDoc({\n  tagline: TL(\"Platform Engineer building IaC and CI/CD with Terraform, Docker, Prometheus\"),\n  work: [\n    {\n      id: \"gitlab\",\n      bullets: [\n      T(\"Contributing to GitLab CE in Ruby; shipped bug fixes reviewed and merged by senior platform engineers\"),\n      T(\"Automated infrastructure provisioning with Ansible and Terraform for reproducible deployment workflows\"),\n      T(\"Configured GitLab CI/CD pipelines with lint, test, and deploy stages for automated quality gating on merge requests\"),\n      T(\"Collaborated with senior engineers through code review cycles, iterating on Ruby implementations for production\"),\n      T(\"Built Git automation scripts for batch repository operations and CI/CD integration across open-source projects\"),\n      ],\n    },\n    {\n      id: \"carboncopies\",\n      bullets: [\n      T(\"Built async Python services for distributed simulation pipelines handling concurrent state transitions\"),\n      T(\"Automated deployment with Docker and GitHub Actions CI/CD, cutting release cycles from 2 hours to 30 minutes\"),\n      T(\"Developed monitoring tooling tracking 50+ system health metrics across distributed simulation clusters\"),\n      T(\"Diagnosed and resolved failures in distributed systems by tracing logs, isolating root causes, and shipping fixes\"),\n      T(\"Wrote runbooks for 3 distributed simulation systems; reduced onboarding time and improved cross-team handoffs\"),\n      ],\n    },\n    {\n      id: \"udayton\",\n      bullets: [\n      T(\"Built Coq framework translating Program Graphs to safety proofs; detected integer overflow and injection attacks\"),\n      T(\"Co-authored IEEE KSE 2024 paper on adversarial RL robustness; entropy-based imposter detection at 97%+ accuracy\"),\n      T(\"Wrote Python and TypeScript tooling for data processing, automation, and multi-system state management\"),\n      T(\"Designed and executed test suites for research systems; analyzed failure modes and iterated on fixes\"),\n      T(\"Authored technical documentation for 3 systems; presented research to cross-functional teams of 100+ students\"),\n      ],\n    }\n  ],\n  projects: [\n    {\n      id: \"homelab\",\n      bullets: [\n      T(\"Provisioned 3 bare-metal servers from BIOS/UEFI to GRUB bootloader config, enabling full-stack self-hosted services\"),\n      T(\"Designed and wired physical network switch and topology connecting 3 bare-metal servers with isolated VLAN segments\"),\n      T(\"Installed RAM and performed CPU/GPU undervolting on 3 bare-metal servers to reduce idle and peak power consumption\"),\n      ],\n    },\n    {\n      id: \"pe_hackathon\",\n      bullets: [\n      T(\"Built Flask URL shortener scaled to 0% error rate at 500 VUs via Nginx + 6 Gunicorn workers and Redis caching\"),\n      T(\"Instrumented Prometheus + Grafana tracking the four golden signals with Alertmanager Discord notifications\"),\n      T(\"Hardened CI/CD pipeline with 30 pytest tests at 66% coverage, blocking production deploys on test failure\"),\n      ],\n    },\n    {\n      id: \"claude_tui\",\n      bullets: [\n      T(\"Built Rust TUI dashboard with Tokio + Ratatui monitoring Claude Code token usage and costs across custom windows\"),\n      T(\"Built daemon-client IPC with JSON-RPC 2.0 over Unix domain sockets enabling zero-network, credential-free monitoring\"),\n      T(\"Engineered SQLite WAL storage with incremental log scanning and UUID v5 deduplication for reliable data ingestion\"),\n      ],\n    }\n  ],\n  skills: [\n    \"TypeScript · Go · Python · Rust · Bash · SQL\",\n    \"Terraform · Ansible · Docker · Kubernetes · Proxmox · Linux\",\n    \"GitLab CI/CD · GitHub Actions · GitOps · Nginx · WireGuard\",\n    \"Prometheus · Grafana · Datadog · Alertmanager · Log Aggregation\",\n    \"PostgreSQL · Redis · SQLite · BigQuery · Distributed Systems\"\n  ],\n});\n\nPacker.toBuffer(doc).then(buf => {\n  const out = path.join(__dirname, \"arq_platform_engineer_krakow_VietBui.docx\");\n  fs.writeFileSync(out, buf);\n  console.log('\\u2713 Written:', out);\n});\n",
+  "outcome": "success",
+  "completed_at": "2026-05-09T20:58:44.835Z"
+}

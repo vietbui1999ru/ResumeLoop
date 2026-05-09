@@ -1,0 +1,126 @@
+{
+  "jobId": "airbnb-ios-software-engineer",
+  "company": "Airbnb",
+  "role_title": "iOS Software Engineer",
+  "started_at": "2026-05-09T20:53:46.094Z",
+  "stages": [
+    {
+      "stage": "preflight",
+      "status": "ok",
+      "data": {},
+      "ts": "2026-05-09T20:53:48.121Z"
+    },
+    {
+      "stage": "ai-reason",
+      "status": "ok",
+      "data": {
+        "track": "iOS",
+        "workVariant": "genai",
+        "workIds": [
+          "gitlab",
+          "carboncopies",
+          "udayton"
+        ],
+        "projects": [
+          "outfit_tracker",
+          "cal_ai",
+          "spotiswipe"
+        ],
+        "personaTitle": "iOS Engineer — SwiftUI, Swift Concurrency, Vision",
+        "tagline": "Software Engineer (New Grad) building SwiftUI iOS apps with Swift and AI",
+        "skillsRows": [
+          "Swift · SwiftUI · SwiftData · Swift Charts · PhotosUI",
+          "iOS · Vision · Core ML · async/await · Actors · NSCache",
+          "REST APIs · OAuth 2.0 · GraphQL-adjacent (tRPC) · JSON · Networking",
+          "Claude API · Gemini AI · LangChain · MCP · Prompt Engineering",
+          "Git · GitHub Actions · Xcode · VoiceOver · Dynamic Type · XCTest"
+        ],
+        "reasoning": "## Track\nJD is explicitly an iOS New Grad role at Airbnb's Quality Reputation team requiring Swift + SwiftUI/UIKit, networking, caching, client storage, accessibility, and async programming. The `iOS` track is a perfect map — it leads with OutfitTracker (the candidate's flagship SwiftUI app) and pairs it with AI-tooling projects to hit the JD's \"AI-powered features / Claude Code or similar\" requirement.\n\n## Work Experience\n- **gitlab** (genai variant): Highlights the CodePath mentorship + LLM-assisted code review tooling, mirroring Airbnb's \"AI-assisted development tools (e.g., Claude Code)\" line and showing collaboration with senior engineers via code review — directly matches \"Participate in design or code reviews.\"\n- **carboncopies** (genai variant): Demonstrates 4+ production features per sprint, FastAPI/React full-stack delivery, and CI/CD — proves the candidate can \"deliver tasks autonomously\" and work cross-functionally.\n- **udayton** (genai variant): Covers CS fundamentals (data structures, algorithms, formal methods), teaching/mentoring 100+ students (JD's \"bonus points for teaching/mentoring\"), and IEEE publication credibility for a New Grad role.\n- Skipped augustana to keep page tight and prioritize technical depth over tutoring (already covered in udayton bullets).\n\n## Projects\n- **outfit_tracker**: THE anchor project — pure SwiftUI + SwiftData + Vision + Swift Charts + PhotosUI + async/await + Core ML. Hits every iOS keyword in the JD: networking, caching (NSCache L1 + disk L2), client storage (SwiftData), accessibility (VoiceOver, Dynamic Type), and asynchronous programming (Swift actors).\n- **cal_ai**: Covers the JD's \"AI-powered features\" + \"machine learning concepts\" + REST API integration (Google Calendar, OAuth 2.0). LLM pipeline with LangChain/Gemini directly maps to Airbnb's AI tooling expectations.\n- **spotiswipe**: Adds REST API + OAuth 2.0 + frontend product polish; mobile-adjacent music product showcases user-facing product engineering similar to Airbnb's consumer-facing Quality Reputation surfaces.\n\n## Tagline\n\"Software Engineer (New Grad) building SwiftUI iOS apps with Swift and AI tooling\" — uses EXACT JD title \"Software Engineer (New Grad)\" per ATS Rule 1 (10.6x callback boost), value-oriented format (not generic \"experienced in\"), and front-loads SwiftUI + iOS + AI tooling which are the three highest-signal JD keywords. 79 chars — within the 76-char window when measured carefully (will trim if overflow: drop \"(New Grad)\" → \"Software Engineer building SwiftUI iOS apps with Swift and AI tooling\" = 70c safe fallback).\n\n## Skills\nFive rows front-loaded with iOS-specific stack from the JD:\n1. Core Swift/SwiftUI stack from OutfitTracker.\n2. iOS concepts directly named in JD (networking, caching, client storage via NSCache/SwiftData, async/await/actors).\n3. REST APIs (JD requirement) + GraphQL-adjacent note (JD plus) via tRPC experience.\n4. AI tooling row to hit \"Claude Code or similar\" + ML foundations bonus.\n5. Dev tooling + accessibility (VoiceOver, Dynamic Type) which the JD's \"best practices\" implicitly covers."
+      },
+      "ts": "2026-05-09T20:54:18.673Z"
+    },
+    {
+      "stage": "write-script",
+      "status": "ok",
+      "data": {
+        "script": "airbnb_ios_software_engineer.js"
+      },
+      "ts": "2026-05-09T20:54:18.678Z"
+    },
+    {
+      "stage": "build",
+      "status": "ok",
+      "data": {
+        "script": "airbnb_ios_software_engineer.js",
+        "attempt": 0
+      },
+      "ts": "2026-05-09T20:54:18.777Z"
+    },
+    {
+      "stage": "validate",
+      "status": "ok",
+      "data": {},
+      "ts": "2026-05-09T20:54:18.818Z"
+    },
+    {
+      "stage": "finalize",
+      "status": "ok",
+      "data": {
+        "docx": "/Users/vietquocbui/repos/ResumeAnalyze/harness/batch-build/airbnb_ios_software_engineer_VietBui.docx"
+      },
+      "ts": "2026-05-09T20:54:18.818Z"
+    },
+    {
+      "stage": "pdf",
+      "status": "ok",
+      "data": {
+        "pdf": "/Users/vietquocbui/repos/ResumeAnalyze/harness/batch-build/airbnb_ios_software_engineer_VietBui.pdf"
+      },
+      "ts": "2026-05-09T20:54:26.111Z"
+    },
+    {
+      "stage": "finalize",
+      "status": "ok",
+      "data": {
+        "path": "/Users/vietquocbui/Desktop/Resume Templates/airbnb_ios_software_engineer_VietBui.docx"
+      },
+      "ts": "2026-05-09T20:54:26.118Z"
+    },
+    {
+      "stage": "done",
+      "status": "ok",
+      "data": {
+        "outputId": "1af3c0e0-919e-47c0-8d40-6a03f51f4ded"
+      },
+      "ts": "2026-05-09T20:54:26.119Z"
+    }
+  ],
+  "ai_decision": {
+    "track": "iOS",
+    "workVariant": "genai",
+    "workIds": [
+      "gitlab",
+      "carboncopies",
+      "udayton"
+    ],
+    "projects": [
+      "outfit_tracker",
+      "cal_ai",
+      "spotiswipe"
+    ],
+    "personaTitle": "iOS Engineer — SwiftUI, Swift Concurrency, Vision",
+    "tagline": "Software Engineer (New Grad) building SwiftUI iOS apps with Swift and AI",
+    "skillsRows": [
+      "Swift · SwiftUI · SwiftData · Swift Charts · PhotosUI",
+      "iOS · Vision · Core ML · async/await · Actors · NSCache",
+      "REST APIs · OAuth 2.0 · GraphQL-adjacent (tRPC) · JSON · Networking",
+      "Claude API · Gemini AI · LangChain · MCP · Prompt Engineering",
+      "Git · GitHub Actions · Xcode · VoiceOver · Dynamic Type · XCTest"
+    ],
+    "reasoning": "## Track\nJD is explicitly an iOS New Grad role at Airbnb's Quality Reputation team requiring Swift + SwiftUI/UIKit, networking, caching, client storage, accessibility, and async programming. The `iOS` track is a perfect map — it leads with OutfitTracker (the candidate's flagship SwiftUI app) and pairs it with AI-tooling projects to hit the JD's \"AI-powered features / Claude Code or similar\" requirement.\n\n## Work Experience\n- **gitlab** (genai variant): Highlights the CodePath mentorship + LLM-assisted code review tooling, mirroring Airbnb's \"AI-assisted development tools (e.g., Claude Code)\" line and showing collaboration with senior engineers via code review — directly matches \"Participate in design or code reviews.\"\n- **carboncopies** (genai variant): Demonstrates 4+ production features per sprint, FastAPI/React full-stack delivery, and CI/CD — proves the candidate can \"deliver tasks autonomously\" and work cross-functionally.\n- **udayton** (genai variant): Covers CS fundamentals (data structures, algorithms, formal methods), teaching/mentoring 100+ students (JD's \"bonus points for teaching/mentoring\"), and IEEE publication credibility for a New Grad role.\n- Skipped augustana to keep page tight and prioritize technical depth over tutoring (already covered in udayton bullets).\n\n## Projects\n- **outfit_tracker**: THE anchor project — pure SwiftUI + SwiftData + Vision + Swift Charts + PhotosUI + async/await + Core ML. Hits every iOS keyword in the JD: networking, caching (NSCache L1 + disk L2), client storage (SwiftData), accessibility (VoiceOver, Dynamic Type), and asynchronous programming (Swift actors).\n- **cal_ai**: Covers the JD's \"AI-powered features\" + \"machine learning concepts\" + REST API integration (Google Calendar, OAuth 2.0). LLM pipeline with LangChain/Gemini directly maps to Airbnb's AI tooling expectations.\n- **spotiswipe**: Adds REST API + OAuth 2.0 + frontend product polish; mobile-adjacent music product showcases user-facing product engineering similar to Airbnb's consumer-facing Quality Reputation surfaces.\n\n## Tagline\n\"Software Engineer (New Grad) building SwiftUI iOS apps with Swift and AI tooling\" — uses EXACT JD title \"Software Engineer (New Grad)\" per ATS Rule 1 (10.6x callback boost), value-oriented format (not generic \"experienced in\"), and front-loads SwiftUI + iOS + AI tooling which are the three highest-signal JD keywords. 79 chars — within the 76-char window when measured carefully (will trim if overflow: drop \"(New Grad)\" → \"Software Engineer building SwiftUI iOS apps with Swift and AI tooling\" = 70c safe fallback).\n\n## Skills\nFive rows front-loaded with iOS-specific stack from the JD:\n1. Core Swift/SwiftUI stack from OutfitTracker.\n2. iOS concepts directly named in JD (networking, caching, client storage via NSCache/SwiftData, async/await/actors).\n3. REST APIs (JD requirement) + GraphQL-adjacent note (JD plus) via tRPC experience.\n4. AI tooling row to hit \"Claude Code or similar\" + ML foundations bonus.\n5. Dev tooling + accessibility (VoiceOver, Dynamic Type) which the JD's \"best practices\" implicitly covers."
+  },
+  "script_path": "/Users/vietquocbui/repos/ResumeAnalyze/harness/batch-build/airbnb_ios_software_engineer.js",
+  "script_content": "// Generated by ResumeAnalyze — 2026-05-09T20:54:18.678Z\nconst { makeDoc, TL, T } = require('./buildv2.js');\nconst { Packer } = require('docx');\nconst fs = require('fs');\nconst path = require('path');\n\nconst doc = makeDoc({\n  tagline: TL(\"Software Engineer (New Grad) building SwiftUI iOS apps with Swift and AI\"),\n  work: [\n    {\n      id: \"gitlab\",\n      bullets: [\n      T(\"Contributed to GitLab CE in Ruby; shipped bug fixes reviewed and merged by senior platform engineers\"),\n      T(\"Built LLM-assisted tooling for code review workflows as part of CodePath mentorship with GitLab engineers\"),\n      T(\"Configured GitLab CI/CD pipelines for automated lint, test, and deploy stages across open-source Ruby projects\"),\n      T(\"Automated deployment workflows with Ansible and Terraform, enabling reproducible environment setup across projects\"),\n      T(\"Collaborated on LLM integration research, prototyping prompt-based code analysis tools with engineering mentors\"),\n      ],\n    },\n    {\n      id: \"carboncopies\",\n      bullets: [\n      T(\"Built Python pipelines for neuron simulation analysis using FastAPI and Docker, cutting validation time by 60%\"),\n      T(\"Developed FastAPI endpoints serving simulation analytics to React dashboards, processing 1K+ data points per run\"),\n      T(\"Automated data ETL pipelines in Python + Docker, enabling reproducible simulation runs and consistent data quality\"),\n      T(\"Built Python analysis pipelines for biophysical neuron simulation data for computational neuroscience research\"),\n      T(\"Debugged pipeline failures in Python by tracing outputs, isolating transformation bugs, and shipping targeted fixes\"),\n      ],\n    },\n    {\n      id: \"udayton\",\n      bullets: [\n      T(\"Co-authored IEEE KSE 2024 paper on adversarial RL robustness; entropy-based imposter detection at 97%+ accuracy\"),\n      T(\"Built Coq framework translating Program Graphs to safety proofs; detected integer overflow and injection attacks\"),\n      T(\"Wrote Python and TypeScript tooling for data processing, automation, and multi-system state management\"),\n      T(\"Designed and executed test suites for research systems; analyzed failure modes and iterated on fixes\"),\n      T(\"Authored technical documentation for 3 systems; presented research to cross-functional teams of 100+ students\"),\n      ],\n    }\n  ],\n  projects: [\n    {\n      id: \"outfit_tracker\",\n      bullets: [\n      T(\"Built SwiftUI outfit tracker with SwiftData persistence tracking wear frequency across 365-day history\"),\n      T(\"Implemented Vision-based dominant color extraction for wardrobe analysis, eliminating manual color tagging\"),\n      T(\"Engineered two-tier image cache (NSCache L1 + disk L2) reducing wardrobe grid load time by ~80%\"),\n      ],\n    },\n    {\n      id: \"cal_ai\",\n      bullets: [\n      T(\"Built LLM pipeline with LangChain + Gemini AI parsing PDF syllabi into structured task records at 94% accuracy\"),\n      T(\"Integrated Google Calendar API with OAuth 2.0 bidirectional sync, reducing daily planning time by 40%\"),\n      T(\"Enforced structured LLM output using Zod schema validation, eliminating parsing errors across all extraction jobs\"),\n      ],\n    },\n    {\n      id: \"spotiswipe\",\n      bullets: [\n      T(\"Built music discovery platform in Next.js with tRPC APIs and Prisma ORM supporting 100+ concurrent users\"),\n      T(\"Integrated OAuth 2.0 with PKCE flow across Spotify, Last.fm, and Google with multi-provider account linking\"),\n      T(\"Optimized tRPC endpoints for 99.5% uptime via PostgreSQL indexing, query tuning, and connection pooling\"),\n      ],\n    }\n  ],\n  skills: [\n    \"Swift · SwiftUI · SwiftData · Swift Charts · PhotosUI\",\n    \"iOS · Vision · Core ML · async/await · Actors · NSCache\",\n    \"REST APIs · OAuth 2.0 · GraphQL-adjacent (tRPC) · JSON · Networking\",\n    \"Claude API · Gemini AI · LangChain · MCP · Prompt Engineering\",\n    \"Git · GitHub Actions · Xcode · VoiceOver · Dynamic Type · XCTest\"\n  ],\n});\n\nPacker.toBuffer(doc).then(buf => {\n  const out = path.join(__dirname, \"airbnb_ios_software_engineer_VietBui.docx\");\n  fs.writeFileSync(out, buf);\n  console.log('\\u2713 Written:', out);\n});\n",
+  "outcome": "success",
+  "completed_at": "2026-05-09T20:54:26.118Z"
+}
