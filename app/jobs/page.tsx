@@ -28,6 +28,7 @@ interface Job {
   file_mtime: string | null
   scanned_at: string | null
   has_reasoning: number  // SQLite returns 0 or 1
+  has_output: number     // SQLite returns 0 or 1
 }
 
 type SortCol = 'company' | 'role_title' | 'role_track' | 'fit_pct' | 'action' | 'file_mtime' | 'scanned_at'
@@ -389,6 +390,8 @@ export default function JobsPage() {
                       className="text-yellow-400 hover:text-yellow-300 text-xs"
                       title="AI reasoning"
                     >★</button>
+                  ) : job.has_output ? (
+                    <span className="text-zinc-400 text-xs" title="Resume generated">doc</span>
                   ) : null}
                 </td>
               </tr>

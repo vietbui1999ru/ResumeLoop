@@ -9,7 +9,7 @@ import { PATHS } from './paths'
 import { GenerationLogger } from './generation-logger'
 
 export interface SSEEvent {
-  stage: 'preflight' | 'ai-reason' | 'write-script' | 'build' | 'validate' | 'fix-loop' | 'finalize' | 'done' | 'error'
+  stage: 'preflight' | 'ai-reason' | 'write-script' | 'build' | 'validate' | 'fix-loop' | 'pdf' | 'finalize' | 'done' | 'error'
   status: 'ok' | 'fail' | 'running'
   data: Record<string, unknown>
 }
@@ -86,6 +86,27 @@ export async function* runPipeline(jobId: string): AsyncGenerator<SSEEvent> {
 
   if (!docxPath) { yield emit(errEvent('finalize', 'DOCX path not set after pipeline')); logger.finish('failed'); return }
 
+  // Stage: PDF generation (non-fatal)
+  yield emit({ stage: 'pdf', status: 'running', data: {} })
+  let pdfPath: string | null = null
+  const base = docxName.endsWith('.docx') ? docxName.slice(0, -5) : docxName
+  const pdfName = `${base}.pdf`
+  const pdfExpected = path.join(BATCH_BUILD, pdfName)
+  const toPdfScript = path.join(process.cwd(), 'harness', 'to-pdf.js')
+  try {
+    const pdfResult = await spawnAsync('node', [toPdfScript, docxPath, pdfExpected], process.cwd())
+    if (pdfResult.code === 0) {
+      pdfPath = pdfExpected
+      yield emit({ stage: 'pdf', status: 'ok', data: { pdf: pdfPath } })
+    } else {
+      logger.stage({ stage: 'pdf', status: 'fail', data: { message: pdfResult.stderr } })
+      yield emit({ stage: 'pdf', status: 'fail', data: { message: 'PDF generation failed (non-fatal)' } })
+    }
+  } catch (e) {
+    yield emit({ stage: 'pdf', status: 'fail', data: { message: String(e) } })
+  }
+
+
   // Stage 6: DB + tag JD
   yield emit({ stage: 'finalize', status: 'running', data: {} })
   try {
@@ -96,12 +117,18 @@ export async function* runPipeline(jobId: string): AsyncGenerator<SSEEvent> {
     fs.mkdirSync(outputDir, { recursive: true })
     fs.renameSync(docxPath, destPath)
 
+    let finalPdfPath: string | null = null
+    if (pdfPath) {
+      const pdfDest = path.join(outputDir, pdfName)
+      try { fs.renameSync(pdfPath, pdfDest); finalPdfPath = pdfDest } catch { /* non-fatal */ }
+    }
+
     getDb().prepare(`
       INSERT OR REPLACE INTO jd_outputs
-        (id, job_id, docx_path, projects_used, work_ids_used, variant, tagline, reasoning, built_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        (id, job_id, docx_path, pdf_path, projects_used, work_ids_used, variant, tagline, reasoning, built_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     `).run(
-      outputId, jobId, destPath,
+      outputId, jobId, destPath, finalPdfPath,
       JSON.stringify(decision.projects),
       JSON.stringify(decision.workIds),
       decision.workVariant,

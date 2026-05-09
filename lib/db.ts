@@ -3,6 +3,7 @@ import path from 'path'
 
 let _db: DB | null = null
 
+
 export function getDb(): DB {
   if (_db) return _db
   const dbPath = process.env.DB_PATH
