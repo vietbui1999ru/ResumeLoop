@@ -3,6 +3,7 @@ import path from 'path'
 
 let _db: DB | null = null
 
+
 export function getDb(): DB {
   if (_db) return _db
   const dbPath = process.env.DB_PATH
@@ -15,7 +16,7 @@ export function getDb(): DB {
   return _db
 }
 
-function initSchema(db: DB): void {
+export function initSchema(db: DB): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS jd_jobs (
       id          TEXT PRIMARY KEY,
@@ -54,9 +55,31 @@ function initSchema(db: DB): void {
       key   TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id         TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      role       TEXT NOT NULL,
+      content    TEXT,
+      tool_calls TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_chat_session ON chat_messages(session_id, created_at);
   `)
 
   // Migrate existing DBs that predate file_mtime column
   const hasMtime = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_jobs') WHERE name='file_mtime'`).get() as { c: number }).c > 0
   if (!hasMtime) db.exec(`ALTER TABLE jd_jobs ADD COLUMN file_mtime TEXT`)
+
+  // Migrate existing DBs that predate action column
+  const hasAction = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_jobs') WHERE name='action'`).get() as { c: number }).c > 0
+  if (!hasAction) db.exec(`ALTER TABLE jd_jobs ADD COLUMN action TEXT`)
+
+  // Migrate existing DBs that predate reasoning column
+  const hasReasoning = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_outputs') WHERE name='reasoning'`).get() as { c: number }).c > 0
+  if (!hasReasoning) db.exec(`ALTER TABLE jd_outputs ADD COLUMN reasoning TEXT`)
+
+  // Migrate existing DBs that predate pdf_path column
+  const hasPdfPath = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_outputs') WHERE name='pdf_path'`).get() as { c: number }).c > 0
+  if (!hasPdfPath) db.exec(`ALTER TABLE jd_outputs ADD COLUMN pdf_path TEXT`)
 }
