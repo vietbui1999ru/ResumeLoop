@@ -114,8 +114,8 @@ async function runStream(
           }
         }
 
-        if (!toolResult && (!block.input || Object.keys(block.input).length === 0)) {
-          toolResult = 'Error: tool input was malformed — please retry with valid arguments'
+        if (!toolResult) {
+          toolResult = `Error: unknown or unhandled tool "${block.name}" — please use read_file or propose_edit`
         }
 
         toolResults.push({ id: block.id, result: toolResult })
