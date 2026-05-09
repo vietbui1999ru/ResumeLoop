@@ -62,9 +62,11 @@ describe('reasoning column migration', () => {
       '  id TEXT PRIMARY KEY, job_id TEXT NOT NULL, docx_path TEXT, built_at DATETIME' +
       ');'
     )
+    const colsBefore = db.prepare('PRAGMA table_info(jd_outputs)').all() as Array<{ name: string }>
+    expect(colsBefore.map(c => c.name)).not.toContain('reasoning')
     initSchema(db)
-    const cols = db.prepare('PRAGMA table_info(jd_outputs)').all() as Array<{ name: string }>
-    expect(cols.map(c => c.name)).toContain('reasoning')
+    const colsAfter = db.prepare('PRAGMA table_info(jd_outputs)').all() as Array<{ name: string }>
+    expect(colsAfter.map(c => c.name)).toContain('reasoning')
     db.close()
   })
 })
@@ -78,9 +80,11 @@ describe('pdf_path column migration', () => {
       '  id TEXT PRIMARY KEY, job_id TEXT NOT NULL, docx_path TEXT, built_at DATETIME' +
       ');'
     )
+    const colsBefore = db.prepare('PRAGMA table_info(jd_outputs)').all() as Array<{ name: string }>
+    expect(colsBefore.map(c => c.name)).not.toContain('pdf_path')
     initSchema(db)
-    const cols = db.prepare('PRAGMA table_info(jd_outputs)').all() as Array<{ name: string }>
-    expect(cols.map(c => c.name)).toContain('pdf_path')
+    const colsAfter = db.prepare('PRAGMA table_info(jd_outputs)').all() as Array<{ name: string }>
+    expect(colsAfter.map(c => c.name)).toContain('pdf_path')
     db.close()
   })
 })

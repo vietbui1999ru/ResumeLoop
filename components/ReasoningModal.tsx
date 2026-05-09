@@ -34,13 +34,15 @@ export default function ReasoningModal({ jobId, company, roleTitle, onClose }: P
     return () => window.removeEventListener('keydown', handler)
   }, [onClose])
 
+  const EXPECTED_HEADINGS = new Set(['Track', 'Work Experience', 'Projects', 'Tagline', 'Skills'])
+
   const sections = output?.reasoning
     ? output.reasoning.split(/\n(?=## )/).map(s => {
         const newlineIdx = s.indexOf('\n')
         const heading = s.slice(0, newlineIdx === -1 ? s.length : newlineIdx).replace(/^##\s*/, '')
         const body = newlineIdx === -1 ? '' : s.slice(newlineIdx + 1).trim()
         return { heading, body }
-      })
+      }).filter(s => EXPECTED_HEADINGS.has(s.heading))
     : []
 
   return (

@@ -23,11 +23,6 @@ function bulletsKey(workVariant: string): string {
   return workVariant
 }
 
-// Map workVariant → skills variant key (skills keys: fullstack/genai/sre_devops/systems/data_ml)
-function skillsKey(workVariant: string): string {
-  if (workVariant === 'IT-track') return 'sre_devops'
-  return workVariant
-}
 
 export async function* runPipeline(jobId: string): AsyncGenerator<SSEEvent> {
   const job = getDb().prepare(
@@ -203,7 +198,6 @@ function buildScript(d: ReasoningResult, _slug: string, docxName: string): strin
   }
 
   const variantKey = bulletsKey(d.workVariant)
-  void skillsKey  // reserved for future use; AI returns skillsRows directly
 
   const workEntries = d.workIds.map(id => {
     const exp = master.experience.find(e => e.id === id)
