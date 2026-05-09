@@ -63,4 +63,8 @@ export function initSchema(db: DB): void {
   // Migrate existing DBs that predate action column
   const hasAction = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_jobs') WHERE name='action'`).get() as { c: number }).c > 0
   if (!hasAction) db.exec(`ALTER TABLE jd_jobs ADD COLUMN action TEXT`)
+
+  // Migrate existing DBs that predate reasoning column
+  const hasReasoning = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_outputs') WHERE name='reasoning'`).get() as { c: number }).c > 0
+  if (!hasReasoning) db.exec(`ALTER TABLE jd_outputs ADD COLUMN reasoning TEXT`)
 }
