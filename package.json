@@ -11,7 +11,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.95.1",
     "better-sqlite3": "^12.9.0",
+    "diff": "^9.0.0",
     "gray-matter": "^4.0.3",
     "next": "14.2.35",
     "openai": "^4.77.0",
@@ -22,6 +24,7 @@
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
+    "@types/diff": "^7.0.2",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
