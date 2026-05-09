@@ -103,7 +103,7 @@ async function runStream(
           if (result.error) {
             toolResult = `Error: ${result.error}`
           } else {
-            const pendingKey = `pending_edit:${sessionId}`
+            const pendingKey = `pending_edit:${sessionId}:${file}`
             getDb()
               .prepare(
                 'INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value'

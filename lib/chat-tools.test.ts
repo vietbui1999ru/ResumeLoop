@@ -29,9 +29,11 @@ describe('handleProposeEdit', () => {
     expect(result.error).toMatch(/invalid json/i)
   })
 
-  it('returns diff string for valid edit', async () => {
+  it('returns non-empty diff with markers for valid edit', async () => {
     const newContent = JSON.stringify({ test: false }, null, 2)
-    const result = await handleProposeEdit('spec', 'test', newContent)
-    expect(typeof result.diff).toBe('string')
+    const result = await handleProposeEdit('spec', 'test change', newContent)
+    expect(result.error).toBeUndefined()
+    expect(result.diff).toMatch(/^---/m)    // diff header present
+    expect(result.diff).toMatch(/^\+/m)     // has added lines
   })
 })

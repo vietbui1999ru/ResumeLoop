@@ -63,6 +63,7 @@ export default function ChatPage() {
       body: JSON.stringify({ sessionId, message: text }),
     })
     if (!res.body) {
+      setMessages(prev => prev.filter(m => m.id !== assistantId))
       setStreaming(false)
       return
     }
@@ -112,6 +113,20 @@ export default function ChatPage() {
     setStreaming(false)
   }
 
+  const loadSessionHistory = useCallback(async (sid: string) => {
+    const res = await fetch(`/api/chat/sessions/${sid}`)
+    if (!res.ok) return
+    const rows = await res.json() as Array<{ role: string; content: string | null; tool_calls: string | null }>
+    const msgs: Message[] = rows
+      .filter(r => r.role === 'user' || r.role === 'assistant')
+      .map(r => ({
+        id: crypto.randomUUID(),
+        role: r.role as 'user' | 'assistant',
+        text: r.content ?? '',
+      }))
+    setMessages(msgs)
+  }, [])
+
   const startNew = () => {
     setSessionId(newId())
     setMessages([])
@@ -137,7 +152,7 @@ export default function ChatPage() {
               key={s.session_id}
               onClick={() => {
                 setSessionId(s.session_id)
-                setMessages([])
+                loadSessionHistory(s.session_id)
               }}
               className={`w-full text-left px-3 py-2 text-xs hover:bg-zinc-800 ${
                 s.session_id === sessionId ? 'bg-zinc-800' : ''

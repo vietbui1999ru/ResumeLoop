@@ -18,7 +18,7 @@ export default function ChatDiff({ file, description, diff, sessionId, onApplied
     await fetch('/api/chat/apply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, accept }),
+      body: JSON.stringify({ sessionId, accept, file }),
     })
     setState(accept ? 'accepted' : 'rejected')
     setBusy(false)

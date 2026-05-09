@@ -4,17 +4,17 @@ import { getDb } from '@/lib/db'
 import { FILE_MAP } from '@/lib/chat-tools'
 
 export async function POST(req: Request) {
-  const { sessionId, accept } = (await req.json()) as { sessionId: string; accept: boolean }
-  if (!sessionId) return NextResponse.json({ error: 'sessionId required' }, { status: 400 })
+  const { sessionId, accept, file } = (await req.json()) as { sessionId: string; accept: boolean; file: string }
+  if (!sessionId || !file) return NextResponse.json({ error: 'sessionId and file required' }, { status: 400 })
 
-  const pendingKey = `pending_edit:${sessionId}`
+  const pendingKey = `pending_edit:${sessionId}:${file}`
   const row = getDb()
     .prepare('SELECT value FROM app_settings WHERE key = ?')
     .get(pendingKey) as { value: string } | undefined
 
   if (!row) return NextResponse.json({ error: 'No pending edit' }, { status: 404 })
 
-  const { file, description: _desc, new_content } = JSON.parse(row.value) as {
+  const { description: _desc, new_content } = JSON.parse(row.value) as {
     file: string
     description: string
     new_content: string

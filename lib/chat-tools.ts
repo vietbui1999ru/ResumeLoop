@@ -47,7 +47,10 @@ export async function handleReadFile(file: FileKey): Promise<string> {
   if (!filePath) return `Error: unknown file key "${file}"`
   try {
     const content = fs.readFileSync(filePath, 'utf8')
-    return content.length > 8000 ? content.slice(0, 8000) + '\n[truncated]' : content
+    const MAX_CHARS = file === 'master_resume_data' ? 32000 : 8000
+    return content.length > MAX_CHARS
+      ? content.slice(0, MAX_CHARS) + '\n[truncated — do not propose edits based on this partial content]'
+      : content
   } catch {
     return `Error: could not read ${file}`
   }
