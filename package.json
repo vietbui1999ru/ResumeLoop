@@ -11,6 +11,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.95.1",
     "better-sqlite3": "^12.9.0",
     "gray-matter": "^4.0.3",
     "next": "14.2.35",
