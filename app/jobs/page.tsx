@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { extractAllTags, jobMatchesTagFilter, parseTags } from '@/lib/tag-filter'
 import JobDetailModal from '@/components/JobDetailModal'
 import GenerationPanel from '@/components/GenerationPanel'
@@ -75,6 +75,7 @@ export default function JobsPage() {
   const [generating, setGenerating]       = useState(false)
   const [showPanel, setShowPanel]         = useState(false)
   const [generateQueue, setGenerateQueue] = useState<string[]>([])
+  const doneCountRef = useRef(0)
 
   // Sort state — default: newest file first
   const [sort, setSort] = useState<{ col: SortCol; dir: SortDir }>({ col: 'file_mtime', dir: 'desc' })
@@ -117,6 +118,7 @@ export default function JobsPage() {
     const ids = Array.from(selected)
     if (ids.length === 0) return
     setGenerating(true)
+    doneCountRef.current = 0
     const res = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -294,12 +296,20 @@ export default function JobsPage() {
           }
           onDone={(jobId) => {
             setGenStatus(prev => new Map(prev).set(jobId, 'done'))
-            setGenerating(false)
             reload(q)
+            doneCountRef.current += 1
+            if (doneCountRef.current >= generateQueue.length) {
+              setGenerating(false)
+              doneCountRef.current = 0
+            }
           }}
           onError={(jobId, msg) => {
             setGenStatus(prev => new Map(prev).set(jobId, `✗ ${msg.slice(0, 20)}`))
-            setGenerating(false)
+            doneCountRef.current += 1
+            if (doneCountRef.current >= generateQueue.length) {
+              setGenerating(false)
+              doneCountRef.current = 0
+            }
           }}
         />
       )}

@@ -36,10 +36,12 @@ export function initSchema(db: DB): void {
       id            TEXT PRIMARY KEY,
       job_id        TEXT NOT NULL REFERENCES jd_jobs(id),
       docx_path     TEXT,
+      pdf_path      TEXT,
       projects_used TEXT,
       work_ids_used TEXT,
       variant       TEXT,
       tagline       TEXT,
+      reasoning     TEXT,
       built_at      DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
