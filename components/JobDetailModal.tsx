@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useJobOutput } from '@/lib/useJobOutput'
 
 interface JobDetail {
   id: string
@@ -25,6 +26,8 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
   const [job, setJob] = useState<JobDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const { output, loading: outputLoading } = useJobOutput(jobId)
+  const [showPdf, setShowPdf] = useState(false)
 
   useEffect(() => {
     fetch(`/api/jobs/${jobId}`)
@@ -109,6 +112,43 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
               >
                 Open file ↗
               </a>
+            </div>
+
+            {/* Resume section */}
+            <div className="px-5 py-3 border-b border-zinc-700">
+              <p className="text-xs text-zinc-500 mb-2 uppercase tracking-wide">Resume</p>
+              {outputLoading ? (
+                <p className="text-xs text-zinc-500">Loading…</p>
+              ) : !output ? (
+                <p className="text-xs text-zinc-500">No resume generated yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex gap-3">
+                    <a
+                      href={`/api/jobs/${jobId}/download`}
+                      download
+                      className="text-sm text-indigo-400 hover:text-indigo-300"
+                    >↓ Download DOCX</a>
+                    {output.pdf_path ? (
+                      <button
+                        onClick={() => setShowPdf(v => !v)}
+                        className="text-sm text-indigo-400 hover:text-indigo-300"
+                      >
+                        {showPdf ? 'Hide PDF' : 'Preview PDF'}
+                      </button>
+                    ) : (
+                      <span className="text-sm text-zinc-600" title="PDF not available">Preview PDF</span>
+                    )}
+                  </div>
+                  {showPdf && (
+                    <iframe
+                      src={`/api/jobs/${jobId}/preview`}
+                      className="w-full h-[600px] rounded border border-zinc-700"
+                      title="Resume PDF preview"
+                    />
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Raw JD body */}
