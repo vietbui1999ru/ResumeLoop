@@ -31,7 +31,6 @@ describe('db schema', () => {
 describe('action column migration', () => {
   it('adds action column to pre-existing DB missing it', () => {
     const db = new Database(':memory:')
-    // Simulate a legacy DB that predates the action column (no action column present)
     const legacyDdl = 'CREATE TABLE IF NOT EXISTS jd_jobs (' +
       'id TEXT PRIMARY KEY, file_path TEXT NOT NULL, company TEXT, ' +
       'role_title TEXT, tags TEXT, visa_status TEXT, role_track TEXT, ' +
@@ -85,6 +84,21 @@ describe('pdf_path column migration', () => {
     initSchema(db)
     const colsAfter = db.prepare('PRAGMA table_info(jd_outputs)').all() as Array<{ name: string }>
     expect(colsAfter.map(c => c.name)).toContain('pdf_path')
+    db.close()
+  })
+})
+
+describe('chat_messages table', () => {
+  it('creates chat_messages with required columns', () => {
+    const db = new Database(':memory:')
+    initSchema(db)
+    const cols = db.prepare('PRAGMA table_info(chat_messages)').all() as Array<{ name: string }>
+    const names = cols.map(c => c.name)
+    expect(names).toContain('id')
+    expect(names).toContain('session_id')
+    expect(names).toContain('role')
+    expect(names).toContain('content')
+    expect(names).toContain('tool_calls')
     db.close()
   })
 })

@@ -7,6 +7,7 @@ const NAV = [
   { href: '/jobs',     label: 'Jobs' },
   { href: '/config',   label: 'Config' },
   { href: '/settings', label: 'Settings' },
+  { href: '/chat',     label: 'Chat' },
 ]
 
 export function Sidebar() {
