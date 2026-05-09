@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
+    "docx": "^9.6.1",
     "mammoth": "^1.8.0",
     "puppeteer": "^23.0.0"
   }

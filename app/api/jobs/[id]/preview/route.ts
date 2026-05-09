@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
+import { getSetting } from '@/lib/settings'
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -15,7 +16,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const resolvedPdf = path.resolve(row.pdf_path)
   const cwd = process.cwd()
-  if (!resolvedPdf.startsWith(cwd + path.sep) && resolvedPdf !== cwd) {
+  const outputDir = path.resolve(getSetting('output_path'))
+  const inCwd = resolvedPdf.startsWith(cwd + path.sep)
+  const inOutputDir = resolvedPdf.startsWith(outputDir + path.sep)
+  if (!inCwd && !inOutputDir) {
     return NextResponse.json({ error: 'Invalid path' }, { status: 403 })
   }
   if (!resolvedPdf.endsWith('.pdf')) {
