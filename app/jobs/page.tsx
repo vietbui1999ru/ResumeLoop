@@ -4,6 +4,7 @@ import { extractAllTags, jobMatchesTagFilter, parseTags } from '@/lib/tag-filter
 import JobDetailModal from '@/components/JobDetailModal'
 import GenerationPanel from '@/components/GenerationPanel'
 import { VALID_ACTIONS } from '@/lib/actions'
+import ReasoningModal from '@/components/ReasoningModal'
 
 const ACTION_COLORS: Record<string, string> = {
   '0-Saved':       'text-zinc-400',
@@ -26,6 +27,7 @@ interface Job {
   action: string | null
   file_mtime: string | null
   scanned_at: string | null
+  has_reasoning: number  // SQLite returns 0 or 1
 }
 
 type SortCol = 'company' | 'role_title' | 'role_track' | 'fit_pct' | 'action' | 'file_mtime' | 'scanned_at'
@@ -64,6 +66,7 @@ export default function JobsPage() {
   const [tagFilter, setTagFilter] = useState('')
 
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
+  const [reasoningJobId, setReasoningJobId] = useState<string | null>(null)
 
   // Generation state
   const [selected, setSelected]           = useState<Set<string>>(new Set())
@@ -368,21 +371,25 @@ export default function JobsPage() {
                 <td className="py-2">
                   <span className={job.visa_status === 'kill' ? 'text-red-400' : 'text-green-400'}>{job.visa_status}</span>
                 </td>
-                <td className="py-2 text-xs">
-                  {genStatus.get(job.id)
-                    ? (
-                      <span className={
-                        genStatus.get(job.id) === 'done'
-                          ? 'text-green-400'
-                          : genStatus.get(job.id)?.startsWith('✗')
-                            ? 'text-red-400'
-                            : 'text-zinc-400'
-                      }>
-                        {genStatus.get(job.id)}
-                      </span>
-                    )
-                    : <span className="text-zinc-600">—</span>
-                  }
+                <td className="py-1.5 pr-4 whitespace-nowrap">
+                  {genStatus.has(job.id) ? (
+                    <span className="text-zinc-400 text-xs">
+                      {genStatus.get(job.id)}
+                      {genStatus.get(job.id) === 'done' && (
+                        <button
+                          onClick={e => { e.stopPropagation(); setReasoningJobId(job.id) }}
+                          className="ml-1 text-yellow-400 hover:text-yellow-300"
+                          title="AI reasoning"
+                        >★ Why?</button>
+                      )}
+                    </span>
+                  ) : job.has_reasoning ? (
+                    <button
+                      onClick={e => { e.stopPropagation(); setReasoningJobId(job.id) }}
+                      className="text-yellow-400 hover:text-yellow-300 text-xs"
+                      title="AI reasoning"
+                    >★</button>
+                  ) : null}
                 </td>
               </tr>
             )
@@ -397,6 +404,18 @@ export default function JobsPage() {
       {selectedJobId && (
         <JobDetailModal jobId={selectedJobId} onClose={() => setSelectedJobId(null)} />
       )}
+
+      {reasoningJobId && (() => {
+        const j = jobs.find(x => x.id === reasoningJobId)
+        return j ? (
+          <ReasoningModal
+            jobId={reasoningJobId}
+            company={j.company}
+            roleTitle={j.role_title}
+            onClose={() => setReasoningJobId(null)}
+          />
+        ) : null
+      })()}
     </div>
   )
 }
