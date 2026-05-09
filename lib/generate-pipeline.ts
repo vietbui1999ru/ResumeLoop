@@ -89,7 +89,8 @@ export async function* runPipeline(jobId: string): AsyncGenerator<SSEEvent> {
   // Stage: PDF generation (non-fatal)
   yield emit({ stage: 'pdf', status: 'running', data: {} })
   let pdfPath: string | null = null
-  const pdfName = docxName.replace(/\.docx$/, '.pdf')
+  const base = docxName.endsWith('.docx') ? docxName.slice(0, -5) : docxName
+  const pdfName = `${base}.pdf`
   const pdfExpected = path.join(BATCH_BUILD, pdfName)
   const toPdfScript = path.join(process.cwd(), 'harness', 'to-pdf.js')
   try {

@@ -14,10 +14,14 @@ export function useJobOutput(jobId: string) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let alive = true
+    setLoading(true)
     fetch(`/api/jobs/${jobId}/output`)
       .then(r => r.ok ? r.json() : null)
-      .then(setOutput)
-      .finally(() => setLoading(false))
+      .then(data => { if (alive) setOutput(data) })
+      .catch(() => { if (alive) setOutput(null) })
+      .finally(() => { if (alive) setLoading(false) })
+    return () => { alive = false }
   }, [jobId])
 
   return { output, loading }

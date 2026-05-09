@@ -13,6 +13,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: 'PDF not available' }, { status: 404 })
   }
 
+  const resolvedPdf = path.resolve(row.pdf_path)
+  const cwd = process.cwd()
+  if (!resolvedPdf.startsWith(cwd + path.sep) && resolvedPdf !== cwd) {
+    return NextResponse.json({ error: 'Invalid path' }, { status: 403 })
+  }
+  if (!resolvedPdf.endsWith('.pdf')) {
+    return NextResponse.json({ error: 'Not a PDF file' }, { status: 400 })
+  }
+
   if (!fs.existsSync(row.pdf_path)) {
     return NextResponse.json({ error: 'PDF file missing on disk' }, { status: 404 })
   }
