@@ -58,7 +58,7 @@ async function runStream(
   const toolResults: Array<{ id: string; result: string }> = []
 
   const apiStream = client.messages.stream({
-    model: 'claude-opus-4-5',
+    model: 'claude-opus-4-7',
     max_tokens: 4096,
     system: SYSTEM_PROMPT,
     tools: CHAT_TOOLS,
@@ -122,6 +122,14 @@ async function runStream(
   return { assistantText, toolBlocks, toolResults }
 }
 
+function loadHistory(db: ReturnType<typeof getDb>, sessionId: string) {
+  return db
+    .prepare(
+      'SELECT role, content, tool_calls FROM chat_messages WHERE session_id = ? ORDER BY created_at ASC'
+    )
+    .all(sessionId) as Array<{ role: string; content: string | null; tool_calls: string | null }>
+}
+
 export async function POST(req: Request) {
   const { sessionId, message } = (await req.json()) as { sessionId: string; message: string }
   if (!sessionId || !message)
@@ -136,12 +144,6 @@ export async function POST(req: Request) {
     message
   )
 
-  const history = db
-    .prepare(
-      'SELECT role, content, tool_calls FROM chat_messages WHERE session_id = ? ORDER BY created_at ASC LIMIT 20'
-    )
-    .all(sessionId) as Array<{ role: string; content: string | null; tool_calls: string | null }>
-
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
     async start(controller) {
@@ -150,69 +152,43 @@ export async function POST(req: Request) {
 
       try {
         const client = new Anthropic()
-        const messages = buildMessages(history)
+        const MAX_TURNS = 8
+        let loopCount = 0
 
-        const { assistantText, toolBlocks, toolResults } = await runStream(
-          client,
-          messages,
-          send,
-          sessionId
-        )
+        while (loopCount < MAX_TURNS) {
+          loopCount++
 
-        // Save assistant message
-        const assistantId = crypto.randomUUID()
-        const cleanBlocks = toolBlocks.map(({ _raw: _, ...rest }) => rest)
-        db.prepare(
-          'INSERT INTO chat_messages (id, session_id, role, content, tool_calls) VALUES (?, ?, ?, ?, ?)'
-        ).run(
-          assistantId,
-          sessionId,
-          'assistant',
-          assistantText || null,
-          cleanBlocks.length ? JSON.stringify(cleanBlocks) : null
-        )
+          const history = loadHistory(db, sessionId)
+          const messages = buildMessages(history)
 
-        // Save tool results and continue conversation
-        if (toolResults.length > 0) {
-          const toolMsgId = crypto.randomUUID()
-          db.prepare(
-            'INSERT INTO chat_messages (id, session_id, role, content, tool_calls) VALUES (?, ?, ?, ?, ?)'
-          ).run(toolMsgId, sessionId, 'tool', null, JSON.stringify(toolResults))
-
-          // Second call: continue conversation with tool results so Claude can respond
-          const updatedHistory = db
-            .prepare(
-              'SELECT role, content, tool_calls FROM chat_messages WHERE session_id = ? ORDER BY created_at ASC LIMIT 40'
-            )
-            .all(sessionId) as Array<{ role: string; content: string | null; tool_calls: string | null }>
-
-          const { assistantText: followupText, toolBlocks: followupBlocks, toolResults: followupResults } = await runStream(
+          const { assistantText, toolBlocks, toolResults } = await runStream(
             client,
-            buildMessages(updatedHistory),
+            messages,
             send,
             sessionId
           )
 
-          if (followupText || followupBlocks.length > 0) {
-            const followupId = crypto.randomUUID()
-            const cleanFollowup = followupBlocks.map(({ _raw: _, ...rest }) => rest)
-            db.prepare(
-              'INSERT INTO chat_messages (id, session_id, role, content, tool_calls) VALUES (?, ?, ?, ?, ?)'
-            ).run(
-              followupId,
-              sessionId,
-              'assistant',
-              followupText || null,
-              cleanFollowup.length ? JSON.stringify(cleanFollowup) : null
-            )
+          // Save assistant turn
+          const assistantId = crypto.randomUUID()
+          const cleanBlocks = toolBlocks.map(({ _raw: _, ...rest }) => rest)
+          db.prepare(
+            'INSERT INTO chat_messages (id, session_id, role, content, tool_calls) VALUES (?, ?, ?, ?, ?)'
+          ).run(
+            assistantId,
+            sessionId,
+            'assistant',
+            assistantText || null,
+            cleanBlocks.length ? JSON.stringify(cleanBlocks) : null
+          )
 
-            if (followupResults.length > 0) {
-              const followupToolMsgId = crypto.randomUUID()
-              db.prepare(
-                'INSERT INTO chat_messages (id, session_id, role, content, tool_calls) VALUES (?, ?, ?, ?, ?)'
-              ).run(followupToolMsgId, sessionId, 'tool', null, JSON.stringify(followupResults))
-            }
-          }
+          // No tool calls — conversation complete
+          if (toolResults.length === 0) break
+
+          // Save tool results so next turn sees them
+          const toolMsgId = crypto.randomUUID()
+          db.prepare(
+            'INSERT INTO chat_messages (id, session_id, role, content, tool_calls) VALUES (?, ?, ?, ?, ?)'
+          ).run(toolMsgId, sessionId, 'tool', null, JSON.stringify(toolResults))
         }
 
         send({ type: 'done' })

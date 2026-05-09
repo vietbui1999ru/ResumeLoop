@@ -5,7 +5,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 
 const ROOT = process.cwd()
 
-const FILE_MAP: Record<string, string> = {
+export const FILE_MAP: Record<string, string> = {
   master_resume_data: path.join(ROOT, 'pipeline', 'master_resume_data.json'),
   claude_full:        path.join(ROOT, 'docs', 'reference', 'CLAUDE-full.md'),
   ats_guidelines:     path.join(ROOT, 'docs', 'reference', 'ats-optimization-guidelines.md'),

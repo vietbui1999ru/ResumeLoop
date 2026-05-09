@@ -1,17 +1,7 @@
 import fs from 'fs'
-import path from 'path'
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
-
-const ROOT = process.cwd()
-
-const FILE_MAP: Record<string, string> = {
-  master_resume_data: path.join(ROOT, 'pipeline', 'master_resume_data.json'),
-  claude_full:        path.join(ROOT, 'docs', 'reference', 'CLAUDE-full.md'),
-  ats_guidelines:     path.join(ROOT, 'docs', 'reference', 'ats-optimization-guidelines.md'),
-  ats_system:         path.join(ROOT, 'docs', 'reference', 'ats-optimized-resume-system.md'),
-  spec:               path.join(ROOT, 'CLAUDE.md'),
-}
+import { FILE_MAP } from '@/lib/chat-tools'
 
 export async function POST(req: Request) {
   const { sessionId, accept } = (await req.json()) as { sessionId: string; accept: boolean }

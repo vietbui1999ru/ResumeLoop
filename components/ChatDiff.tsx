@@ -52,7 +52,7 @@ export default function ChatDiff({ file, description, diff, sessionId, onApplied
             </button>
           </div>
         )}
-        {state === 'accepted' && <span className="text-xs text-green-400">Applied</span>}
+        {state === 'accepted' && <span className="text-xs text-green-400">Applied ✓</span>}
         {state === 'rejected' && <span className="text-xs text-zinc-500">Declined</span>}
       </div>
       <pre className="overflow-x-auto text-xs font-mono px-3 py-2 max-h-60 leading-relaxed">
