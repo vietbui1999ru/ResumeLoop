@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import Database from 'better-sqlite3'
+import { initSchema } from './db'
 
 describe('db schema', () => {
   it('creates jd_jobs with required columns', () => {
@@ -23,6 +24,21 @@ describe('db schema', () => {
     expect(names).toContain('id')
     expect(names).toContain('fit_pct')
     expect(names).toContain('role_track')
+    db.close()
+  })
+})
+
+describe('chat_messages table', () => {
+  it('creates chat_messages with required columns', () => {
+    const db = new Database(':memory:')
+    initSchema(db)
+    const cols = db.prepare('PRAGMA table_info(chat_messages)').all() as Array<{ name: string }>
+    const names = cols.map(c => c.name)
+    expect(names).toContain('id')
+    expect(names).toContain('session_id')
+    expect(names).toContain('role')
+    expect(names).toContain('content')
+    expect(names).toContain('tool_calls')
     db.close()
   })
 })

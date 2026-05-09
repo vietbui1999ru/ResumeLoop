@@ -15,7 +15,7 @@ export function getDb(): DB {
   return _db
 }
 
-function initSchema(db: DB): void {
+export function initSchema(db: DB): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS jd_jobs (
       id          TEXT PRIMARY KEY,
@@ -54,6 +54,16 @@ function initSchema(db: DB): void {
       key   TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id         TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      role       TEXT NOT NULL,
+      content    TEXT,
+      tool_calls TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_chat_session ON chat_messages(session_id, created_at);
   `)
 
   // Migrate existing DBs that predate file_mtime column
