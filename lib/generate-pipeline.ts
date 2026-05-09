@@ -103,14 +103,15 @@ export async function* runPipeline(jobId: string): AsyncGenerator<SSEEvent> {
 
     getDb().prepare(`
       INSERT OR REPLACE INTO jd_outputs
-        (id, job_id, docx_path, projects_used, work_ids_used, variant, tagline, built_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        (id, job_id, docx_path, projects_used, work_ids_used, variant, tagline, reasoning, built_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     `).run(
       outputId, jobId, destPath,
       JSON.stringify(decision.projects),
       JSON.stringify(decision.workIds),
       decision.workVariant,
-      decision.tagline
+      decision.tagline,
+      decision.reasoning ?? null
     )
 
     tagJdFile(job.file_path)
