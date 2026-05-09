@@ -1,8 +1,6 @@
 import fs from 'fs'
-import path from 'path'
 import { NextResponse } from 'next/server'
-
-const MASTER_PATH = path.join(process.cwd(), 'pipeline', 'master_resume_data.json')
+import { PATHS } from '@/lib/paths'
 
 interface ProjectInput {
   id: string
@@ -25,7 +23,7 @@ export async function POST(req: Request) {
 
   let master: { projects?: Array<{ id: string; [k: string]: unknown }>; [k: string]: unknown }
   try {
-    master = JSON.parse(fs.readFileSync(MASTER_PATH, 'utf8'))
+    master = JSON.parse(fs.readFileSync(PATHS.pipeline.masterData, 'utf8'))
   } catch {
     return NextResponse.json({ error: 'Could not read master_resume_data.json' }, { status: 500 })
   }
@@ -43,9 +41,9 @@ export async function POST(req: Request) {
     master.projects.push(newEntry)
   }
 
-  const tmp = MASTER_PATH + '.tmp'
+  const tmp = PATHS.pipeline.masterData + '.tmp'
   fs.writeFileSync(tmp, JSON.stringify(master, null, 2), 'utf8')
-  fs.renameSync(tmp, MASTER_PATH)
+  fs.renameSync(tmp, PATHS.pipeline.masterData)
 
   return NextResponse.json({ ok: true, replaced })
 }
