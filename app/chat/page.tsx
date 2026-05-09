@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import ChatDiff from '@/components/ChatDiff'
+import GithubIngest from '@/components/GithubIngest'
 
 const newId = () => crypto.randomUUID()
 
@@ -29,6 +30,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
+  const [tab, setTab] = useState<'chat' | 'import'>('chat')
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const loadSessions = useCallback(() => {
@@ -165,54 +167,74 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Chat area */}
+      {/* Main content area */}
       <div className="flex-1 flex flex-col">
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-          {messages.map(m => (
-            <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div
-                className={`max-w-2xl ${m.role === 'user' ? 'bg-indigo-900/40 rounded-lg px-4 py-2' : ''}`}
-              >
-                <p className="text-sm whitespace-pre-wrap">{m.text}</p>
-                {m.diff && (
-                  <ChatDiff
-                    file={m.diff.file}
-                    description={m.diff.description}
-                    diff={m.diff.diff}
-                    sessionId={sessionId}
-                    onApplied={() => {}}
-                  />
-                )}
-              </div>
-            </div>
-          ))}
-          <div ref={bottomRef} />
+        {/* Tab bar */}
+        <div className="flex border-b border-zinc-800 px-4 pt-3 gap-4">
+          <button
+            onClick={() => setTab('chat')}
+            className={`text-sm pb-2 border-b-2 ${tab === 'chat' ? 'border-indigo-400 text-indigo-300' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
+          >Chat</button>
+          <button
+            onClick={() => setTab('import')}
+            className={`text-sm pb-2 border-b-2 ${tab === 'import' ? 'border-indigo-400 text-indigo-300' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
+          >Import from GitHub</button>
         </div>
 
-        {/* Input */}
-        <div className="border-t border-zinc-800 px-4 py-3 flex gap-2">
-          <textarea
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                send()
-              }
-            }}
-            disabled={streaming}
-            rows={2}
-            placeholder="Ask Claude to update your profile…"
-            className="flex-1 bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm resize-none focus:outline-none focus:border-indigo-500 disabled:opacity-50"
-          />
-          <button
-            onClick={send}
-            disabled={streaming || !input.trim()}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded disabled:opacity-50"
-          >
-            Send
-          </button>
-        </div>
+        {tab === 'import' ? (
+          <div className="flex-1 overflow-y-auto">
+            <GithubIngest />
+          </div>
+        ) : (
+          <>
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+              {messages.map(m => (
+                <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div
+                    className={`max-w-2xl ${m.role === 'user' ? 'bg-indigo-900/40 rounded-lg px-4 py-2' : ''}`}
+                  >
+                    <p className="text-sm whitespace-pre-wrap">{m.text}</p>
+                    {m.diff && (
+                      <ChatDiff
+                        file={m.diff.file}
+                        description={m.diff.description}
+                        diff={m.diff.diff}
+                        sessionId={sessionId}
+                        onApplied={() => {}}
+                      />
+                    )}
+                  </div>
+                </div>
+              ))}
+              <div ref={bottomRef} />
+            </div>
+
+            {/* Input */}
+            <div className="border-t border-zinc-800 px-4 py-3 flex gap-2">
+              <textarea
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    send()
+                  }
+                }}
+                disabled={streaming}
+                rows={2}
+                placeholder="Ask Claude to update your profile…"
+                className="flex-1 bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm resize-none focus:outline-none focus:border-indigo-500 disabled:opacity-50"
+              />
+              <button
+                onClick={send}
+                disabled={streaming || !input.trim()}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded disabled:opacity-50"
+              >
+                Send
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
