@@ -20,9 +20,10 @@ export async function POST(req: Request) {
     new_content: string
   }
 
-  getDb().prepare('DELETE FROM app_settings WHERE key = ?').run(pendingKey)
-
-  if (!accept) return NextResponse.json({ ok: true, applied: false })
+  if (!accept) {
+    getDb().prepare('DELETE FROM app_settings WHERE key = ?').run(pendingKey)
+    return NextResponse.json({ ok: true, applied: false })
+  }
 
   const filePath = FILE_MAP[file]
   if (!filePath) return NextResponse.json({ error: 'Unknown file' }, { status: 400 })
@@ -35,6 +36,9 @@ export async function POST(req: Request) {
     }
   }
 
-  fs.writeFileSync(filePath, new_content, 'utf8')
+  const tmp = filePath + '.tmp'
+  fs.writeFileSync(tmp, new_content, 'utf8')
+  fs.renameSync(tmp, filePath)
+  getDb().prepare('DELETE FROM app_settings WHERE key = ?').run(pendingKey)
   return NextResponse.json({ ok: true, applied: true, file })
 }
