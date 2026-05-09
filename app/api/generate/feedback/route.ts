@@ -17,13 +17,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'jobId and rating (1-3) required' }, { status: 400 })
   }
 
+  const sanitize = (s: string) => s.replace(/^#{1,6}\s/gm, '').replace(/\n/g, ' ').slice(0, 200)
+
   const job = getDb().prepare(
     'SELECT company, role_title FROM jd_jobs WHERE id = ?'
   ).get(jobId) as { company: string; role_title: string } | undefined
 
-  const label = job ? `${job.company}_${job.role_title}` : jobId
+  const label = job
+    ? `${sanitize(job.company)}_${sanitize(job.role_title)}`
+    : jobId
   const date  = new Date().toISOString().slice(0, 10)
-  const text  = note?.trim() || '(no note)'
+  const text  = note?.trim() ? sanitize(note.trim()) : '(no note)'
 
   const entry = [
     ``,

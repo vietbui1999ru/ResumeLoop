@@ -32,6 +32,14 @@ export default function GenerationPanel({ queue, onStageUpdate, onDone, onError 
   const [progress, setProgress] = useState<Map<string, JobProgress>>(new Map())
   const [ratings, setRatings]   = useState<Map<string, RatingState>>(new Map())
   const running = useRef(false)
+  const onDoneRef  = useRef(onDone)
+  const onErrorRef = useRef(onError)
+
+  // Keep refs pointing at the latest callbacks on every render
+  useEffect(() => {
+    onDoneRef.current  = onDone
+    onErrorRef.current = onError
+  })
 
   useEffect(() => {
     if (running.current) return
@@ -83,14 +91,14 @@ export default function GenerationPanel({ queue, onStageUpdate, onDone, onError 
 
         if (event.stage === 'done') {
           updateProgress(jobId, { done: true, outputId: event.data.outputId as string })
-          onDone(jobId)
+          onDoneRef.current(jobId)
           evtSource.close()
           resolve()
         }
 
         if (event.status === 'fail') {
           updateProgress(jobId, { failed: true })
-          onError(jobId, (event.data.message as string) ?? event.stage)
+          onErrorRef.current(jobId, (event.data.message as string) ?? event.stage)
           evtSource.close()
           resolve()
         }
