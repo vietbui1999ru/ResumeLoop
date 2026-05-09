@@ -23,28 +23,37 @@ export default function GithubIngest() {
     if (!url.trim()) return
     setState('loading')
     setError('')
-    const res = await fetch('/api/github/ingest', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: url.trim() }),
-    })
-    const data = await res.json()
-    if (!res.ok) { setError(data.error ?? 'Fetch failed'); setState('idle'); return }
-    setEntry(data as ProjectEntry)
-    setBullets(data.bullets)
-    setProjectId(data.id)
-    setState('preview')
+    try {
+      const res = await fetch('/api/github/ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: url.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error ?? 'Fetch failed'); setState('idle'); return }
+      setEntry(data as ProjectEntry)
+      setBullets(data.bullets)
+      setProjectId(data.id)
+      setState('preview')
+    } catch (e) {
+      setError(String(e))
+      setState('idle')
+    }
   }
 
   const apply = async () => {
     if (!entry) return
-    const res = await fetch('/api/github/apply', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ project: { ...entry, id: projectId, bullets } }),
-    })
-    if (res.ok) setState('applied')
-    else setError('Failed to write to profile')
+    try {
+      const res = await fetch('/api/github/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project: { ...entry, id: projectId, bullets } }),
+      })
+      if (res.ok) setState('applied')
+      else setError('Failed to write to profile')
+    } catch (e) {
+      setError(String(e))
+    }
   }
 
   const charClass = (s: string) => s.length > 116 ? 'text-red-400' : 'text-zinc-300'

@@ -32,14 +32,15 @@ export function validateBullets(bullets: string[]): string[] {
 async function fetchReadme(owner: string, repo: string): Promise<string> {
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/README.md`
   const res = await fetch(url, { headers: { Accept: 'application/vnd.github.raw' } })
-  if (!res.ok) return '(README not found)'
+  if (res.status === 404) return '(README not found)'
+  if (!res.ok) throw new Error(`GitHub API error ${res.status} fetching README`)
   return (await res.text()).slice(0, 6000)
 }
 
 async function fetchFileTree(owner: string, repo: string): Promise<string[]> {
   const url = `https://api.github.com/repos/${owner}/${repo}/git/trees/HEAD?recursive=0`
   const res = await fetch(url, { headers: { Accept: 'application/vnd.github+json' } })
-  if (!res.ok) return []
+  if (!res.ok) throw new Error(`GitHub API error ${res.status} fetching tree`)
   const data = await res.json() as { tree?: Array<{ path: string; type: string }> }
   return (data.tree ?? [])
     .filter(f => f.type === 'blob' || f.type === 'tree')
@@ -102,6 +103,9 @@ ${readme}`
   if (!toolUse || toolUse.type !== 'tool_use') throw new Error('No tool_use in summarize response')
 
   const entry = toolUse.input as ProjectEntry
+  if (typeof entry.id !== 'string' || !entry.id) throw new Error('summarize_repo: missing id')
+  if (typeof entry.name !== 'string' || !entry.name) throw new Error('summarize_repo: missing name')
+  if (!Array.isArray(entry.bullets) || entry.bullets.length === 0) throw new Error('summarize_repo: bullets must be a non-empty array')
   entry.bullets = validateBullets(entry.bullets)
   return entry
 }

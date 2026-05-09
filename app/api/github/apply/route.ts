@@ -16,6 +16,12 @@ export async function POST(req: Request) {
   if (!project?.id || !project.bullets?.length) {
     return NextResponse.json({ error: 'project with id and bullets required' }, { status: 400 })
   }
+  if (!/^[a-z0-9_-]{1,40}$/.test(project.id)) {
+    return NextResponse.json({ error: 'project.id must be lowercase alphanumeric with dashes/underscores, max 40 chars' }, { status: 400 })
+  }
+  if (!Array.isArray(project.bullets) || project.bullets.some(b => typeof b !== 'string' || b.length > 116)) {
+    return NextResponse.json({ error: 'bullets must be an array of strings each ≤116 chars' }, { status: 400 })
+  }
 
   let master: { projects?: Array<{ id: string; [k: string]: unknown }>; [k: string]: unknown }
   try {
