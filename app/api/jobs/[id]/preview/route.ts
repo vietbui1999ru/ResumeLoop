@@ -22,15 +22,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: 'Not a PDF file' }, { status: 400 })
   }
 
-  if (!fs.existsSync(row.pdf_path)) {
+  if (!fs.existsSync(resolvedPdf)) {
     return NextResponse.json({ error: 'PDF file missing on disk' }, { status: 404 })
   }
 
-  const pdf = fs.readFileSync(row.pdf_path)
+  const pdf = fs.readFileSync(resolvedPdf)
   return new Response(pdf, {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `inline; filename="${path.basename(row.pdf_path)}"`,
+      'Content-Disposition': `inline; filename="${path.basename(resolvedPdf)}"`,
     },
   })
 }

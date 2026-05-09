@@ -16,12 +16,19 @@ export async function GET(
   if (!output?.docx_path) {
     return NextResponse.json({ error: 'No output found for this job' }, { status: 404 })
   }
-  if (!fs.existsSync(output.docx_path)) {
+
+  const resolvedDocx = path.resolve(output.docx_path)
+  const cwd = process.cwd()
+  if (!resolvedDocx.startsWith(cwd + path.sep)) {
+    return NextResponse.json({ error: 'Invalid path' }, { status: 403 })
+  }
+
+  if (!fs.existsSync(resolvedDocx)) {
     return NextResponse.json({ error: 'DOCX file not found on disk' }, { status: 404 })
   }
 
-  const buf      = fs.readFileSync(output.docx_path)
-  const filename = path.basename(output.docx_path)
+  const buf      = fs.readFileSync(resolvedDocx)
+  const filename = path.basename(resolvedDocx)
 
   return new Response(buf, {
     headers: {
