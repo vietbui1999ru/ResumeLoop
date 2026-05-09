@@ -114,6 +114,10 @@ async function runStream(
           }
         }
 
+        if (!toolResult && (!block.input || Object.keys(block.input).length === 0)) {
+          toolResult = 'Error: tool input was malformed — please retry with valid arguments'
+        }
+
         toolResults.push({ id: block.id, result: toolResult })
       }
     }
