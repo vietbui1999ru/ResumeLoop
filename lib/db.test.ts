@@ -52,3 +52,39 @@ describe('action column migration', () => {
     db.close()
   })
 })
+
+describe('reasoning column migration', () => {
+  it('adds reasoning column to legacy jd_outputs missing it', () => {
+    const db = new Database(':memory:')
+    db.exec(
+      'CREATE TABLE IF NOT EXISTS jd_jobs (id TEXT PRIMARY KEY, file_path TEXT NOT NULL);' +
+      'CREATE TABLE IF NOT EXISTS jd_outputs (' +
+      '  id TEXT PRIMARY KEY, job_id TEXT NOT NULL, docx_path TEXT, built_at DATETIME' +
+      ');'
+    )
+    const colsBefore = db.prepare('PRAGMA table_info(jd_outputs)').all() as Array<{ name: string }>
+    expect(colsBefore.map(c => c.name)).not.toContain('reasoning')
+    initSchema(db)
+    const colsAfter = db.prepare('PRAGMA table_info(jd_outputs)').all() as Array<{ name: string }>
+    expect(colsAfter.map(c => c.name)).toContain('reasoning')
+    db.close()
+  })
+})
+
+describe('pdf_path column migration', () => {
+  it('adds pdf_path column to legacy jd_outputs missing it', () => {
+    const db = new Database(':memory:')
+    db.exec(
+      'CREATE TABLE IF NOT EXISTS jd_jobs (id TEXT PRIMARY KEY, file_path TEXT NOT NULL);' +
+      'CREATE TABLE IF NOT EXISTS jd_outputs (' +
+      '  id TEXT PRIMARY KEY, job_id TEXT NOT NULL, docx_path TEXT, built_at DATETIME' +
+      ');'
+    )
+    const colsBefore = db.prepare('PRAGMA table_info(jd_outputs)').all() as Array<{ name: string }>
+    expect(colsBefore.map(c => c.name)).not.toContain('pdf_path')
+    initSchema(db)
+    const colsAfter = db.prepare('PRAGMA table_info(jd_outputs)').all() as Array<{ name: string }>
+    expect(colsAfter.map(c => c.name)).toContain('pdf_path')
+    db.close()
+  })
+})

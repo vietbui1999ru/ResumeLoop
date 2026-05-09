@@ -9,6 +9,7 @@ export interface ReasoningResult {
   personaTitle: string
   tagline: string
   skillsRows: string[]
+  reasoning: string
 }
 
 const VALID_WORK_IDS = ['gitlab', 'carboncopies', 'udayton', 'augustana']
@@ -26,8 +27,13 @@ const TOOL_SCHEMA: Anthropic.Tool = {
       personaTitle: { type: 'string', maxLength: 60 },
       tagline:      { type: 'string', maxLength: 76 },
       skillsRows:   { type: 'array', items: { type: 'string' }, minItems: 5, maxItems: 5 },
+      reasoning: {
+        type: 'string',
+        description:
+          'Structured markdown with exactly 5 sections: ## Track, ## Work Experience, ## Projects, ## Tagline, ## Skills. Each section explains why this choice matches the JD. Reference specific JD keywords. 2-4 sentences or bullet points per section.',
+      },
     },
-    required: ['track', 'workVariant', 'workIds', 'projects', 'personaTitle', 'tagline', 'skillsRows'],
+    required: ['track', 'workVariant', 'workIds', 'projects', 'personaTitle', 'tagline', 'skillsRows', 'reasoning'],
   },
 }
 
@@ -59,16 +65,22 @@ export async function reasonForJob(rawContent: string): Promise<ReasoningResult>
   if (!toolUse || toolUse.type !== 'tool_use') {
     throw new Error('No tool_use block in AI response')
   }
+  if (toolUse.name !== 'resume_decision') {
+    throw new Error(`Unexpected tool: ${toolUse.name}`)
+  }
 
   const result = toolUse.input as ReasoningResult
   validateResult(result)
   return result
 }
 
-function validateResult(r: ReasoningResult): void {
+export function validateResult(r: ReasoningResult): void {
   if (!r.workIds || r.workIds.length !== 3) throw new Error(`workIds must have 3 entries, got ${r.workIds?.length}`)
   if (!r.projects || r.projects.length !== 3) throw new Error(`projects must have 3 entries, got ${r.projects?.length}`)
   if (!r.skillsRows || r.skillsRows.length !== 5) throw new Error(`skillsRows must have 5 entries, got ${r.skillsRows?.length}`)
+
+  if (!r.tagline) throw new Error('tagline missing from AI response')
+  if (!r.personaTitle) throw new Error('personaTitle missing from AI response')
 
   // Auto-trim instead of throwing — fix-loop handles tagline constraints downstream
   if (r.tagline.length > 76) {
@@ -79,4 +91,6 @@ function validateResult(r: ReasoningResult): void {
   if (r.personaTitle.length > 60) {
     r.personaTitle = r.personaTitle.slice(0, 60).trimEnd()
   }
+
+  if (!r.reasoning || r.reasoning.trim() === '') throw new Error('reasoning missing from AI response')
 }
