@@ -7,6 +7,7 @@ import { getDb } from './db'
 import { getSetting } from './settings'
 import { PATHS } from './paths'
 import { GenerationLogger } from './generation-logger'
+import { ensureDefaultSession, getSession } from './sessions'
 
 export interface SSEEvent {
   stage: 'preflight' | 'ai-reason' | 'write-script' | 'build' | 'validate' | 'fix-loop' | 'pdf' | 'finalize' | 'done' | 'error'
@@ -24,12 +25,16 @@ function bulletsKey(workVariant: string): string {
 }
 
 
-export async function* runPipeline(jobId: string): AsyncGenerator<SSEEvent> {
+export async function* runPipeline(jobId: string, sessionId = 'default'): AsyncGenerator<SSEEvent> {
   const job = getDb().prepare(
     'SELECT id, company, role_title, file_path, raw_content FROM jd_jobs WHERE id = ?'
   ).get(jobId) as { id: string; company: string; role_title: string; file_path: string; raw_content: string } | undefined
 
   if (!job) { yield errEvent('preflight', `Job not found: ${jobId}`); return }
+
+  ensureDefaultSession()
+  const session = getSession(sessionId)
+  if (!session) { yield errEvent('preflight', `Session not found: ${sessionId}`); return }
 
   const logger = new GenerationLogger(jobId, job.company, job.role_title)
 
@@ -41,7 +46,7 @@ export async function* runPipeline(jobId: string): AsyncGenerator<SSEEvent> {
   // Stage 0: Preflight
   yield emit({ stage: 'preflight', status: 'running', data: {} })
   try {
-    await preflight()
+    await preflight(session.data)
   } catch (e) {
     yield emit(errEvent('preflight', String(e))); logger.finish('failed'); return
   }
@@ -51,7 +56,7 @@ export async function* runPipeline(jobId: string): AsyncGenerator<SSEEvent> {
   yield emit({ stage: 'ai-reason', status: 'running', data: {} })
   let decision: ReasoningResult
   try {
-    decision = await reasonForJob(job.raw_content)
+    decision = await reasonForJob(job.raw_content, session.data)
   } catch (e) {
     yield emit(errEvent('ai-reason', String(e))); logger.finish('failed'); return
   }
@@ -125,15 +130,16 @@ export async function* runPipeline(jobId: string): AsyncGenerator<SSEEvent> {
 
     getDb().prepare(`
       INSERT OR REPLACE INTO jd_outputs
-        (id, job_id, docx_path, pdf_path, projects_used, work_ids_used, variant, tagline, reasoning, built_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        (id, job_id, docx_path, pdf_path, projects_used, work_ids_used, variant, tagline, reasoning, session_id, built_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     `).run(
       outputId, jobId, destPath, finalPdfPath,
       JSON.stringify(decision.projects),
       JSON.stringify(decision.workIds),
       decision.workVariant,
       decision.tagline,
-      decision.reasoning ?? null
+      decision.reasoning ?? null,
+      sessionId
     )
 
     tagJdFile(job.file_path)
@@ -147,10 +153,10 @@ export async function* runPipeline(jobId: string): AsyncGenerator<SSEEvent> {
   }
 }
 
-async function preflight(): Promise<void> {
+async function preflight(resumeData: string): Promise<void> {
   fs.mkdirSync(BATCH_BUILD, { recursive: true })
-  fs.copyFileSync(PATHS.pipeline.masterData, path.join(BATCH_BUILD, 'master_resume_data.json'))
-  fs.copyFileSync(PATHS.pipeline.builder,    path.join(BATCH_BUILD, 'buildv2.js'))
+  fs.writeFileSync(path.join(BATCH_BUILD, 'master_resume_data.json'), resumeData, 'utf8')
+  fs.copyFileSync(PATHS.pipeline.builder, path.join(BATCH_BUILD, 'buildv2.js'))
 
   const nodeModules = path.join(BATCH_BUILD, 'node_modules')
   if (!fs.existsSync(nodeModules)) {
@@ -292,10 +298,14 @@ function spawnAsync(cmd: string, args: string[], cwd: string): Promise<{ code: n
 }
 
 function tagJdFile(filePath: string): void {
-  if (!filePath || !fs.existsSync(filePath)) return
-  const content = fs.readFileSync(filePath, 'utf8')
-  const updated = content.replace(/\bun-resume\b/g, 'resume-ed')
-  fs.writeFileSync(filePath, updated, 'utf8')
+  if (!filePath) return
+  try {
+    const jobsDir = fs.realpathSync(getSetting('jobs_path'))
+    const real    = fs.realpathSync(filePath)
+    if (!real.startsWith(jobsDir + path.sep)) return
+    const content = fs.readFileSync(real, 'utf8')
+    fs.writeFileSync(real, content.replace(/\bun-resume\b/g, 'resume-ed'), 'utf8')
+  } catch { /* file missing or outside jobs_path — skip silently */ }
 }
 
 function toSlug(s: string): string {

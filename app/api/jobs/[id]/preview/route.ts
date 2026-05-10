@@ -14,20 +14,26 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: 'PDF not available' }, { status: 404 })
   }
 
-  const resolvedPdf = path.resolve(row.pdf_path)
-  const cwd = process.cwd()
-  const outputDir = path.resolve(getSetting('output_path'))
-  const inCwd = resolvedPdf.startsWith(cwd + path.sep)
-  const inOutputDir = resolvedPdf.startsWith(outputDir + path.sep)
-  if (!inCwd && !inOutputDir) {
-    return NextResponse.json({ error: 'Invalid path' }, { status: 403 })
-  }
-  if (!resolvedPdf.endsWith('.pdf')) {
+  if (!row.pdf_path.endsWith('.pdf')) {
     return NextResponse.json({ error: 'Not a PDF file' }, { status: 400 })
   }
 
-  if (!fs.existsSync(resolvedPdf)) {
+  let resolvedPdf: string
+  try {
+    resolvedPdf = fs.realpathSync(row.pdf_path)
+  } catch {
     return NextResponse.json({ error: 'PDF file missing on disk' }, { status: 404 })
+  }
+
+  const cwd = (() => { try { return fs.realpathSync(process.cwd()) } catch { return process.cwd() } })()
+  const outputDir = (() => {
+    try { return fs.realpathSync(getSetting('output_path')) }
+    catch { return path.resolve(getSetting('output_path')) }
+  })()
+  const inCwd       = resolvedPdf.startsWith(cwd + path.sep)
+  const inOutputDir = resolvedPdf.startsWith(outputDir + path.sep)
+  if (!inCwd && !inOutputDir) {
+    return NextResponse.json({ error: 'Invalid path' }, { status: 403 })
   }
 
   const pdf = fs.readFileSync(resolvedPdf)

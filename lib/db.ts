@@ -67,7 +67,19 @@ export function initSchema(db: DB): void {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
     CREATE INDEX IF NOT EXISTS idx_chat_session ON chat_messages(session_id, created_at);
+
+    CREATE TABLE IF NOT EXISTS resume_sessions (
+      id         TEXT PRIMARY KEY,
+      name       TEXT NOT NULL,
+      data       TEXT NOT NULL DEFAULT '{}',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `)
+
+  // Migrate existing DBs that predate session_id column on jd_outputs
+  const hasSessionId = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_outputs') WHERE name='session_id'`).get() as { c: number }).c > 0
+  if (!hasSessionId) db.exec(`ALTER TABLE jd_outputs ADD COLUMN session_id TEXT`)
 
   // Migrate existing DBs that predate file_mtime column
   const hasMtime = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_jobs') WHERE name='file_mtime'`).get() as { c: number }).c > 0

@@ -1,6 +1,5 @@
-import fs from 'fs'
 import { NextResponse } from 'next/server'
-import { PATHS } from '@/lib/paths'
+import { getSession, updateSessionData } from '@/lib/sessions'
 
 interface ProjectInput {
   id: string
@@ -9,41 +8,52 @@ interface ProjectInput {
   bullets: string[]
 }
 
+type MasterData = { projects?: Array<{ id: string; [k: string]: unknown }>; [k: string]: unknown }
+
+function upsertProject(master: MasterData, entry: { id: string; name: string; short_stack: string; bullets: string[] }): boolean {
+  if (!Array.isArray(master.projects)) master.projects = []
+  const idx = master.projects.findIndex(p => p.id === entry.id)
+  if (idx >= 0) { master.projects[idx] = entry; return true }
+  master.projects.push(entry)
+  return false
+}
+
 export async function POST(req: Request) {
-  const { project } = await req.json() as { project?: ProjectInput }
+  const { project, sessionId = 'default' } = await req.json() as { project?: ProjectInput; sessionId?: string }
   if (!project?.id || !project.bullets?.length) {
     return NextResponse.json({ error: 'project with id and bullets required' }, { status: 400 })
   }
   if (!/^[a-z0-9_-]{1,40}$/.test(project.id)) {
-    return NextResponse.json({ error: 'project.id must be lowercase alphanumeric with dashes/underscores, max 40 chars' }, { status: 400 })
+    return NextResponse.json({ error: 'project.id must be lowercase alphanumeric, dashes/underscores, max 40 chars' }, { status: 400 })
   }
   if (!Array.isArray(project.bullets) || project.bullets.some(b => typeof b !== 'string' || b.length > 116)) {
-    return NextResponse.json({ error: 'bullets must be an array of strings each ≤116 chars' }, { status: 400 })
+    return NextResponse.json({ error: 'bullets must be strings each ≤116 chars' }, { status: 400 })
   }
 
-  let master: { projects?: Array<{ id: string; [k: string]: unknown }>; [k: string]: unknown }
+  const defaultSession = getSession('default')
+  let master: MasterData
   try {
-    master = JSON.parse(fs.readFileSync(PATHS.pipeline.masterData, 'utf8'))
+    master = JSON.parse(defaultSession?.data ?? '{}')
   } catch {
-    return NextResponse.json({ error: 'Could not read master_resume_data.json' }, { status: 500 })
+    return NextResponse.json({ error: 'Could not parse session data' }, { status: 500 })
   }
 
-  if (!Array.isArray(master.projects)) master.projects = []
-
-  const existingIdx = master.projects.findIndex(p => p.id === project.id)
   const newEntry = { id: project.id, name: project.name, short_stack: project.short_stack, bullets: project.bullets }
+  const replaced = upsertProject(master, newEntry)
 
-  let replaced = false
-  if (existingIdx >= 0) {
-    master.projects[existingIdx] = newEntry
-    replaced = true
-  } else {
-    master.projects.push(newEntry)
+  // Canonical write: updates SQLite default session + syncs disk via syncMasterFile
+  updateSessionData('default', JSON.stringify(master, null, 2))
+
+  // If the active session diverges from default, patch just this project into it too
+  if (sessionId !== 'default') {
+    const activeSession = getSession(sessionId)
+    if (activeSession) {
+      let activeMaster: MasterData
+      try { activeMaster = JSON.parse(activeSession.data) } catch { activeMaster = {} }
+      upsertProject(activeMaster, newEntry)
+      updateSessionData(sessionId, JSON.stringify(activeMaster, null, 2))
+    }
   }
-
-  const tmp = PATHS.pipeline.masterData + '.tmp'
-  fs.writeFileSync(tmp, JSON.stringify(master, null, 2), 'utf8')
-  fs.renameSync(tmp, PATHS.pipeline.masterData)
 
   return NextResponse.json({ ok: true, replaced })
 }

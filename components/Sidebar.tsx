@@ -13,7 +13,7 @@ const NAV = [
 export function Sidebar() {
   const pathname = usePathname()
   return (
-    <nav className="w-44 shrink-0 border-r border-zinc-700 bg-zinc-900 flex flex-col gap-1 p-4">
+    <nav className="w-44 shrink-0 border-r border-zinc-700 bg-zinc-900 flex flex-col gap-1 p-4 h-full overflow-y-auto">
       <p className="text-xs font-semibold text-zinc-500 uppercase mb-3">ResumeAnalyze</p>
       {NAV.map(({ href, label }) => (
         <Link

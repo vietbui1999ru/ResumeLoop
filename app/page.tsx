@@ -27,7 +27,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Dashboard</h1>
         <p className="text-sm text-zinc-500">{data.total} JDs · {data.visaKill} visa-kill</p>
