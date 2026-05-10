@@ -2,13 +2,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import ChatDiff from '@/components/ChatDiff'
 import GithubIngest from '@/components/GithubIngest'
+import { useSession } from '@/contexts/SessionContext'
 
 const newId = () => crypto.randomUUID()
 
 interface Session {
-  session_id: string
-  started_at: string
-  first_message: string | null
+  id: string
+  name: string
+  created_at: string
 }
 
 type ChatEvent =
@@ -25,8 +26,8 @@ interface Message {
 }
 
 export default function ChatPage() {
+  const { activeSessionId: sessionId, setActiveSessionId } = useSession()
   const [sessions, setSessions] = useState<Session[]>([])
-  const [sessionId, setSessionId] = useState<string>(() => newId())
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
@@ -34,7 +35,7 @@ export default function ChatPage() {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const loadSessions = useCallback(() => {
-    fetch('/api/chat/sessions')
+    fetch('/api/sessions')
       .then(r => (r.ok ? r.json() : []))
       .then(setSessions)
   }, [])
@@ -129,48 +130,56 @@ export default function ChatPage() {
     setMessages(msgs)
   }, [])
 
-  const startNew = () => {
-    setSessionId(newId())
+  const startNew = async () => {
+    const res = await fetch('/api/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: `Session ${new Date().toLocaleDateString()}` }),
+    })
+    if (!res.ok) return
+    const created: Session = await res.json()
+    setActiveSessionId(created.id)
     setMessages([])
+    loadSessions()
   }
 
   const fmtDate = (iso: string) => new Date(iso).toLocaleDateString()
 
   return (
-    <div className="flex h-screen bg-zinc-950 text-zinc-100">
-      {/* Session sidebar */}
-      <div className="w-48 flex-shrink-0 border-r border-zinc-800 flex flex-col">
-        <div className="p-3 border-b border-zinc-800">
+    <div className="flex h-full">
+      {/* Session sidebar — scrolls independently */}
+      <div className="w-48 flex-shrink-0 border-r border-zinc-800 flex flex-col h-full">
+        <div className="p-3 border-b border-zinc-800 flex-shrink-0">
           <button
-            onClick={startNew}
+            onClick={() => void startNew()}
             className="w-full text-xs text-indigo-400 hover:text-indigo-300 text-left"
           >
             + New session
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto min-h-0">
           {sessions.map(s => (
             <button
-              key={s.session_id}
+              key={s.id}
               onClick={() => {
-                setSessionId(s.session_id)
-                loadSessionHistory(s.session_id)
+                setActiveSessionId(s.id)
+                loadSessionHistory(s.id)
               }}
               className={`w-full text-left px-3 py-2 text-xs hover:bg-zinc-800 ${
-                s.session_id === sessionId ? 'bg-zinc-800' : ''
+                s.id === sessionId ? 'bg-zinc-800' : ''
               }`}
             >
-              <p className="text-zinc-300 truncate">{s.first_message ?? '(empty)'}</p>
-              <p className="text-zinc-600">{fmtDate(s.started_at)}</p>
+              <p className="text-zinc-300 truncate">{s.name}</p>
+              <p className="text-zinc-600">{fmtDate(s.created_at)}</p>
             </button>
           ))}
         </div>
       </div>
 
       {/* Main content area */}
-      <div className="flex-1 flex flex-col">
-        {/* Tab bar */}
-        <div className="flex border-b border-zinc-800 px-4 pt-3 gap-4">
+      <div className="flex-1 flex flex-col min-w-0 h-full">
+        {/* Tab bar — fixed */}
+        <div className="flex border-b border-zinc-800 px-4 pt-3 gap-4 flex-shrink-0">
           <button
             onClick={() => setTab('chat')}
             className={`text-sm pb-2 border-b-2 ${tab === 'chat' ? 'border-indigo-400 text-indigo-300' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
@@ -182,12 +191,13 @@ export default function ChatPage() {
         </div>
 
         {tab === 'import' ? (
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto min-h-0">
             <GithubIngest />
           </div>
         ) : (
           <>
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            {/* Messages — scrolls independently */}
+            <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
               {messages.map(m => (
                 <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div
@@ -209,8 +219,8 @@ export default function ChatPage() {
               <div ref={bottomRef} />
             </div>
 
-            {/* Input */}
-            <div className="border-t border-zinc-800 px-4 py-3 flex gap-2">
+            {/* Input — fixed at bottom */}
+            <div className="border-t border-zinc-800 px-4 py-3 flex gap-2 flex-shrink-0">
               <textarea
                 value={input}
                 onChange={e => setInput(e.target.value)}

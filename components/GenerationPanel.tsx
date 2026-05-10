@@ -23,12 +23,13 @@ interface RatingState {
 
 interface Props {
   queue: string[]
+  sessionId: string
   onStageUpdate: (jobId: string, stage: string) => void
   onDone: (jobId: string) => void
   onError: (jobId: string, msg: string) => void
 }
 
-export default function GenerationPanel({ queue, onStageUpdate, onDone, onError }: Props) {
+export default function GenerationPanel({ queue, sessionId, onStageUpdate, onDone, onError }: Props) {
   const [progress, setProgress] = useState<Map<string, JobProgress>>(new Map())
   const [ratings, setRatings]   = useState<Map<string, RatingState>>(new Map())
   const running = useRef(false)
@@ -64,7 +65,7 @@ export default function GenerationPanel({ queue, onStageUpdate, onDone, onError 
   }
 
   async function runJob(jobId: string) {
-    const evtSource = new EventSource(`/api/generate/${jobId}/stream`)
+    const evtSource = new EventSource(`/api/generate/${jobId}/stream?sessionId=${sessionId}`)
 
     await new Promise<void>(resolve => {
       evtSource.onmessage = (e) => {

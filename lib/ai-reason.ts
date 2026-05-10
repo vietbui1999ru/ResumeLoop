@@ -37,9 +37,9 @@ const TOOL_SCHEMA: Anthropic.Tool = {
   },
 }
 
-export async function reasonForJob(rawContent: string): Promise<ReasoningResult> {
+export async function reasonForJob(rawContent: string, masterData?: string): Promise<ReasoningResult> {
   const client = new Anthropic()
-  const systemPrompt = buildSystemPrompt()
+  const systemPrompt = buildSystemPrompt(masterData)
 
   const response = await client.messages.create({
     model: 'claude-opus-4-7',

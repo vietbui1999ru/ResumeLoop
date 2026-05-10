@@ -2,6 +2,7 @@ import fs from 'fs'
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { FILE_MAP } from '@/lib/chat-tools'
+import { updateSessionData } from '@/lib/sessions'
 
 export async function POST(req: Request) {
   const { sessionId, accept, file } = (await req.json()) as { sessionId: string; accept: boolean; file: string }
@@ -34,6 +35,9 @@ export async function POST(req: Request) {
     } catch {
       return NextResponse.json({ error: 'Invalid JSON in proposed content' }, { status: 422 })
     }
+    updateSessionData(sessionId, new_content)
+    getDb().prepare('DELETE FROM app_settings WHERE key = ?').run(pendingKey)
+    return NextResponse.json({ ok: true, applied: true, file })
   }
 
   const tmp = filePath + '.tmp'

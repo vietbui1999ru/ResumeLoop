@@ -3,8 +3,10 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { extractAllTags, jobMatchesTagFilter, parseTags } from '@/lib/tag-filter'
 import JobDetailModal from '@/components/JobDetailModal'
 import GenerationPanel from '@/components/GenerationPanel'
+import SessionSwitcher from '@/components/SessionSwitcher'
 import { VALID_ACTIONS } from '@/lib/actions'
 import ReasoningModal from '@/components/ReasoningModal'
+import { useSession } from '@/contexts/SessionContext'
 
 const ACTION_COLORS: Record<string, string> = {
   '0-Saved':       'text-zinc-400',
@@ -54,6 +56,7 @@ function SortTh({ label, col, sort, onSort, className = '' }: {
 }
 
 export default function JobsPage() {
+  const { activeSessionId } = useSession()
   const [jobs, setJobs] = useState<Job[]>([])
   const [scanStatus, setScanStatus] = useState('')
   const [rowErrors, setRowErrors] = useState<Map<string, string>>(new Map())
@@ -207,11 +210,12 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <h1 className="text-xl font-semibold">Jobs</h1>
         <span className="text-sm text-zinc-500">{visible.length} shown</span>
+        <SessionSwitcher />
         <button onClick={scan} className="ml-auto text-sm px-3 py-1 bg-zinc-700 hover:bg-zinc-600 rounded">
           Scan
         </button>
@@ -291,6 +295,7 @@ export default function JobsPage() {
       {showPanel && generateQueue.length > 0 && (
         <GenerationPanel
           queue={generateQueue}
+          sessionId={activeSessionId}
           onStageUpdate={(jobId, stage) =>
             setGenStatus(prev => new Map(prev).set(jobId, `⟳ ${stage}`))
           }

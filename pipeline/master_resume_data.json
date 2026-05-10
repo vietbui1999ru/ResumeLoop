@@ -600,6 +600,18 @@
         "Instrumented Prometheus + Grafana tracking the four golden signals with Alertmanager Discord notifications",
         "Hardened CI/CD pipeline with 30 pytest tests at 66% coverage, blocking production deploys on test failure"
       ]
+    },
+    {
+      "id": "llm-wiki",
+      "name": "LLM Wiki - Compounding Knowledge System",
+      "short_stack": "Claude Code · qmd · Python · OpenCode",
+      "bullets": [
+        "Built compounding wiki ingesting sources into linked summaries/entities/concepts using Claude Code skills, enabling",
+        "Designed BM25+vector hybrid search via qmd over wiki pages, letting LLM agents retrieve and synthesize across 5",
+        "Authored 17 specialized Claude subagents (code-reviewer, security-auditor, design-critic) with rules and skills for",
+        "Built multi-model council.py using GitHub Models API + OpenAI SDK to deliberate across vendors and surface",
+        "Implemented mistake-log system with hook-captured raw entries and distilled global-prevention-rules loaded every"
+      ]
     }
   ],
   "skills": {

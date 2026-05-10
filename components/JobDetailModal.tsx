@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useJobOutput } from '@/lib/useJobOutput'
+import PdfViewer from './PdfViewer'
 
 interface JobDetail {
   id: string
@@ -181,11 +182,7 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
             {/* PDF panel */}
             {showPdf && (
               <div className={`flex-1 min-w-0 relative ${showReasoning ? 'border-r border-zinc-700' : ''}`}>
-                <iframe
-                  src={`/api/jobs/${jobId}/preview`}
-                  className="absolute inset-0 w-full h-full"
-                  title="Resume PDF preview"
-                />
+                <PdfViewer url={`/api/jobs/${jobId}/preview`} />
               </div>
             )}
 

@@ -14,11 +14,11 @@ export async function GET() {
 export async function POST(req: Request) {
   const body: { jobs_path?: string; output_path?: string } = await req.json()
 
-  if (body.jobs_path !== undefined) {
-    setSetting('jobs_path', body.jobs_path.trim())
-  }
-  if (body.output_path !== undefined) {
-    setSetting('output_path', body.output_path.trim())
+  try {
+    if (body.jobs_path !== undefined) setSetting('jobs_path', body.jobs_path.trim())
+    if (body.output_path !== undefined) setSetting('output_path', body.output_path.trim())
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
   }
 
   return NextResponse.json({ ok: true, settings: getAllSettings() })

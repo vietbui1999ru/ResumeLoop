@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
 import fs from 'fs'
+import path from 'path'
 import matter from 'gray-matter'
 import { getDb } from '@/lib/db'
+import { getSetting } from '@/lib/settings'
 import { VALID_ACTIONS } from '@/lib/actions'
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -17,13 +19,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const job = db.prepare('SELECT file_path FROM jd_jobs WHERE id = ?').get(id) as { file_path: string } | undefined
   if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
+  let realFilePath: string
   try {
-    const fileContent = fs.readFileSync(job.file_path, 'utf8')
+    const jobsDir = fs.realpathSync(getSetting('jobs_path'))
+    realFilePath  = fs.realpathSync(job.file_path)
+    if (!realFilePath.startsWith(jobsDir + path.sep)) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+  } catch {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
+  try {
+    const fileContent = fs.readFileSync(realFilePath, 'utf8')
     const { data: fm, content } = matter(fileContent)
     fm.Action = action
-    fs.writeFileSync(job.file_path, matter.stringify(content, fm), 'utf8')
-  } catch (err) {
-    return NextResponse.json({ error: `File write failed: ${(err as Error).message}` }, { status: 500 })
+    fs.writeFileSync(realFilePath, matter.stringify(content, fm), 'utf8')
+  } catch {
+    return NextResponse.json({ error: 'File write failed' }, { status: 500 })
   }
 
   db.prepare('UPDATE jd_jobs SET action = ? WHERE id = ?').run(action, id)

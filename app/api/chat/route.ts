@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { getDb } from '@/lib/db'
 import { CHAT_TOOLS, handleReadFile, handleProposeEdit, type FileKey } from '@/lib/chat-tools'
+import { loadFeedbackContext } from '@/lib/prompt-context'
 
-const SYSTEM_PROMPT = `You are a resume profile editor for Quoc-Viet Bui.
+const BASE_SYSTEM_PROMPT = `You are a resume profile editor for Quoc-Viet Bui.
 
 Files you can read and edit:
 - master_resume_data: work experience bullets, projects, skills variants (JSON)
@@ -18,6 +19,11 @@ Rules:
 - Tagline must be ≤76 chars. Bullets must be ≤116 chars.
 - Bullet formula: "Built A doing B using C, which produced D" — tech + result required.
 - master_resume_data.json must remain valid JSON at all times.`
+
+function buildChatSystemPrompt(): string {
+  const feedback = loadFeedbackContext()
+  return `${BASE_SYSTEM_PROMPT}\n\n## Past Feedback — Avoid Repeating These Mistakes\n${feedback}`
+}
 
 function buildMessages(
   rows: Array<{ role: string; content: string | null; tool_calls: string | null }>
@@ -52,6 +58,7 @@ async function runStream(
   messages: Anthropic.MessageParam[],
   send: (obj: Record<string, unknown>) => void,
   sessionId: string,
+  systemPrompt: string,
 ): Promise<{ assistantText: string; toolBlocks: ToolBlockWithRaw[]; toolResults: Array<{ id: string; result: string }> }> {
   let assistantText = ''
   const toolBlocks: ToolBlockWithRaw[] = []
@@ -60,7 +67,7 @@ async function runStream(
   const apiStream = client.messages.stream({
     model: 'claude-opus-4-7',
     max_tokens: 4096,
-    system: SYSTEM_PROMPT,
+    system: systemPrompt,
     tools: CHAT_TOOLS,
     messages,
   })
@@ -92,7 +99,7 @@ async function runStream(
 
         if (block.name === 'read_file') {
           const { file } = block.input as { file: FileKey }
-          toolResult = await handleReadFile(file)
+          toolResult = await handleReadFile(file, sessionId)
         } else if (block.name === 'propose_edit') {
           const { file, description, new_content } = block.input as {
             file: FileKey
@@ -156,6 +163,7 @@ export async function POST(req: Request) {
 
       try {
         const client = new Anthropic()
+        const systemPrompt = buildChatSystemPrompt()
         const MAX_TURNS = 8
         let loopCount = 0
 
@@ -169,7 +177,8 @@ export async function POST(req: Request) {
             client,
             messages,
             send,
-            sessionId
+            sessionId,
+            systemPrompt,
           )
 
           // Save assistant turn

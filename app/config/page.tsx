@@ -53,7 +53,7 @@ function ConfigEditor({ file }: { file: FileKey }) {
 
 export default function ConfigPage() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 p-6">
       <div>
         <h1 className="text-xl font-semibold">Config</h1>
         <p className="text-sm text-zinc-500 mt-1">

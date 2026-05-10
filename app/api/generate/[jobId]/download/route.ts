@@ -18,17 +18,22 @@ export async function GET(
     return NextResponse.json({ error: 'No output found for this job' }, { status: 404 })
   }
 
-  const resolvedDocx = path.resolve(output.docx_path)
-  const cwd = process.cwd()
-  const outputDir = path.resolve(getSetting('output_path'))
-  const inCwd = resolvedDocx.startsWith(cwd + path.sep)
+  let resolvedDocx: string
+  try {
+    resolvedDocx = fs.realpathSync(output.docx_path)
+  } catch {
+    return NextResponse.json({ error: 'DOCX file not found on disk' }, { status: 404 })
+  }
+
+  const cwd = (() => { try { return fs.realpathSync(process.cwd()) } catch { return process.cwd() } })()
+  const outputDir = (() => {
+    try { return fs.realpathSync(getSetting('output_path')) }
+    catch { return path.resolve(getSetting('output_path')) }
+  })()
+  const inCwd       = resolvedDocx.startsWith(cwd + path.sep)
   const inOutputDir = resolvedDocx.startsWith(outputDir + path.sep)
   if (!inCwd && !inOutputDir) {
     return NextResponse.json({ error: 'Invalid path' }, { status: 403 })
-  }
-
-  if (!fs.existsSync(resolvedDocx)) {
-    return NextResponse.json({ error: 'DOCX file not found on disk' }, { status: 404 })
   }
 
   const buf      = fs.readFileSync(resolvedDocx)

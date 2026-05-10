@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useSession } from '@/contexts/SessionContext'
 
 interface ProjectEntry {
   id: string
@@ -12,6 +13,7 @@ interface ProjectEntry {
 type State = 'idle' | 'loading' | 'preview' | 'applied'
 
 export default function GithubIngest() {
+  const { activeSessionId } = useSession()
   const [url, setUrl] = useState('')
   const [state, setState] = useState<State>('idle')
   const [entry, setEntry] = useState<ProjectEntry | null>(null)
@@ -47,7 +49,7 @@ export default function GithubIngest() {
       const res = await fetch('/api/github/apply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ project: { ...entry, id: projectId, bullets } }),
+        body: JSON.stringify({ project: { ...entry, id: projectId, bullets }, sessionId: activeSessionId }),
       })
       if (res.ok) setState('applied')
       else setError('Failed to write to profile')

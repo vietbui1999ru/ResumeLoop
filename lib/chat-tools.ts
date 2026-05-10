@@ -2,6 +2,7 @@ import fs from 'fs'
 import path from 'path'
 import { createPatch } from 'diff'
 import type Anthropic from '@anthropic-ai/sdk'
+import { getSession } from './sessions'
 
 const ROOT = process.cwd()
 
@@ -42,12 +43,23 @@ export const CHAT_TOOLS: Anthropic.Tool[] = [
   },
 ]
 
-export async function handleReadFile(file: FileKey): Promise<string> {
+export async function handleReadFile(file: FileKey, sessionId = 'default'): Promise<string> {
+  const MAX_CHARS = file === 'master_resume_data' ? 120000 : 8000
+
+  if (file === 'master_resume_data') {
+    const session = getSession(sessionId)
+    const content = session?.data && session.data !== '{}' ? session.data : null
+    if (content) {
+      return content.length > MAX_CHARS
+        ? content.slice(0, MAX_CHARS) + '\n[truncated — do not propose edits based on this partial content]'
+        : content
+    }
+  }
+
   const filePath = FILE_MAP[file as string]
   if (!filePath) return `Error: unknown file key "${file}"`
   try {
     const content = fs.readFileSync(filePath, 'utf8')
-    const MAX_CHARS = file === 'master_resume_data' ? 32000 : 8000
     return content.length > MAX_CHARS
       ? content.slice(0, MAX_CHARS) + '\n[truncated — do not propose edits based on this partial content]'
       : content

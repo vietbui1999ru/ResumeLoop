@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
+import { validateSafeDir } from '@/lib/settings'
 
 function safePath(p: string): string {
-  // Resolve ~
   if (p.startsWith('~/')) p = path.join(os.homedir(), p.slice(2))
   return path.resolve(p)
 }
@@ -48,16 +48,22 @@ export async function GET(req: Request) {
   })
 }
 
-// POST /api/fs  { path: '/some/new/dir' }  — create directory
+// POST /api/fs  { path: '/some/new/dir' }  — create directory (safe roots only)
 export async function POST(req: Request) {
   const { path: rawPath }: { path: string } = await req.json()
   if (!rawPath?.trim()) return NextResponse.json({ error: 'path required' }, { status: 400 })
 
-  const dir = safePath(rawPath.trim())
+  let dir: string
+  try {
+    dir = validateSafeDir(rawPath.trim())
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+  }
+
   try {
     fs.mkdirSync(dir, { recursive: true })
     return NextResponse.json({ ok: true, path: dir })
-  } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 })
+  } catch {
+    return NextResponse.json({ error: 'Failed to create directory' }, { status: 500 })
   }
 }

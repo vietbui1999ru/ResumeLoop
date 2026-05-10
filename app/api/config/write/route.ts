@@ -5,8 +5,8 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 
+// buildv2.js is excluded — it is executed by node and must not be writable via HTTP
 const ALLOWED: Record<string, string> = {
-  'buildv2.js':                        PATHS.pipeline.builder,
   'master_resume_data.json':           PATHS.pipeline.masterData,
   'ats-optimized-resume-system.md':    PATHS.docs.atsSystem,
   'ats-optimization-guidelines.md':    PATHS.docs.atsGuidelines,
