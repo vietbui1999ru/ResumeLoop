@@ -18,6 +18,12 @@ pipeline/batch-build/
 # Harness working dir
 harness/batch-build/
 
+# Claude Code — ephemeral/local only; skills are tracked intentionally
+.claude/session-state.md
+.claude/settings.local.json
+.claude/agent-memory/
+.claude/worktrees/
+
 # macOS
 .DS_Store
 
@@ -31,3 +37,4 @@ tsconfig.tsbuildinfo
 
 # Generated screenshots
 *.png
+.playwright-mcp
