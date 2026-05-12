@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
+import { auth } from '@/lib/auth'
+import { getAdapter } from '@/lib/db-adapter'
 import fs from 'fs'
 import path from 'path'
 
@@ -11,6 +12,10 @@ interface FeedbackBody {
 }
 
 export async function POST(req: Request) {
+  const session = await auth()
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const userId = session.user.id
+
   const { jobId, outputId, rating, note }: FeedbackBody = await req.json()
 
   if (!jobId || ![1, 2, 3].includes(rating)) {
@@ -19,9 +24,11 @@ export async function POST(req: Request) {
 
   const sanitize = (s: string) => s.replace(/^#{1,6}\s/gm, '').replace(/\n/g, ' ').slice(0, 200)
 
-  const job = getDb().prepare(
-    'SELECT company, role_title FROM jd_jobs WHERE id = ?'
-  ).get(jobId) as { company: string; role_title: string } | undefined
+  const db = await getAdapter()
+  const job = await db.queryOne<{ company: string; role_title: string }>(
+    'SELECT company, role_title FROM jd_jobs WHERE id = ? AND user_id = ?',
+    [jobId, userId],
+  )
 
   const label = job
     ? `${sanitize(job.company)}_${sanitize(job.role_title)}`

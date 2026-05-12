@@ -2,14 +2,20 @@ import { RoleTrackChart } from '@/components/RoleTrackChart'
 import { FitDistChart } from '@/components/FitDistChart'
 import { OutputHistoryTable } from '@/components/OutputHistoryTable'
 import { PipelineSankeyChart } from '@/components/PipelineSankeyChart'
+import { TourBubble } from '@/components/TourBubble'
 import { computeMetrics } from '@/lib/get-metrics'
+import { auth } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
+  const session = await auth()
+  const userId = session?.user?.id
+  if (!userId) return null  // middleware redirects unauthenticated users before this
+
   let data
   try {
-    data = computeMetrics()
+    data = await computeMetrics(userId)
   } catch {
     data = null
   }
@@ -33,11 +39,31 @@ export default async function DashboardPage() {
         <p className="text-sm text-zinc-500">{data.total} JDs · {data.visaKill} visa-kill</p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <RoleTrackChart data={data.role_track_dist} />
+        <div className="relative">
+          <RoleTrackChart data={data.role_track_dist} />
+          <TourBubble
+            tourKey="dashboard-role-chart"
+            title="Role category breakdown"
+            body="Shows which role tracks your scanned jobs fall into. Use this to spot where demand clusters — helpful for deciding which resume profile to keep active."
+            position="below"
+            align="left"
+            width={270}
+          />
+        </div>
         <FitDistChart data={data.fit_dist} />
       </div>
       {data.pipeline && <PipelineSankeyChart data={data.pipeline} />}
-      <OutputHistoryTable outputs={data.outputs} />
+      <div className="relative">
+        <OutputHistoryTable outputs={data.outputs} />
+        <TourBubble
+          tourKey="dashboard-outputs"
+          title="Generated resumes"
+          body="Every resume generation run appears here. Download the DOCX directly or re-open the job to regenerate with updated profile data."
+          position="above"
+          align="left"
+          width={270}
+        />
+      </div>
     </div>
   )
 }

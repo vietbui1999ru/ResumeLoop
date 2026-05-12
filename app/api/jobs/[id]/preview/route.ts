@@ -1,17 +1,31 @@
 import fs from 'fs'
+import os from 'os'
 import path from 'path'
 import { NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
-import { getSetting } from '@/lib/settings'
+import { auth } from '@/lib/auth'
+import { getAdapter } from '@/lib/db-adapter'
+import { isS3Key, getPresignedUrl } from '@/lib/storage'
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const session = await auth()
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const userId = session.user.id
+
   const { id } = await params
-  const row = getDb().prepare(
-    'SELECT pdf_path FROM jd_outputs WHERE job_id = ? ORDER BY built_at DESC LIMIT 1'
-  ).get(id) as { pdf_path: string | null } | undefined
+  const db = await getAdapter()
+  const row = await db.queryOne<{ pdf_path: string | null }>(
+    'SELECT pdf_path FROM jd_outputs WHERE job_id = ? AND user_id = ? ORDER BY built_at DESC LIMIT 1',
+    [id, userId],
+  )
 
   if (!row?.pdf_path) {
     return NextResponse.json({ error: 'PDF not available' }, { status: 404 })
+  }
+
+  if (isS3Key(row.pdf_path)) {
+    const url = await getPresignedUrl(row.pdf_path)
+    if (!url) return NextResponse.json({ error: 'Could not generate preview URL' }, { status: 500 })
+    return NextResponse.redirect(url)
   }
 
   if (!row.pdf_path.endsWith('.pdf')) {
@@ -25,14 +39,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: 'PDF file missing on disk' }, { status: 404 })
   }
 
-  const cwd = (() => { try { return fs.realpathSync(process.cwd()) } catch { return process.cwd() } })()
-  const outputDir = (() => {
-    try { return fs.realpathSync(getSetting('output_path')) }
-    catch { return path.resolve(getSetting('output_path')) }
-  })()
-  const inCwd       = resolvedPdf.startsWith(cwd + path.sep)
-  const inOutputDir = resolvedPdf.startsWith(outputDir + path.sep)
-  if (!inCwd && !inOutputDir) {
+  const home = os.homedir()
+  const safeRoots = [
+    path.join(home, 'Desktop'),
+    path.join(home, 'Documents'),
+    path.join(home, 'Downloads'),
+    process.cwd(),
+  ].map(r => { try { return fs.realpathSync(r) } catch { return r } })
+  const isSafe = safeRoots.some(r => resolvedPdf.startsWith(r + path.sep) || resolvedPdf === r)
+  if (!isSafe) {
     return NextResponse.json({ error: 'Invalid path' }, { status: 403 })
   }
 

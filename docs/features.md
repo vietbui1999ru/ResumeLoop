@@ -1,0 +1,425 @@
+---
+title: "Feature Guide"
+description: "User-facing guide to every feature in ResumeAnalyze — dashboard, jobs list, resume generation, chat, settings, and auth."
+tags: [guide, features, overview]
+updated: 2026-05-11
+---
+
+# Feature Guide
+
+ResumeAnalyze is a personal dashboard that turns job description Markdown files into tailored, ATS-optimized DOCX resumes. This guide covers every feature from first login to downloading a finished resume.
+
+---
+
+## Authentication
+
+### Sign up
+
+Navigate to `/auth/signup`. Enter an email address and a password of at least 8 characters. After a successful registration the app automatically signs you in and redirects to the Dashboard.
+
+### Sign in
+
+Navigate to `/auth/signin`. Enter your email and password. On success you are redirected to the Dashboard.
+
+**Demo account** — for quick exploration, use `demo@demo.com` / `demo`.
+
+---
+
+## Dashboard
+
+The Dashboard (`/`) shows aggregate statistics computed from all scanned jobs. It is empty until you run at least one Scan.
+
+| Panel | What it shows |
+|---|---|
+| Header stat line | Total JDs scanned · visa-kill count |
+| Role Track chart | Distribution of role tracks across all jobs |
+| Fit Distribution chart | Histogram of fit percentages across all jobs |
+| Pipeline Sankey chart | Generation outcome flow (present only once resumes have been generated) |
+| Output History table | List of generated resumes with build dates |
+
+If no data exists yet, the Dashboard shows a prompt directing you to **Jobs → Scan**.
+
+---
+
+## Jobs List
+
+The Jobs list (`/jobs`) is the main workspace for selecting and generating resumes.
+
+### Columns
+
+| Column | Description |
+|---|---|
+| Company | Company name from the JD file |
+| Role | Job title |
+| Track | Inferred role track (e.g., "Backend / API Engineer") |
+| Fit% | AI-assigned fit percentage; green when ≥ 60 |
+| Action | Application pipeline stage (see below) |
+| Clipped | Date the JD was clipped into Obsidian (from `created:` frontmatter); falls back to scan date |
+| Scanned | Date the JD was last scanned into the database |
+| Visa | `proceed` (green) or `visa-kill` (red) based on visa requirement parsing |
+| Status | Live generation progress or `★ Why?` link after generation |
+
+### Action stages
+
+Each job has an action dropdown editable directly in the table. Changes save immediately with optimistic UI rollback on error.
+
+| Stage | Color |
+|---|---|
+| 0-Saved | Gray |
+| 1-Applied | Cyan |
+| 2-Phone Screen | Indigo |
+| 3-Interview | Purple |
+| 4-Offer | Green |
+| 5-Rejected | Red |
+| 6-Ghosted | Dark gray |
+
+### Filtering and sorting
+
+The filter bar above the table provides:
+
+- **Search** — full-text search across company, role title, track, and JD body. Results update as you type (300 ms debounce).
+- **Track** — filter to a single role track.
+- **Tag** — filter by a tag value found in any job's frontmatter.
+- **Fit ≥** — minimum fit percentage threshold.
+- **Visa** — show only `proceed` jobs (default), only `visa-kill` jobs, or all.
+- **Action stage** — filter to a single pipeline stage.
+- **From date** — filter by `clipped_at` date (ISO format, client-side filtering).
+
+Every column header is clickable to sort ascending or descending. Clicking the same column again toggles direction. Numeric columns (Fit%, Clipped, Scanned) default to descending on first click. Text columns default to ascending.
+
+### Hidden jobs
+
+Jobs can be marked as hidden to keep the list uncluttered. A **Show hidden** toggle in the filter bar displays hidden rows at 40% opacity with an amber highlight. Hidden jobs do not affect generation or metrics.
+
+### Scanning
+
+Click **Scan** to discover and parse all `.md` files in your configured Jobs folder. The scan reads frontmatter and body, extracts company, role title, track, fit percentage, visa status, and tags, then upserts each job into the database.
+
+### Selecting and generating
+
+Check individual rows to select them. The header checkbox selects or deselects all currently visible (filtered) rows. Click **Generate N selected** to start the generation pipeline for all selected jobs. See [Resume Generation](#resume-generation) for pipeline details.
+
+### Status column
+
+- While generating: shows the current pipeline stage (e.g., `⟳ ai-reason`).
+- After success: shows `done` with a `★ Why?` button that opens the AI Reasoning modal.
+- If a prior generation exists: shows `★ Why?` or `doc`.
+
+### Clicking a row
+
+Clicking anywhere on a row (except the checkbox and action dropdown) opens the **Job Detail Modal** for that job.
+
+---
+
+## Job Detail Modal
+
+The modal opens when you click a job row. Press **Escape** or click outside the modal to close it. All panel state resets on close.
+
+### Panel toolbar
+
+A row of toggle buttons at the top of the modal controls which panels are visible: **JD**, **PDF**, **AI Why**, **Cover Letter**, and **Outreach**. Active panels are highlighted in indigo.
+
+- Any combination of panels can be open simultaneously.
+- The modal width scales automatically: narrow with one panel, wide with four.
+- Drag any panel by its grip strip (the dotted bar at its top) to reorder them.
+
+### JD panel
+
+Shows structured metadata and the full raw Markdown content of the job description.
+
+**Structured fields:**
+
+| Field | Description |
+|---|---|
+| Track | Inferred role track |
+| Fit | Fit percentage, green when ≥ 60 |
+| Action | Current pipeline stage |
+| Visa | `proceed` or `visa-kill` |
+| Clipped | JD file last-modified date |
+| Scanned | Last scan date |
+| Apply URL | Link to the application form; click to edit inline. Saved to database with user edits preserved on rescan. |
+| Tags | Frontmatter tags rendered as chips |
+
+**Action links** (appear after a resume has been generated):
+
+- **Open file** — opens the raw JD Markdown file in your system.
+- **Apply ↗** — shortcut link to the Apply URL (if set).
+- **DOCX** — downloads the generated DOCX resume for this job.
+- **Cover Letter** — triggers cover letter generation (see below).
+
+Below the action links, if a resume exists, a **Resume Output** block shows the AI-chosen tagline, work variant track, and build date.
+
+The lower portion of the panel renders the full JD Markdown.
+
+### PDF panel
+
+Renders a live PDF preview of the generated resume using the browser's native PDF viewer.
+
+If no resume has been generated yet, the panel shows: "No PDF available. Generate a resume first."
+
+### AI Why panel
+
+Displays the AI's reasoning for all resume selections made during generation. The reasoning is structured Markdown with five sections:
+
+| Section | What it explains |
+|---|---|
+| Track | Why the role track was chosen |
+| Work Experience | Which work IDs were selected and why they match the JD |
+| Projects | Which three projects were chosen and the JD keywords they target |
+| Tagline | Why the generated tagline fits the role |
+| Skills | How the five skills rows were composed for this JD |
+
+If no resume has been generated, the panel shows a prompt to generate first.
+
+### Outreach panel
+
+Tracks contacts and companies associated with a job, and generates AI-drafted LinkedIn and email messages.
+
+The panel is always available — it does not require a resume to have been generated first.
+
+#### Adding contacts
+
+Click **Browse** (or use the file picker) to select one or more Markdown files from your vault. Typically these are Obsidian web clips of LinkedIn profiles or company pages. Select the files and click **Ingest** to import them. The app reads each file and uses the AI to generate a structured contact card.
+
+#### Contact card
+
+Each imported contact gets an AI-generated card containing:
+
+| Field | Description |
+|---|---|
+| Name | Contact's full name |
+| Current role | Their title and organization |
+| Background | 2–3 sentence summary |
+| Relevance | Why this contact is relevant to your application |
+| Talking points | 3 bullet points for outreach angle |
+
+#### Contact fields
+
+After ingestion you can edit each contact directly in the panel:
+
+- **Role** — classify the contact as `Hiring Manager`, `Recruiter`, `Engineer`, `Alumni`, `Other` (free-text when Other is selected)
+- **Status** — `Not contacted` / `Contacted` / `Replied` / `No response`
+- **Email** — contact email address (AI-suggested if found in the source file)
+- **Notes** — free-text notes
+
+#### Drafts
+
+Click **Draft messages** on a contact to generate:
+
+- **LinkedIn message** (≤ 300 chars) — concise connection request that references the role
+- **Email** — 3-paragraph message referencing the job, their background, and a specific talking point
+
+Both drafts are editable inline before you copy or send them. Click **Regenerate** to produce a new version.
+
+#### Job brief
+
+The top of the Outreach panel shows an AI-generated outreach brief for the job: company summary, key hiring signals, and 3 recommended outreach angles. Click **Generate brief** if it is not yet present.
+
+---
+
+### Cover Letter panel
+
+Generates a 3-paragraph, 200–250 word cover letter written from the context of the already-generated resume.
+
+- Click **Generate** (or the **Cover Letter** button in the JD panel) to start streaming generation.
+- Text streams in real time while the button shows "Generating…".
+- After generation, click **Copy** to copy the full text to the clipboard.
+- Click **Regenerate** to produce a new version.
+- If no resume exists yet, the panel shows a prompt to generate the resume first.
+
+The cover letter uses the resume's tagline, work track, project selection, and AI reasoning as context, plus the full JD content.
+
+---
+
+## Resume Generation
+
+The full pipeline runs server-side over SSE (Server-Sent Events). Progress is shown live in the Generation Panel that appears below the filter bar.
+
+### Starting generation
+
+1. Scan your jobs folder (click **Scan** on the Jobs page).
+2. Review the resulting list. Filter to jobs you want to apply for.
+3. Check one or more job rows.
+4. Click **Generate N selected**.
+
+### Pipeline stages
+
+Each job passes through these stages in order:
+
+| Stage | What happens |
+|---|---|
+| `preflight` | Creates the build directory, copies `master_resume_data.json` and `buildv2.js` into it, installs `docx` if needed. |
+| `ai-reason` | Calls the active AI provider with the JD and your profile. The AI selects: role track, work variant (`genai` / `systems` / `IT-track`), three work experience IDs, three project IDs, a tagline (≤ 76 chars), five skills rows, and a reasoning narrative. |
+| `write-script` | Writes a Node.js build script that passes the AI's selections to `buildv2.js`. |
+| `build` | Runs the build script with `node`. Produces a DOCX file. |
+| `validate` | Runs `validate.js` to check hard limits (tagline ≤ 76 chars, bullets ≤ 116 chars). |
+| `fix-loop` | If validation fails, applies automatic fixes and retries. Tagline overruns are trimmed at a word boundary. Bullet overruns are not auto-fixed and will fail the pipeline. Up to 3 attempts total. |
+| `pdf` | Converts the DOCX to PDF. Non-fatal: generation continues even if PDF conversion fails. |
+| `finalize` | Moves DOCX and PDF to the output folder (or uploads to S3 in cloud mode), writes the output record to the database, updates the JD frontmatter tag from `un-resume` to `resume-ed`. |
+
+### Stage indicators
+
+Each stage row in the Generation Panel shows:
+
+- `⟳` — currently running
+- `✓` — completed successfully
+- `✗` — failed
+
+Inline summaries appear where applicable: tagline text after `ai-reason`, script filename after `write-script`, violation descriptions after `validate`.
+
+### After generation
+
+- A **Download DOCX** link appears in the Generation Panel.
+- The **Status** column in the job table updates to `done` with a `★ Why?` button.
+- The JD file's `un-resume` frontmatter tag is replaced with `resume-ed`.
+- Open the Job Detail Modal to preview the PDF or generate a cover letter.
+
+### Rating feedback
+
+After each job completes, a 1–3 rating widget appears in the Generation Panel. Optionally add a note and click **Submit** to log feedback.
+
+---
+
+## Resume Profiles
+
+Resume Profiles let you maintain multiple named variants of your resume data (`master_resume_data.json`). Each profile is stored in the database as a separate snapshot, and you can activate one to use it for all future generations.
+
+### Accessing profiles
+
+Profiles are managed via the **Settings** page, visible from the left sidebar.
+
+### Managing profiles
+
+**Create a new profile** — click **+ New profile**. Choose from:
+- **Fork active** — copy the current active profile
+- **Upload JSON** — import a `master_resume_data.json` file from disk
+- **Seed from disk** — import the current disk file
+
+**Switch to a profile** — click the profile name in the dropdown at the top of the page. The **active** badge shows the currently active profile (used in generation).
+
+**Rename** — click the pencil icon next to a profile name to edit it.
+
+**Delete** — profiles can be deleted. The default disk profile cannot be deleted; it is always available as a fallback.
+
+**Fork** — copy an existing profile to create a new variant.
+
+**Save active profile** — any changes made via the Monaco editor are saved to the active profile.
+
+---
+
+## Config Editor
+
+The Config page (`/config`) provides in-browser editing of pipeline files and reference documentation.
+
+### Profile editor
+
+At the top of the Config page, a **Profile selector** bar allows you to:
+- Switch between profiles
+- Create new profiles
+- Upload and delete profiles
+- Mark a profile as active
+
+**Monaco editor** — the main panel shows a JSON editor (VS Code-like) for the active profile with syntax highlighting and validation.
+
+**Live bullets preview** — the right panel displays all bullets from the active profile with live character count updates:
+- Green (<100 chars)
+- Amber (100–116 chars)
+- Red (>116 chars — exceeds limit)
+
+### Reference documentation
+
+Below the profile editor, four collapsible sections provide read-only reference docs:
+
+| Doc | Purpose |
+|---|---|
+| `ats-optimization-guidelines.md` | ATS best practices (injected into AI reasoning) |
+| `CLAUDE-full.md` | Full resume generation rules |
+| `ats-optimized-resume-system.md` | ATS system prompt |
+| `spec-job-match-resume-generator.md` | Job match specification |
+
+Each doc displays with a rendered preview panel. No editing; for reference only.
+
+### Backup and restore
+
+A backup/restore UI is preserved for all files. Saves create `.bak` backups automatically.
+
+---
+
+## GitHub Ingestion
+
+The **Import from GitHub** tab on the Chat page fetches a public GitHub repository and uses the AI to generate resume-ready project entries.
+
+### How to use it
+
+1. Paste a full GitHub repository URL (e.g., `https://github.com/user/repo`).
+2. Click **Fetch** or press **Enter**.
+3. The AI reads the README (up to 6,000 characters) and the top-level file tree to produce:
+   - A display name
+   - A one-sentence summary
+   - A `short_stack` string (3–4 technologies, ≤ 40 chars)
+   - 3–5 achievement bullets (≤ 116 chars each)
+4. A preview card appears. You can:
+   - Edit the project ID (slug used in `master_resume_data.json`)
+   - Edit any bullet in place; character counts update live (red when > 116)
+5. Click **Add to Profile** to write the entry to the active session's profile data.
+
+A success message confirms the addition. Switch to Chat to further refine the entry or to promote the session.
+
+---
+
+## Sessions
+
+Sessions are named snapshots of your resume profile data (`master_resume_data.json`). They let you maintain multiple variants of your profile — for example, one tuned for systems roles and one for GenAI roles.
+
+| Action | How |
+|---|---|
+| Create | Click **+ New session** in the Chat sidebar, or use the SessionSwitcher on the Jobs page |
+| Switch | Click a session name in the Chat sidebar or use the SessionSwitcher dropdown |
+| Rename | Use the PATCH endpoint via SessionSwitcher |
+| Delete | Available for all sessions except the Default session |
+| Promote | Copies this session's profile data into the Default session; all future generations will use the promoted data |
+
+The Default session is always present and cannot be renamed or deleted. It is the session used when no session is explicitly selected.
+
+---
+
+## Settings
+
+The Settings page (`/settings`) has two sections: folder paths and AI provider configuration.
+
+### Folder paths
+
+Two folder paths control where the pipeline reads and writes files.
+
+**Job Postings Folder** — the directory containing your `.md` job description files. The Scan operation reads from this folder.
+
+**Resume Output Folder** — where generated `.docx` and `.pdf` files are saved. The folder is created automatically on the first successful build if it does not exist.
+
+Use the **Browse** button to navigate the filesystem and select a folder. You can also create a new folder from the browser panel. Click **Use this folder** to save the selection.
+
+The status panel at the bottom of the page shows whether each folder path currently exists on disk. Output folder shows a warning instead of an error if it does not yet exist.
+
+> In Docker deployments, use container-side paths (e.g., `/jobs`, `/output`). Paths are stored in the database and override `.env.local` values.
+
+### AI Provider
+
+Configure which LLM provider and model the pipeline uses for reasoning and cover letter generation. See [AI Providers](./ai-providers.md) for per-provider setup details.
+
+**Note:** The Chat feature uses a separate hardcoded model configuration independent of this setting.
+
+**Configured providers** are listed with their key hint, model name, and active badge. Each has **Set active** and **Remove** buttons.
+
+**Add / update a provider:**
+
+1. Select a provider from the dropdown.
+2. Enter or confirm the model name. The field pre-fills with the default model for that provider.
+3. Enter the API key (or Base URL for Ollama).
+4. Optionally check **Set as active provider**.
+5. Click **Test & Save**. The app makes a live one-token request to verify the key before saving.
+
+The button is disabled until an API key is entered (Ollama does not require one).
+
+### Sign out
+
+Click **Sign out** at the bottom of the Settings page to end your session and return to the sign-in page.
+

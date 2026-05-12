@@ -3,11 +3,13 @@ import path from 'path'
 import { spawn } from 'child_process'
 import { randomUUID } from 'crypto'
 import { reasonForJob, type ReasoningResult } from './ai-reason'
-import { getDb } from './db'
+import { getAdapter } from './db-adapter'
 import { getSetting } from './settings'
 import { PATHS } from './paths'
 import { GenerationLogger } from './generation-logger'
 import { ensureDefaultSession, getSession } from './sessions'
+import { saveOutput, isS3Key } from './storage'
+import { isCloud } from './app-mode'
 
 export interface SSEEvent {
   stage: 'preflight' | 'ai-reason' | 'write-script' | 'build' | 'validate' | 'fix-loop' | 'pdf' | 'finalize' | 'done' | 'error'
@@ -15,7 +17,7 @@ export interface SSEEvent {
   data: Record<string, unknown>
 }
 
-const BATCH_BUILD = path.join(process.cwd(), 'harness', 'batch-build')
+const BATCH_BUILD_ROOT = path.join(process.cwd(), 'harness', 'batch-build')
 const VALIDATE_JS = path.join(process.cwd(), 'harness', 'validate.js')
 
 // Map workVariant → bullets variant key (experience.bullets keys: systems/genai/fullstack/sre)
@@ -25,15 +27,17 @@ function bulletsKey(workVariant: string): string {
 }
 
 
-export async function* runPipeline(jobId: string, sessionId = 'default'): AsyncGenerator<SSEEvent> {
-  const job = getDb().prepare(
-    'SELECT id, company, role_title, file_path, raw_content FROM jd_jobs WHERE id = ?'
-  ).get(jobId) as { id: string; company: string; role_title: string; file_path: string; raw_content: string } | undefined
+export async function* runPipeline(jobId: string, sessionId = 'default', userId = 'default'): AsyncGenerator<SSEEvent> {
+  const db = await getAdapter()
+  const job = await db.queryOne<{ id: string; company: string; role_title: string; file_path: string; raw_content: string }>(
+    'SELECT id, company, role_title, file_path, raw_content FROM jd_jobs WHERE id = ? AND user_id = ?',
+    [jobId, userId],
+  )
 
   if (!job) { yield errEvent('preflight', `Job not found: ${jobId}`); return }
 
-  ensureDefaultSession()
-  const session = getSession(sessionId)
+  await ensureDefaultSession(userId)
+  const session = await getSession(sessionId, userId)
   if (!session) { yield errEvent('preflight', `Session not found: ${sessionId}`); return }
 
   const logger = new GenerationLogger(jobId, job.company, job.role_title)
@@ -43,10 +47,13 @@ export async function* runPipeline(jobId: string, sessionId = 'default'): AsyncG
     return event
   }
 
+  // Per-job working directory — isolates concurrent builds
+  const jobBuildDir = path.join(BATCH_BUILD_ROOT, jobId)
+
   // Stage 0: Preflight
   yield emit({ stage: 'preflight', status: 'running', data: {} })
   try {
-    await preflight(session.data)
+    await preflight(session.data, jobBuildDir)
   } catch (e) {
     yield emit(errEvent('preflight', String(e))); logger.finish('failed'); return
   }
@@ -56,7 +63,7 @@ export async function* runPipeline(jobId: string, sessionId = 'default'): AsyncG
   yield emit({ stage: 'ai-reason', status: 'running', data: {} })
   let decision: ReasoningResult
   try {
-    decision = await reasonForJob(job.raw_content, session.data)
+    decision = await reasonForJob(job.raw_content, session.data, userId)
   } catch (e) {
     yield emit(errEvent('ai-reason', String(e))); logger.finish('failed'); return
   }
@@ -67,11 +74,19 @@ export async function* runPipeline(jobId: string, sessionId = 'default'): AsyncG
   yield emit({ stage: 'write-script', status: 'running', data: {} })
   const slug = toSlug(`${job.company}_${job.role_title}`)
   const scriptName = `${slug}.js`
-  const scriptPath = path.join(BATCH_BUILD, scriptName)
+  const scriptPath = path.join(jobBuildDir, scriptName)
   const docxName   = `${slug}_VietBui.docx`
 
+  // Resolve master data: active profile > session.data > disk fallback
+  let masterDataJson = session.data
+  const activeProfile = await db.queryOne<{ data: string }>(
+    'SELECT data FROM resume_profiles WHERE user_id = ? AND is_active = 1 LIMIT 1',
+    [userId],
+  )
+  if (activeProfile?.data) masterDataJson = activeProfile.data
+
   try {
-    const script = buildScript(decision, slug, docxName)
+    const script = buildScript(decision, slug, docxName, masterDataJson)
     fs.writeFileSync(scriptPath, script, 'utf8')
     logger.setScript(scriptPath, script)
   } catch (e) {
@@ -80,12 +95,16 @@ export async function* runPipeline(jobId: string, sessionId = 'default'): AsyncG
   yield emit({ stage: 'write-script', status: 'ok', data: { script: scriptName } })
 
   // Stages 3+4+5: Build → Validate → Fix loop
+  // The inner generator emits a finalize:ok sentinel to pass the docx path back.
+  // We capture it here but do NOT forward it to the SSE stream — the outer
+  // runPipeline emits its own finalize:ok after the DB write.
   let docxPath: string | null = null
-  for await (const event of buildValidateLoop(scriptPath, docxName)) {
-    yield emit(event)
+  for await (const event of buildValidateLoop(scriptPath, docxName, jobBuildDir)) {
     if (event.stage === 'finalize' && event.status === 'ok') {
       docxPath = event.data.docx as string
+      continue // captured — do not forward to SSE stream
     }
+    yield emit(event)
     if (event.status === 'fail') { logger.finish('failed'); return }
   }
 
@@ -96,7 +115,7 @@ export async function* runPipeline(jobId: string, sessionId = 'default'): AsyncG
   let pdfPath: string | null = null
   const base = docxName.endsWith('.docx') ? docxName.slice(0, -5) : docxName
   const pdfName = `${base}.pdf`
-  const pdfExpected = path.join(BATCH_BUILD, pdfName)
+  const pdfExpected = path.join(jobBuildDir, pdfName)
   const toPdfScript = path.join(process.cwd(), 'harness', 'to-pdf.js')
   try {
     const pdfResult = await spawnAsync('node', [toPdfScript, docxPath, pdfExpected], process.cwd())
@@ -116,36 +135,67 @@ export async function* runPipeline(jobId: string, sessionId = 'default'): AsyncG
   yield emit({ stage: 'finalize', status: 'running', data: {} })
   try {
     const outputId = randomUUID()
-    const outputDir = getSetting('output_path')
-    const destPath  = path.join(outputDir, docxName)
 
-    fs.mkdirSync(outputDir, { recursive: true })
-    fs.renameSync(docxPath, destPath)
-
+    let finalDocxPath: string
     let finalPdfPath: string | null = null
-    if (pdfPath) {
-      const pdfDest = path.join(outputDir, pdfName)
-      try { fs.renameSync(pdfPath, pdfDest); finalPdfPath = pdfDest } catch { /* non-fatal */ }
+
+    if (isCloud()) {
+      // Upload to S3 — s3Key format: outputs/<jobId>/<filename>
+      finalDocxPath = await saveOutput(docxPath, `outputs/${jobId}/${docxName}`)
+      if (pdfPath) {
+        try {
+          finalPdfPath = await saveOutput(pdfPath, `outputs/${jobId}/${pdfName}`)
+        } catch { /* non-fatal */ }
+      }
+    } else {
+      // Local: move files to output_path directory
+      const outputDir = await getSetting('output_path')
+      fs.mkdirSync(outputDir, { recursive: true })
+      const destPath = path.join(outputDir, docxName)
+      fs.renameSync(docxPath, destPath)
+      finalDocxPath = destPath
+
+      if (pdfPath) {
+        const pdfDest = path.join(outputDir, pdfName)
+        try { fs.renameSync(pdfPath, pdfDest); finalPdfPath = pdfDest } catch { /* non-fatal */ }
+      }
     }
 
-    getDb().prepare(`
-      INSERT OR REPLACE INTO jd_outputs
-        (id, job_id, docx_path, pdf_path, projects_used, work_ids_used, variant, tagline, reasoning, session_id, built_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    `).run(
-      outputId, jobId, destPath, finalPdfPath,
+    await db.run(`
+      INSERT INTO jd_outputs
+        (id, job_id, docx_path, pdf_path, projects_used, work_ids_used, variant, tagline, reasoning, session_id, user_id, built_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(id) DO UPDATE SET
+        job_id        = excluded.job_id,
+        docx_path     = excluded.docx_path,
+        pdf_path      = excluded.pdf_path,
+        projects_used = excluded.projects_used,
+        work_ids_used = excluded.work_ids_used,
+        variant       = excluded.variant,
+        tagline       = excluded.tagline,
+        reasoning     = excluded.reasoning,
+        session_id    = excluded.session_id,
+        user_id       = excluded.user_id,
+        built_at      = CURRENT_TIMESTAMP
+    `, [
+      outputId, jobId, finalDocxPath, finalPdfPath,
       JSON.stringify(decision.projects),
       JSON.stringify(decision.workIds),
       decision.workVariant,
       decision.tagline,
       decision.reasoning ?? null,
-      sessionId
-    )
+      sessionId,
+      userId,
+    ])
 
-    tagJdFile(job.file_path)
+    await tagJdFile(job.file_path)
     logger.finish('success')
 
-    yield emit({ stage: 'finalize', status: 'ok', data: { path: destPath } })
+    // Clean up per-job build dir — files are already moved to output dir or S3
+    try { fs.rmSync(jobBuildDir, { recursive: true, force: true }) } catch { /* non-fatal */ }
+
+    const displayPath = isS3Key(finalDocxPath) ? finalDocxPath : finalDocxPath
+    yield emit({ stage: 'finalize', status: 'ok', data: { path: displayPath } })
     yield emit({ stage: 'done', status: 'ok', data: { outputId } })
   } catch (e) {
     yield emit(errEvent('finalize', String(e)))
@@ -153,24 +203,27 @@ export async function* runPipeline(jobId: string, sessionId = 'default'): AsyncG
   }
 }
 
-async function preflight(resumeData: string): Promise<void> {
-  fs.mkdirSync(BATCH_BUILD, { recursive: true })
-  fs.writeFileSync(path.join(BATCH_BUILD, 'master_resume_data.json'), resumeData, 'utf8')
-  fs.copyFileSync(PATHS.pipeline.builder, path.join(BATCH_BUILD, 'buildv2.js'))
-
-  const nodeModules = path.join(BATCH_BUILD, 'node_modules')
+async function preflight(resumeData: string, jobBuildDir: string): Promise<void> {
+  // Ensure shared root has buildv2.js and node_modules
+  fs.mkdirSync(BATCH_BUILD_ROOT, { recursive: true })
+  fs.copyFileSync(PATHS.pipeline.builder, path.join(BATCH_BUILD_ROOT, 'buildv2.js'))
+  const nodeModules = path.join(BATCH_BUILD_ROOT, 'node_modules')
   if (!fs.existsSync(nodeModules)) {
-    await spawnAsync('npm', ['install', 'docx'], BATCH_BUILD)
+    await spawnAsync('npm', ['install', 'docx'], BATCH_BUILD_ROOT)
   }
+
+  // Per-job dir for script + output files
+  fs.mkdirSync(jobBuildDir, { recursive: true })
+  fs.writeFileSync(path.join(jobBuildDir, 'master_resume_data.json'), resumeData, 'utf8')
 }
 
-async function* buildValidateLoop(scriptPath: string, docxName: string): AsyncGenerator<SSEEvent> {
-  const docxExpected = path.join(BATCH_BUILD, docxName)
+async function* buildValidateLoop(scriptPath: string, docxName: string, jobBuildDir: string): AsyncGenerator<SSEEvent> {
+  const docxExpected = path.join(jobBuildDir, docxName)
 
   for (let attempt = 0; attempt < 3; attempt++) {
     // Build
     yield { stage: 'build', status: 'running', data: { attempt } }
-    const buildResult = await spawnAsync('node', [scriptPath], BATCH_BUILD)
+    const buildResult = await spawnAsync('node', [scriptPath], jobBuildDir)
     if (buildResult.code !== 0) {
       yield errEvent('build', buildResult.stderr || buildResult.stdout); return
     }
@@ -223,8 +276,8 @@ function applyFixes(scriptPath: string, violations: string[]): string[] {
   return fixed
 }
 
-function buildScript(d: ReasoningResult, _slug: string, docxName: string): string {
-  const master = JSON.parse(fs.readFileSync(PATHS.pipeline.masterData, 'utf8')) as {
+function buildScript(d: ReasoningResult, _slug: string, docxName: string, masterDataJson: string): string {
+  const master = JSON.parse(masterDataJson) as {
     experience: Array<{ id: string; bullets: Record<string, string[]> }>
     projects:   Array<{ id: string; bullets: string[] }>
     skills:     Record<string, Record<string, string>>
@@ -261,7 +314,7 @@ function buildScript(d: ReasoningResult, _slug: string, docxName: string): strin
   const fmtSkills = skillRows.map(s => `    ${JSON.stringify(s)}`).join(',\n')
 
   return `// Generated by ResumeAnalyze — ${new Date().toISOString()}
-const { makeDoc, TL, T } = require('./buildv2.js');
+const { makeDoc, TL, T } = require('../buildv2.js');
 const { Packer } = require('docx');
 const fs = require('fs');
 const path = require('path');
@@ -297,10 +350,10 @@ function spawnAsync(cmd: string, args: string[], cwd: string): Promise<{ code: n
   })
 }
 
-function tagJdFile(filePath: string): void {
+async function tagJdFile(filePath: string): Promise<void> {
   if (!filePath) return
   try {
-    const jobsDir = fs.realpathSync(getSetting('jobs_path'))
+    const jobsDir = fs.realpathSync(await getSetting('jobs_path'))
     const real    = fs.realpathSync(filePath)
     if (!real.startsWith(jobsDir + path.sep)) return
     const content = fs.readFileSync(real, 'utf8')

@@ -1,7 +1,6 @@
 import fs from 'fs'
-import path from 'path'
 import { randomUUID } from 'crypto'
-import { getDb } from './db'
+import { getAdapter } from './db-adapter'
 import { PATHS } from './paths'
 
 export interface Session {
@@ -15,78 +14,120 @@ export interface SessionWithData extends Session {
   data: string
 }
 
-let initialized = false
+const seededDefaults = new Set<string>()
 
-export function ensureDefaultSession(): void {
-  if (initialized) return
-  initialized = true
+// Each user gets their own "default" session, identified by id = `default:<userId>`.
+// Legacy single-tenant rows used id = 'default' with user_id = 'default'.
+function defaultSessionId(userId: string): string {
+  return userId === 'default' ? 'default' : `default:${userId}`
+}
 
-  const db = getDb()
-  const existing = db.prepare('SELECT id FROM resume_sessions WHERE id = ?').get('default')
+export async function ensureDefaultSession(userId: string = 'default'): Promise<void> {
+  if (seededDefaults.has(userId)) return
+  seededDefaults.add(userId)
+
+  const db = await getAdapter()
+  const defId = defaultSessionId(userId)
+  const existing = await db.queryOne<{ id: string }>(
+    'SELECT id FROM resume_sessions WHERE id = ? AND user_id = ?',
+    [defId, userId],
+  )
   if (existing) return
 
+  // Seed from active profile in DB; fall back to disk file for backwards compat
   let data = '{}'
-  try {
-    data = fs.readFileSync(PATHS.pipeline.masterData, 'utf8')
-  } catch { /* file may not exist yet */ }
+  const activeProfile = await db.queryOne<{ data: string }>(
+    'SELECT data FROM resume_profiles WHERE user_id = ? AND is_active = 1 LIMIT 1',
+    [userId],
+  )
+  if (activeProfile) {
+    data = activeProfile.data
+  } else {
+    try { data = fs.readFileSync(PATHS.pipeline.masterData, 'utf8') } catch { /* file may not exist */ }
+  }
 
-  db.prepare('INSERT INTO resume_sessions (id, name, data) VALUES (?, ?, ?)').run('default', 'Default', data)
+  await db.run(
+    'INSERT INTO resume_sessions (id, name, data, user_id) VALUES (?, ?, ?, ?)',
+    [defId, 'Default', data, userId],
+  )
 }
 
-export function listSessions(): Session[] {
-  ensureDefaultSession()
-  return getDb()
-    .prepare('SELECT id, name, created_at, updated_at FROM resume_sessions ORDER BY created_at ASC')
-    .all() as Session[]
+export async function listSessions(userId: string = 'default'): Promise<Session[]> {
+  await ensureDefaultSession(userId)
+  const db = await getAdapter()
+  return db.query<Session>(
+    'SELECT id, name, created_at, updated_at FROM resume_sessions WHERE user_id = ? ORDER BY created_at ASC',
+    [userId],
+  )
 }
 
-export function getSession(id: string): SessionWithData | undefined {
-  ensureDefaultSession()
-  return getDb()
-    .prepare('SELECT id, name, data, created_at, updated_at FROM resume_sessions WHERE id = ?')
-    .get(id) as SessionWithData | undefined
+export async function getSession(id: string, userId: string = 'default'): Promise<SessionWithData | undefined> {
+  await ensureDefaultSession(userId)
+  const db = await getAdapter()
+  // Treat the public id 'default' as the user's default session.
+  const realId = id === 'default' ? defaultSessionId(userId) : id
+  return db.queryOne<SessionWithData>(
+    'SELECT id, name, data, created_at, updated_at FROM resume_sessions WHERE id = ? AND user_id = ?',
+    [realId, userId],
+  )
 }
 
-export function createSession(name: string): Session {
-  ensureDefaultSession()
-  const db = getDb()
-  const defaultSession = db
-    .prepare('SELECT data FROM resume_sessions WHERE id = ?')
-    .get('default') as { data: string } | undefined
+export async function createSession(name: string, userId: string = 'default'): Promise<Session> {
+  await ensureDefaultSession(userId)
+  const db = await getAdapter()
+  const defId = defaultSessionId(userId)
+  const defaultSession = await db.queryOne<{ data: string }>(
+    'SELECT data FROM resume_sessions WHERE id = ? AND user_id = ?',
+    [defId, userId],
+  )
   const data = defaultSession?.data ?? '{}'
   const id = randomUUID()
-  db.prepare('INSERT INTO resume_sessions (id, name, data) VALUES (?, ?, ?)').run(id, name, data)
-  return db
-    .prepare('SELECT id, name, created_at, updated_at FROM resume_sessions WHERE id = ?')
-    .get(id) as Session
+  await db.run(
+    'INSERT INTO resume_sessions (id, name, data, user_id) VALUES (?, ?, ?, ?)',
+    [id, name, data, userId],
+  )
+  const created = await db.queryOne<Session>(
+    'SELECT id, name, created_at, updated_at FROM resume_sessions WHERE id = ? AND user_id = ?',
+    [id, userId],
+  )
+  if (!created) throw new Error(`Failed to create session: ${id}`)
+  return created
 }
 
-export function renameSession(id: string, name: string): void {
-  ensureDefaultSession()
+export async function renameSession(id: string, name: string, userId: string = 'default'): Promise<void> {
+  await ensureDefaultSession(userId)
   if (id === 'default') throw new Error('Cannot rename default session')
-  getDb().prepare('UPDATE resume_sessions SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(name, id)
+  const db = await getAdapter()
+  await db.run(
+    'UPDATE resume_sessions SET name = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
+    [name, id, userId],
+  )
 }
 
-export function deleteSession(id: string): void {
-  ensureDefaultSession()
+export async function deleteSession(id: string, userId: string = 'default'): Promise<void> {
+  await ensureDefaultSession(userId)
   if (id === 'default') throw new Error('Cannot delete default session')
-  getDb().prepare('DELETE FROM resume_sessions WHERE id = ?').run(id)
+  const db = await getAdapter()
+  await db.run('DELETE FROM resume_sessions WHERE id = ? AND user_id = ?', [id, userId])
 }
 
-export function updateSessionData(id: string, data: string): void {
-  ensureDefaultSession()
-  getDb()
-    .prepare('UPDATE resume_sessions SET data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-    .run(data, id)
-  if (id === 'default') syncMasterFile(data)
+export async function updateSessionData(id: string, data: string, userId: string = 'default'): Promise<void> {
+  await ensureDefaultSession(userId)
+  const db = await getAdapter()
+  const realId = id === 'default' ? defaultSessionId(userId) : id
+  await db.run(
+    'UPDATE resume_sessions SET data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
+    [data, realId, userId],
+  )
+  if (id === 'default' && userId === 'default') syncMasterFile(data)
 }
 
-export function promoteSession(id: string): void {
-  ensureDefaultSession()
+export async function promoteSession(id: string, userId: string = 'default'): Promise<void> {
+  await ensureDefaultSession(userId)
   if (id === 'default') throw new Error('Cannot promote default session')
-  const session = getSession(id)
+  const session = await getSession(id, userId)
   if (!session) throw new Error(`Session not found: ${id}`)
-  updateSessionData('default', session.data)
+  await updateSessionData('default', session.data, userId)
 }
 
 function syncMasterFile(data: string): void {

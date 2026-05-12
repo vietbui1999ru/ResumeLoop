@@ -1,6 +1,6 @@
 import path from 'path'
 import os from 'os'
-import { getDb } from './db'
+import { getAdapter } from './db-adapter'
 
 export interface AppSettings {
   jobs_path: string
@@ -39,20 +39,49 @@ export function validateSafeDir(raw: string): string {
   return resolved
 }
 
-export function getSetting<K extends keyof AppSettings>(key: K): string {
-  const row = getDb().prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined
+export async function getSetting<K extends keyof AppSettings>(key: K): Promise<string> {
+  const db = await getAdapter()
+  const row = await db.queryOne<{ value: string }>(
+    'SELECT value FROM app_settings WHERE key = ?',
+    [key],
+  )
   return row?.value ?? DEFAULTS[key]
 }
 
-export function setSetting<K extends keyof AppSettings>(key: K, value: string): void {
+export async function setSetting<K extends keyof AppSettings>(key: K, value: string): Promise<void> {
   validateSafeDir(value)  // throws if invalid — caller handles the error
-  getDb().prepare('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value')
-    .run(key, value)
+  const db = await getAdapter()
+  await db.run(
+    'INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+    [key, value],
+  )
 }
 
-export function getAllSettings(): AppSettings {
-  return {
-    jobs_path:   getSetting('jobs_path'),
-    output_path: getSetting('output_path'),
+// Like validateSafeDir but also allows paths under the configured jobs_path parent (vault root).
+// Used by outreach ingest so clipped files anywhere in the vault are accessible.
+export async function validateIngestPath(raw: string): Promise<string> {
+  const expanded = raw.startsWith('~/') ? path.join(os.homedir(), raw.slice(2)) : raw
+  const resolved = path.resolve(expanded)
+
+  const segments = resolved.split(path.sep)
+  if (segments.some(s => s.startsWith('.') && s.length > 1)) {
+    throw new Error(`Path contains hidden directory: ${resolved}`)
   }
+
+  const standardOk = SAFE_ROOTS.some(r => resolved === r || resolved.startsWith(r + path.sep))
+  if (standardOk) return resolved
+
+  const jobsPath = await getSetting('jobs_path')
+  const vaultRoot = path.dirname(jobsPath)
+  if (resolved === vaultRoot || resolved.startsWith(vaultRoot + path.sep)) return resolved
+
+  throw new Error(`Path must be under Documents, Desktop, Downloads, the project directory, or the configured vault. Got: ${resolved}`)
+}
+
+export async function getAllSettings(): Promise<AppSettings> {
+  const [jobs_path, output_path] = await Promise.all([
+    getSetting('jobs_path'),
+    getSetting('output_path'),
+  ])
+  return { jobs_path, output_path }
 }

@@ -1,23 +1,35 @@
-FROM node:22-alpine
-
-# better-sqlite3 native addon needs build tools
-RUN apk add --no-cache python3 make g++
-
+# Stage 1: deps
+FROM node:20-alpine AS deps
+RUN apk add --no-cache libc6-compat python3 make g++
 WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# Install app dependencies
-COPY package.json package-lock.json* ./
-RUN npm install
-
-# Pre-install batch-build deps (docx package)
-COPY pipeline/batch-build/package.json ./pipeline/batch-build/
-RUN cd pipeline/batch-build && npm install
-
-# Copy source and build
+# Stage 2: builder
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-EXPOSE 3000
-ENV PORT=3000 NODE_ENV=production
+# Stage 3: runner
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
-CMD ["npm", "start"]
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+COPY --from=builder /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Copy harness scripts needed for DOCX generation pipeline
+COPY --from=builder --chown=nextjs:nodejs /app/harness ./harness
+
+USER nextjs
+EXPOSE 3000
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+CMD ["node", "server.js"]
