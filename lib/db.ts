@@ -127,10 +127,39 @@ export function initSchema(db: DB): void {
     );
 
     CREATE TABLE IF NOT EXISTS users (
+      id                  TEXT PRIMARY KEY,
+      email               TEXT UNIQUE NOT NULL,
+      password            TEXT NOT NULL DEFAULT '',
+      is_demo             INTEGER NOT NULL DEFAULT 0,
+      email_verified      INTEGER NOT NULL DEFAULT 0,
+      password_changed_at DATETIME,
+      created_at          DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS oauth_accounts (
+      id                  TEXT PRIMARY KEY,
+      user_id             TEXT NOT NULL REFERENCES users(id),
+      provider            TEXT NOT NULL,
+      provider_account_id TEXT NOT NULL,
+      created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(provider, provider_account_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_oauth_provider ON oauth_accounts(provider, provider_account_id);
+
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
       id         TEXT PRIMARY KEY,
-      email      TEXT UNIQUE NOT NULL,
-      password   TEXT NOT NULL,
-      is_demo    INTEGER NOT NULL DEFAULT 0,
+      user_id    TEXT NOT NULL REFERENCES users(id),
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at DATETIME NOT NULL,
+      used       INTEGER NOT NULL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS email_verification_tokens (
+      id         TEXT PRIMARY KEY,
+      user_id    TEXT NOT NULL REFERENCES users(id),
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at DATETIME NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -317,6 +346,52 @@ export function initSchema(db: DB): void {
   if (hasColumn(db, 'jd_outputs', 'job_id')) {
     db.exec(`CREATE INDEX IF NOT EXISTS idx_outputs_job ON jd_outputs(job_id)`)
   }
+
+  // Migrate existing users table to add auth columns
+  if (!hasColumn(db, 'users', 'email_verified'))
+    db.exec(`ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0`)
+  if (!hasColumn(db, 'users', 'password_changed_at'))
+    db.exec(`ALTER TABLE users ADD COLUMN password_changed_at DATETIME`)
+
+  // Migrate: allow empty password for OAuth-only accounts
+  // (password column already exists; DEFAULT '' is set on new tables above)
+
+  // Auth tables for existing DBs
+  const hasOAuthAccounts = (db.prepare(`SELECT COUNT(*) as c FROM sqlite_master WHERE type='table' AND name='oauth_accounts'`).get() as { c: number }).c > 0
+  if (!hasOAuthAccounts) db.exec(`
+    CREATE TABLE oauth_accounts (
+      id                  TEXT PRIMARY KEY,
+      user_id             TEXT NOT NULL REFERENCES users(id),
+      provider            TEXT NOT NULL,
+      provider_account_id TEXT NOT NULL,
+      created_at          DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(provider, provider_account_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_oauth_provider ON oauth_accounts(provider, provider_account_id);
+  `)
+
+  const hasPwResetTokens = (db.prepare(`SELECT COUNT(*) as c FROM sqlite_master WHERE type='table' AND name='password_reset_tokens'`).get() as { c: number }).c > 0
+  if (!hasPwResetTokens) db.exec(`
+    CREATE TABLE password_reset_tokens (
+      id         TEXT PRIMARY KEY,
+      user_id    TEXT NOT NULL REFERENCES users(id),
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at DATETIME NOT NULL,
+      used       INTEGER NOT NULL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
+
+  const hasEmailVerifTokens = (db.prepare(`SELECT COUNT(*) as c FROM sqlite_master WHERE type='table' AND name='email_verification_tokens'`).get() as { c: number }).c > 0
+  if (!hasEmailVerifTokens) db.exec(`
+    CREATE TABLE email_verification_tokens (
+      id         TEXT PRIMARY KEY,
+      user_id    TEXT NOT NULL REFERENCES users(id),
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at DATETIME NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
 
   // Seed demo user (pre-hashed bcrypt of 'demo', rounds=10) — local/self-hosted mode only
   if (!isCloud()) {
