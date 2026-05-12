@@ -252,6 +252,7 @@ class NeonAdapter implements DbAdapter {
       ALTER TABLE jd_jobs ADD COLUMN IF NOT EXISTS clipped_at TEXT;
       ALTER TABLE jd_jobs ADD COLUMN IF NOT EXISTS hidden INTEGER NOT NULL DEFAULT 0;
       ALTER TABLE jd_jobs ADD COLUMN IF NOT EXISTS apply_url TEXT;
+      ALTER TABLE jd_jobs ADD COLUMN IF NOT EXISTS application_case TEXT;
       CREATE TABLE IF NOT EXISTS resume_profiles (
         id         TEXT PRIMARY KEY,
         user_id    TEXT NOT NULL,
