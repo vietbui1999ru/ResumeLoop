@@ -356,3 +356,33 @@ curl https://<ServiceUrl>/api/health
 2. Check the trust policy condition — it restricts to `repo:<ORG>/<REPO>:ref:refs/heads/main`. Deployments from other branches will fail.
 
 3. If the OIDC provider was already present in the account (from another project), skip the `create-open-id-connect-provider` step — it can only be created once per account.
+
+---
+
+## Secrets (AWS Secrets Manager)
+
+### List all secrets
+
+```bash
+aws secretsmanager list-secrets \
+  --filter Key=name,Values=resumeanalyze/prod \
+  --query 'SecretList[].Name'
+```
+
+### Rotate a secret
+
+```bash
+aws secretsmanager update-secret \
+  --secret-id resumeanalyze/prod/AUTH_SECRET \
+  --secret-string "$(openssl rand -hex 32)"
+```
+
+After rotating `AUTH_SECRET` or `ENCRYPTION_KEY`, restart the container — all active sessions are invalidated.
+
+### Read a secret (for debugging)
+
+```bash
+aws secretsmanager get-secret-value \
+  --secret-id resumeanalyze/prod/AUTH_SECRET \
+  --query SecretString --output text
+```

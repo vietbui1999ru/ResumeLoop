@@ -119,6 +119,58 @@ The Dockerfile uses a three-stage build (deps → builder → runner) on `node:2
 
 ---
 
+## Homelab deployment (primary)
+
+The app runs on a Proxmox LXC node accessed via Tailscale. Docker images are pulled from ECR; secrets live in `.env.prod` on the host.
+
+### Prerequisites
+
+- Docker + Docker Compose plugin on the LXC
+- AWS CLI v2: `apk add aws-cli` or `apt install awscli`
+- IAM user `resumeanalyze-homelab` with `AmazonEC2ContainerRegistryReadOnly` policy — run `aws configure` with those credentials
+- Tailscale installed and joined to your tailnet
+- SSH key pair: add deploy key public key to `~/.ssh/authorized_keys`
+
+### One-time setup
+
+```bash
+mkdir -p ~/resumeanalyze/pipeline
+cd ~/resumeanalyze
+
+# Copy docker-compose.prod.yml from the repo
+# Copy .env.prod.example → .env.prod and fill in values
+cp /path/to/repo/.env.prod.example .env.prod
+# Edit .env.prod with actual paths, AUTH_SECRET, NEXTAUTH_URL, etc.
+
+touch resume.db  # Docker volume mount requires file to exist
+```
+
+### Manual deploy
+
+```bash
+cd ~/resumeanalyze
+ECR_REGISTRY=<account-id>.dkr.ecr.us-east-1.amazonaws.com
+aws ecr get-login-password --region us-east-1 \
+  | docker login --username AWS --password-stdin $ECR_REGISTRY
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+curl http://localhost:3010/api/health
+```
+
+### GitHub Actions deploy (automatic on merge to main)
+
+Add these secrets to the GitHub repository (Settings → Secrets → Actions):
+
+| Secret | Value |
+|---|---|
+| `TAILSCALE_AUTHKEY` | Ephemeral Tailscale auth key (Tailscale admin → Settings → Keys → Generate auth key, check "Ephemeral") |
+| `HOMELAB_HOST` | Tailscale hostname of the LXC |
+| `HOMELAB_USER` | SSH user (e.g. `root`) |
+| `HOMELAB_SSH_KEY` | SSH private key — paste full PEM block |
+| `AWS_DEPLOY_ROLE_ARN` | Output of `bash infra/setup-aws.sh` |
+
+---
+
 ## AWS deployment
 
 ### Architecture
@@ -180,54 +232,36 @@ aws s3api put-bucket-lifecycle-configuration \
 
 ---
 
-### Step 3: SSM parameters
+### Step 3: Secrets Manager values
 
-All secrets are stored as `SecureString` in Parameter Store (standard tier, free). App Runner reads them at container startup via `RuntimeEnvironmentSecrets` in `infra/apprunner.yaml`.
+All secrets are created as placeholders by `bash infra/setup-aws.sh`. Fill in real values:
 
 ```bash
-# Mode flag — enables Neon + S3 paths
-aws ssm put-parameter \
-  --name /resumeanalyze/prod/APP_MODE \
-  --value "cloud" \
-  --type SecureString
+aws secretsmanager update-secret \
+  --secret-id resumeanalyze/prod/APP_MODE \
+  --secret-string "cloud"
 
-# Neon connection string (Neon dashboard → Connection Details)
-aws ssm put-parameter \
-  --name /resumeanalyze/prod/DATABASE_URL \
-  --value "postgresql://user:pass@host/dbname?sslmode=require" \
-  --type SecureString
+aws secretsmanager update-secret \
+  --secret-id resumeanalyze/prod/AUTH_SECRET \
+  --secret-string "$(openssl rand -hex 32)"
 
-# 32-byte hex encryption key for session data
-# Generate: openssl rand -hex 32
-aws ssm put-parameter \
-  --name /resumeanalyze/prod/ENCRYPTION_KEY \
-  --value "<YOUR_ENCRYPTION_KEY>" \
-  --type SecureString
+aws secretsmanager update-secret \
+  --secret-id resumeanalyze/prod/ENCRYPTION_KEY \
+  --secret-string "$(openssl rand -hex 32)"
 
-# NextAuth secret (any random string, min 32 chars)
-# Generate: openssl rand -base64 32
-aws ssm put-parameter \
-  --name /resumeanalyze/prod/NEXTAUTH_SECRET \
-  --value "<YOUR_NEXTAUTH_SECRET>" \
-  --type SecureString
+# Neon connection string from Neon dashboard → Connection Details
+aws secretsmanager update-secret \
+  --secret-id resumeanalyze/prod/DATABASE_URL \
+  --secret-string "postgresql://..."
 
-# Public App Runner URL — set AFTER service is created (see Step 6)
-aws ssm put-parameter \
-  --name /resumeanalyze/prod/NEXTAUTH_URL \
-  --value "https://<random>.us-east-1.awsapprunner.com" \
-  --type SecureString
+# S3 bucket name (output of setup-aws.sh)
+aws secretsmanager update-secret \
+  --secret-id resumeanalyze/prod/S3_BUCKET \
+  --secret-string "resumeanalyze-outputs-<account-id>"
 
-# S3 bucket name
-aws ssm put-parameter \
-  --name /resumeanalyze/prod/S3_BUCKET \
-  --value "resumeanalyze-outputs" \
-  --type SecureString
-
-# AWS region
-aws ssm put-parameter \
-  --name /resumeanalyze/prod/AWS_REGION \
-  --value "us-east-1" \
-  --type SecureString
+aws secretsmanager update-secret \
+  --secret-id resumeanalyze/prod/NEXTAUTH_URL \
+  --secret-string "https://<your-app-runner-url>"
 ```
 
 ---
