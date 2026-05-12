@@ -1,6 +1,6 @@
 ---
 title: "Deployment Guide"
-description: "How to run ResumeAnalyze locally and deploy it to AWS App Runner."
+description: "How to run ResumeAnalyze locally and deploy it to a self-hosted homelab via Docker and Tailscale."
 tags: [deployment, aws, docker, local-dev]
 updated: 2026-05-11
 ---
@@ -10,7 +10,7 @@ updated: 2026-05-11
 ResumeAnalyze runs as a Next.js 14 application in two modes:
 
 - **Local** — SQLite database, filesystem storage, Ollama for LLM calls. No AWS account needed.
-- **Cloud** — AWS App Runner (compute) + Neon serverless Postgres (database) + S3 (file storage). Secrets injected at runtime from SSM Parameter Store.
+- **Cloud** — ECR (container registry) + S3 (file storage) + Secrets Manager (runtime secrets). Compute runs on a self-hosted homelab LXC via Docker, reached over Tailscale. Neon serverless Postgres is used as the database when `APP_MODE=cloud`.
 
 The mode is controlled by the `APP_MODE` environment variable. When `APP_MODE=cloud`, the app switches to Neon and S3. Any other value (or unset) means local mode.
 
@@ -57,7 +57,7 @@ OBSIDIAN_JOBS_PATH=/path/to/your/JobData/Jobs
 OUTPUT_PATH=/path/to/your/output/dir
 
 # --- Auth ---
-NEXTAUTH_SECRET=any-random-string-min-32-chars
+AUTH_SECRET=any-random-string-min-32-chars
 NEXTAUTH_URL=http://localhost:3000
 ENCRYPTION_KEY=any-32-byte-hex-string  # openssl rand -hex 32
 
@@ -115,7 +115,7 @@ docker build -t resumeanalyze .
 docker run -p 3010:3000 resumeanalyze
 ```
 
-The Dockerfile uses a three-stage build (deps → builder → runner) on `node:20-alpine`. The final image runs as a non-root `nextjs` user and exposes port 3000. Next.js standalone output is used (`output: 'standalone'` in `next.config.mjs`).
+The Dockerfile uses a two-stage build (builder → runner) on `node:22-alpine`. The runner stage installs system Chromium for Puppeteer-based PDF generation and exposes port 3000. Next.js standalone output is used (`output: 'standalone'` in `next.config.mjs`).
 
 ---
 
@@ -293,8 +293,8 @@ aws iam put-role-policy \
 ```
 
 The policy in `infra/iam-policy.json` grants:
-- `ssm:GetParameter` + `ssm:GetParameters` on `arn:aws:ssm:us-east-1:<ACCOUNT_ID>:parameter/resumeanalyze/prod/*`
-- `s3:PutObject` + `s3:GetObject` on `arn:aws:s3:::resumeanalyze-outputs/*`
+- `secretsmanager:GetSecretValue` on `arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeanalyze/prod/*`
+- `s3:PutObject` + `s3:GetObject` on `arn:aws:s3:::resumeanalyze-outputs-<ACCOUNT_ID>/*`
 
 ---
 
@@ -430,7 +430,7 @@ curl https://<ServiceUrl>/api/health
 |---|---|---|---|---|
 | `APP_MODE` | Not set | `cloud` | SSM | Switches DB and storage to Neon + S3 when set to `"cloud"` |
 | `DATABASE_URL` | Not set | Required | SSM | Neon Postgres connection string (`postgresql://...?sslmode=require`) |
-| `NEXTAUTH_SECRET` | Required | Required | SSM / `.env.local` | NextAuth session signing secret, min 32 chars |
+| `AUTH_SECRET` | Required | Required | Secrets Manager / `.env.local` | NextAuth session signing secret, min 32 chars |
 | `NEXTAUTH_URL` | `http://localhost:3000` | App Runner URL | SSM / `.env.local` | Canonical URL of the app; must match the actual domain |
 | `ENCRYPTION_KEY` | Required | Required | SSM / `.env.local` | 32-byte hex key for encrypting stored API keys; generate with `openssl rand -hex 32` |
 | `S3_BUCKET` | Not set | Required | SSM | S3 bucket name for DOCX/PDF output storage |
