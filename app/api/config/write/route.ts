@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
 import { checkNodeSyntax } from '@/lib/run-script'
 import { PATHS } from '@/lib/paths'
 import fs from 'fs'
@@ -15,8 +16,13 @@ const ALLOWED: Record<string, string> = {
 }
 
 export async function POST(req: Request) {
+  const session = await auth()
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { file, content }: { file: string; content: string } = await req.json()
-  if (!file || !ALLOWED[file]) return NextResponse.json({ error: 'Unknown file' }, { status: 400 })
+  if (!file || !Object.prototype.hasOwnProperty.call(ALLOWED, file)) {
+    return NextResponse.json({ error: 'Unknown file' }, { status: 400 })
+  }
 
   if (file.endsWith('.json')) {
     try { JSON.parse(content) } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
@@ -33,9 +39,11 @@ export async function POST(req: Request) {
   }
 
   const target = ALLOWED[file]
-  const backup = target + '.bak'
-  if (fs.existsSync(target)) fs.copyFileSync(target, backup)
+  if (fs.existsSync(target)) {
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
+    fs.copyFileSync(target, `${target}.${ts}.bak`)
+  }
   fs.writeFileSync(target, content, 'utf8')
 
-  return NextResponse.json({ ok: true, backup })
+  return NextResponse.json({ ok: true })
 }

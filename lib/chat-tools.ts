@@ -43,11 +43,11 @@ export const CHAT_TOOLS: Anthropic.Tool[] = [
   },
 ]
 
-export async function handleReadFile(file: FileKey, sessionId = 'default'): Promise<string> {
+export async function handleReadFile(file: FileKey, sessionId = 'default', userId = 'default'): Promise<string> {
   const MAX_CHARS = file === 'master_resume_data' ? 120000 : 8000
 
   if (file === 'master_resume_data') {
-    const session = getSession(sessionId)
+    const session = await getSession(sessionId, userId)
     const content = session?.data && session.data !== '{}' ? session.data : null
     if (content) {
       return content.length > MAX_CHARS

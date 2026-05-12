@@ -1,20 +1,29 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useTourContext } from '@/contexts/TourContext'
 
 const NAV = [
-  { href: '/',         label: 'Dashboard' },
   { href: '/jobs',     label: 'Jobs' },
+  { href: '/',         label: 'Dashboard' },
+  { href: '/chat',     label: 'Chat' },
   { href: '/config',   label: 'Config' },
   { href: '/settings', label: 'Settings' },
-  { href: '/chat',     label: 'Chat' },
 ]
 
 export function Sidebar() {
-  const pathname = usePathname()
+  const pathname  = usePathname()
+  const { reset } = useTourContext()
   return (
     <nav className="w-44 shrink-0 border-r border-zinc-700 bg-zinc-900 flex flex-col gap-1 p-4 h-full overflow-y-auto">
-      <p className="text-xs font-semibold text-zinc-500 uppercase mb-3">ResumeAnalyze</p>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-semibold text-zinc-500 uppercase">ResumeAnalyze</p>
+        <button
+          onClick={reset}
+          title="Restart tour"
+          className="text-[10px] w-4 h-4 flex items-center justify-center rounded-full border border-zinc-700 text-zinc-500 hover:text-zinc-300 hover:border-zinc-500 transition-colors"
+        >?</button>
+      </div>
       {NAV.map(({ href, label }) => (
         <Link
           key={href}

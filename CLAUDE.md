@@ -209,3 +209,14 @@ Trigger phrases:
 - Low-fit rule: state fit % + flag missing tools, but still generate resume — let Viet decide
 - OutfitTracker URL is TBD (placeholder: github.com/vietbui1999ru/OutfitTracker) — update when repo public
 - OutfitTracker bullets are estimates (metrics: ~80% cache speedup) — update with Instruments data as features ship
+
+## Agent skills
+
+### Issue tracker
+GitHub — `github.com/vietbui1999ru/ObsidianTasks` (pending rename to ResumeAnalyze). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+Standard five-label vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+Single-context — `CONTEXT.md` at root + `docs/adr/` for architecture decisions. See `docs/agents/domain.md`.

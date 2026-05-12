@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
 import { getSession, updateSessionData } from '@/lib/sessions'
 
 interface ProjectInput {
@@ -19,6 +20,10 @@ function upsertProject(master: MasterData, entry: { id: string; name: string; sh
 }
 
 export async function POST(req: Request) {
+  const authSession = await auth()
+  if (!authSession?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const userId = authSession.user.id
+
   const { project, sessionId = 'default' } = await req.json() as { project?: ProjectInput; sessionId?: string }
   if (!project?.id || !project.bullets?.length) {
     return NextResponse.json({ error: 'project with id and bullets required' }, { status: 400 })
@@ -30,7 +35,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'bullets must be strings each ≤116 chars' }, { status: 400 })
   }
 
-  const defaultSession = getSession('default')
+  const defaultSession = await getSession('default', userId)
   let master: MasterData
   try {
     master = JSON.parse(defaultSession?.data ?? '{}')
@@ -41,17 +46,17 @@ export async function POST(req: Request) {
   const newEntry = { id: project.id, name: project.name, short_stack: project.short_stack, bullets: project.bullets }
   const replaced = upsertProject(master, newEntry)
 
-  // Canonical write: updates SQLite default session + syncs disk via syncMasterFile
-  updateSessionData('default', JSON.stringify(master, null, 2))
+  // Canonical write: updates user's default session + syncs disk via syncMasterFile
+  await updateSessionData('default', JSON.stringify(master, null, 2), userId)
 
   // If the active session diverges from default, patch just this project into it too
   if (sessionId !== 'default') {
-    const activeSession = getSession(sessionId)
+    const activeSession = await getSession(sessionId, userId)
     if (activeSession) {
       let activeMaster: MasterData
       try { activeMaster = JSON.parse(activeSession.data) } catch { activeMaster = {} }
       upsertProject(activeMaster, newEntry)
-      updateSessionData(sessionId, JSON.stringify(activeMaster, null, 2))
+      await updateSessionData(sessionId, JSON.stringify(activeMaster, null, 2), userId)
     }
   }
 

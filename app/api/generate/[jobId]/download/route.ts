@@ -1,21 +1,35 @@
 import { NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
-import { getSetting } from '@/lib/settings'
+import { auth } from '@/lib/auth'
+import { getAdapter } from '@/lib/db-adapter'
+import { isS3Key, getPresignedUrl } from '@/lib/storage'
 import fs from 'fs'
+import os from 'os'
 import path from 'path'
 
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ jobId: string }> }
 ) {
+  const session = await auth()
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const userId = session.user.id
+
   const { jobId } = await params
 
-  const output = getDb().prepare(
-    'SELECT docx_path FROM jd_outputs WHERE job_id = ? ORDER BY built_at DESC LIMIT 1'
-  ).get(jobId) as { docx_path: string } | undefined
+  const db = await getAdapter()
+  const output = await db.queryOne<{ docx_path: string }>(
+    'SELECT docx_path FROM jd_outputs WHERE job_id = ? AND user_id = ? ORDER BY built_at DESC LIMIT 1',
+    [jobId, userId],
+  )
 
   if (!output?.docx_path) {
     return NextResponse.json({ error: 'No output found for this job' }, { status: 404 })
+  }
+
+  if (isS3Key(output.docx_path)) {
+    const url = await getPresignedUrl(output.docx_path)
+    if (!url) return NextResponse.json({ error: 'Could not generate download URL' }, { status: 500 })
+    return NextResponse.redirect(url)
   }
 
   let resolvedDocx: string
@@ -25,14 +39,15 @@ export async function GET(
     return NextResponse.json({ error: 'DOCX file not found on disk' }, { status: 404 })
   }
 
-  const cwd = (() => { try { return fs.realpathSync(process.cwd()) } catch { return process.cwd() } })()
-  const outputDir = (() => {
-    try { return fs.realpathSync(getSetting('output_path')) }
-    catch { return path.resolve(getSetting('output_path')) }
-  })()
-  const inCwd       = resolvedDocx.startsWith(cwd + path.sep)
-  const inOutputDir = resolvedDocx.startsWith(outputDir + path.sep)
-  if (!inCwd && !inOutputDir) {
+  const home = os.homedir()
+  const safeRoots = [
+    path.join(home, 'Desktop'),
+    path.join(home, 'Documents'),
+    path.join(home, 'Downloads'),
+    process.cwd(),
+  ].map(r => { try { return fs.realpathSync(r) } catch { return r } })
+  const isSafe = safeRoots.some(r => resolvedDocx.startsWith(r + path.sep) || resolvedDocx === r)
+  if (!isSafe) {
     return NextResponse.json({ error: 'Invalid path' }, { status: 403 })
   }
 

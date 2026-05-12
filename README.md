@@ -1,63 +1,71 @@
 # ResumeAnalyze
 
-Personal resume generation and job tracking system. Given a job description, produces a tailored 1-page ATS-optimized DOCX resume and tracks application status.
+Personal job hunt dashboard that turns Obsidian job-description clips into tailored, ATS-optimized DOCX resumes — with fit scoring, cover letter generation, and outreach contact tracking.
 
-## Architecture
+## What it does
 
-**Clean split:** the web app handles tracking and visualization only. All resume generation runs through Claude Code CLI.
+- **Scan** a folder of Markdown JD files → parse company, role, tags, visa requirements
+- **Score** each job for fit percentage and role track (GenAI, Systems, IT-track)
+- **Generate** a 1-page tailored DOCX resume per job via AI reasoning + `buildv2.js`
+- **Track** application pipeline stages (Saved → Applied → Phone Screen → Interview → Offer)
+- **Chat** with your resume data to refine bullet points and add new projects
+- **Outreach** — import LinkedIn/alumni contact files per job, get AI contact summaries and draft emails + LinkedIn messages
+- **Sessions** — maintain multiple resume profile variants (e.g. one for systems roles, one for GenAI)
 
+## Quick Start
+
+### Local (SQLite)
+
+```bash
+npm install
+cp .env.example .env.local   # set NEXTAUTH_SECRET, ENCRYPTION_KEY
+npm run dev                  # http://localhost:3000
 ```
-Web app (Next.js)         Claude Code CLI
-─────────────────         ───────────────
-Job tracking              /generate skill
-Analytics dashboard       validate.js
-Tag filtering             master_resume_data.json
-Pipeline Sankey           buildv2.js → DOCX output
+
+Login with demo account: `demo@demo.com` / `demo`
+
+### Docker
+
+```bash
+docker compose up
 ```
 
-## Generating a Resume
+Persists `resume.db` and file outputs as bind-mounts. See [`docs/deploy.md`](docs/deploy.md) for full setup.
 
-1. Drop a JD markdown file into `jobs/` with `tags: [un-resume, ...]` in frontmatter
-2. Open Claude Code in this repo
-3. Run `/generate`
+## First-time setup
 
-The harness scans for `un-resume` tagged JDs, runs visa check → role-track selection → bullet copy → tagline → build → validation loop → DOCX output → tags JD as `resume-ed`.
+1. **Settings → Job Postings Folder** — point to your Obsidian vault folder containing job `.md` files
+2. **Settings → AI Provider** — add an API key (Anthropic recommended; required for Chat)
+3. **Jobs → Scan** — imports and scores all `.md` files
+4. Check jobs in the table → **Generate N selected**
 
-Output: `{OUTPUT_PATH}/{company}_{role}_vietbui.docx`
+## Docs
 
-See `.claude/skills/generate-resume/generate-resume.md` for the full workflow.
-
-## Validation
-
-`harness/validate.js` enforces hard constraints before any DOCX is finalized:
-
-| Check | Limit |
+| Page | Contents |
 |---|---|
-| Tagline | ≤76 chars |
-| Each bullet | ≤116 chars |
-| Para count (1-page proxy) | = 44 |
-| Skills rows | = 5 |
+| [`docs/features.md`](docs/features.md) | Every feature in detail |
+| [`docs/architecture.md`](docs/architecture.md) | System design, data flow, key files |
+| [`docs/database.md`](docs/database.md) | Full schema reference, migrations, useful queries |
+| [`docs/ai-providers.md`](docs/ai-providers.md) | Per-provider setup (Anthropic, OpenAI, Gemini, Groq, OpenRouter, Ollama) |
+| [`docs/deploy.md`](docs/deploy.md) | Docker, AWS App Runner deployment |
 
-```bash
-node harness/validate.js <build-script.js>
-# exit 0: ✓ VALID
-# exit 1: lists each violation
-```
+## Tech Stack
 
-## Web App
-
-```bash
-npm run dev   # http://localhost:3000
-```
-
-Reads JD files from `jobs/` and SQLite (`resume.db`). Pages: Dashboard, Jobs, Settings.
+- **Next.js 14** App Router + TypeScript
+- **Vercel AI SDK** — multi-provider LLM abstraction (Anthropic, OpenAI, Google, Groq, OpenRouter, Ollama)
+- **SQLite** (local via `better-sqlite3`) / **Neon Postgres** (cloud) — same `DbAdapter` interface
+- **NextAuth v5** — credential auth + session management
+- **gray-matter** — YAML frontmatter parsing for JD files
+- **docx** — programmatic DOCX generation
 
 ## Key Files
 
 | File | Purpose |
 |---|---|
-| `pipeline/master_resume_data.json` | All bullets — single source of truth |
-| `pipeline/buildv2.js` | DOCX generation engine |
+| `master_resume_data.json` | Single source of truth for all bullets, projects, work experience, skills |
+| `buildv2.js` | DOCX generation engine |
+| `lib/generate-pipeline.ts` | End-to-end resume generation (preflight → ai-reason → build → validate → pdf → finalize) |
+| `lib/ai-client.ts` | `getModel(userId)` — resolves active provider + model from DB |
+| `lib/db-adapter.ts` | `DbAdapter` interface + `SqliteAdapter` + `NeonAdapter` |
+| `lib/jd-parser.ts` | Parses JD frontmatter, extracts company/role/tags/visa/clip date |
 | `CLAUDE.md` | Candidate profile, hard constraints, role-track table |
-| `harness/validate.js` | Constraint checker |
-| `.claude/skills/generate-resume/` | `/generate` skill |

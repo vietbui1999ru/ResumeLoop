@@ -1,25 +1,74 @@
 import { NextResponse } from 'next/server'
-import { getDb } from '@/lib/db'
+import { auth } from '@/lib/auth'
+import { getAdapter } from '@/lib/db-adapter'
+import { isCloud } from '@/lib/app-mode'
 
 const BASE_COLS = `
   j.id, j.company, j.role_title, j.role_track, j.fit_pct, j.visa_status,
-  j.tags, j.action, j.file_mtime, j.scanned_at,
+  j.tags, j.action, j.file_mtime, j.clipped_at, j.scanned_at, j.hidden,
   EXISTS(SELECT 1 FROM jd_outputs WHERE job_id = j.id AND reasoning IS NOT NULL) as has_reasoning,
   EXISTS(SELECT 1 FROM jd_outputs WHERE job_id = j.id) as has_output
 `
 
 export async function GET(req: Request) {
-  const q = new URL(req.url).searchParams.get('q')?.trim() ?? ''
+  const session = await auth()
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const userId = session.user.id
 
-  const jobs = q
-    ? getDb().prepare(`
+  const sp         = new URL(req.url).searchParams
+  const q          = sp.get('q')?.trim() ?? ''
+  const showHidden = sp.get('showHidden') === '1'
+  const fitMin     = Number(sp.get('fitMin') ?? 0)
+  const track      = sp.get('track')?.trim() ?? ''
+  const visa       = (sp.get('visa') ?? 'proceed') as 'all' | 'proceed' | 'kill'
+  const action     = sp.get('action')?.trim() ?? ''
+  const tag        = sp.get('tag')?.trim() ?? ''
+  const fromDate   = sp.get('fromDate')?.trim() ?? ''
+
+  const conditions: string[] = ['j.user_id = ?']
+  const params: unknown[]    = [userId]
+
+  if (!showHidden)              { conditions.push('j.hidden = 0') }
+  if (fitMin > 0)               { conditions.push('j.fit_pct >= ?');                          params.push(fitMin) }
+  if (track)                    { conditions.push('j.role_track = ?');                        params.push(track) }
+  if (visa === 'proceed')       { conditions.push("(j.visa_status IS NULL OR j.visa_status != 'kill')") }
+  if (visa === 'kill')          { conditions.push("j.visa_status = 'kill'") }
+  if (action)                   { conditions.push('j.action = ?');                            params.push(action) }
+  if (tag)                      { conditions.push("','||COALESCE(j.tags,'')||',' LIKE ?");    params.push(`%,${tag},%`) }
+  if (fromDate)                 { conditions.push("COALESCE(j.clipped_at, j.scanned_at) >= ?"); params.push(fromDate) }
+
+  const where = conditions.join(' AND ')
+  const db    = await getAdapter()
+
+  let jobs: unknown[]
+  if (q) {
+    if (!isCloud()) {
+      // SQLite: FTS5 MATCH for full-text search
+      jobs = await db.query(`
+        SELECT ${BASE_COLS}
+        FROM jd_jobs j
+        JOIN jd_jobs_fts ON jd_jobs_fts.rowid = j.rowid
+        WHERE ${where}
+          AND jd_jobs_fts MATCH ?
+        ORDER BY COALESCE(j.clipped_at, j.scanned_at) DESC
+      `, [...params, q.split(/\s+/).map(t => `"${t.replace(/"/g, '')}"`).join(' ')])
+    } else {
+      // Neon/Postgres: ILIKE fallback
+      conditions.push('(j.company ILIKE ? OR j.role_title ILIKE ? OR j.raw_content ILIKE ?)')
+      params.push(`%${q}%`, `%${q}%`, `%${q}%`)
+      jobs = await db.query(`
         SELECT ${BASE_COLS} FROM jd_jobs j
-        WHERE j.company LIKE ? OR j.role_title LIKE ? OR j.role_track LIKE ? OR j.raw_content LIKE ?
-        ORDER BY j.company ASC
-      `).all(`%${q}%`, `%${q}%`, `%${q}%`, `%${q}%`)
-    : getDb().prepare(`
-        SELECT ${BASE_COLS} FROM jd_jobs j ORDER BY j.company ASC
-      `).all()
+        WHERE ${conditions.join(' AND ')}
+        ORDER BY COALESCE(j.clipped_at, j.scanned_at) DESC
+      `, params)
+    }
+  } else {
+    jobs = await db.query(`
+      SELECT ${BASE_COLS} FROM jd_jobs j
+      WHERE ${where}
+      ORDER BY COALESCE(j.clipped_at, j.scanned_at) DESC
+    `, params)
+  }
 
   return NextResponse.json(jobs)
 }

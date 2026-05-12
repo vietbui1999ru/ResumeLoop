@@ -11,6 +11,8 @@ export interface JdJob {
   visa_status: string // 'proceed' | 'kill' | 'unknown'
   action: string | null // null when no Action key in frontmatter (DB preserves existing value on scan)
   raw_content: string
+  clipped_at: string | null // ISO datetime from Obsidian frontmatter 'created' / 'date' / 'clipped' field
+  apply_url: string | null  // from frontmatter 'source' field; user edits preserved on rescan
 }
 
 const VISA_KILL_PATTERNS = [
@@ -100,6 +102,18 @@ function parseTitle(fmTitle: string, fmCompany: string, filename: string): { com
   return { role_title: cleanRole(t) || cleanRole(base), company }
 }
 
+// Normalize Obsidian date fields (Date object, 'YYYY-MM-DD', or ISO string) to ISO datetime string
+function parseClippedAt(fm: Record<string, unknown>): string | null {
+  const raw = fm.created ?? fm.date ?? fm.clipped ?? fm.clipped_at ?? null
+  if (!raw) return null
+  // gray-matter parses YYYY-MM-DD as a JS Date automatically
+  if (raw instanceof Date) return isNaN(raw.getTime()) ? null : raw.toISOString()
+  const s = String(raw).trim()
+  if (!s) return null
+  const d = new Date(s)
+  return isNaN(d.getTime()) ? null : d.toISOString()
+}
+
 export function parseJd(filePath: string, content: string): JdJob {
   const { data: fm, content: body } = matter(content)
   const filename = path.basename(filePath)
@@ -107,6 +121,8 @@ export function parseJd(filePath: string, content: string): JdJob {
   const { company, role_title } = parseTitle(String(fm.title ?? ''), fmCompany, filename)
   const tags: string[] = Array.isArray(fm.tags) ? fm.tags : []
   const id = toSlug(`${company} ${role_title}`.slice(0, 60)) || toSlug(filename)
+
+  const sourceUrl = fm.source != null ? String(fm.source).trim() : null
 
   return {
     id,
@@ -117,5 +133,7 @@ export function parseJd(filePath: string, content: string): JdJob {
     visa_status: detectVisa(body),
     action: fm.Action != null && (VALID_ACTIONS as readonly string[]).includes(String(fm.Action)) ? String(fm.Action) : null,
     raw_content: body,
+    clipped_at: parseClippedAt(fm as Record<string, unknown>),
+    apply_url: sourceUrl || null,
   }
 }

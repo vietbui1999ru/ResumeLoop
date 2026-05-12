@@ -6,6 +6,10 @@ export interface JobOutput {
   pdf_path: string | null
   tagline: string | null
   reasoning: string | null
+  cover_letter: string | null
+  variant: string | null
+  projects_used: string | null
+  work_ids_used: string | null
   built_at: string
 }
 
