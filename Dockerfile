@@ -24,6 +24,11 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production PORT=3000
 
+# Install system Chromium for Puppeteer (harness PDF generation)
+RUN apk add --no-cache chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
 # Next.js standalone includes pre-compiled node_modules (incl. better-sqlite3 .node)
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
