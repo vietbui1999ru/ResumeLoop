@@ -227,6 +227,20 @@ function FilePicker({
   const [ingesting, setIngesting] = useState(false)
   const [ingestError, setIngestError] = useState('')
 
+  // Seed picker from settings outreach_path on first mount
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(r => r.ok ? r.json() : null)
+      .then((s: { outreach_path?: string } | null) => {
+        if (s?.outreach_path) {
+          setPickerPath(s.outreach_path)
+          browse(s.outreach_path)
+        }
+      })
+      .catch(() => {})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   async function browse(p: string) {
     setPickerLoading(true); setPickerError('')
     const res = await fetch(`/api/fs?path=${encodeURIComponent(p)}`)

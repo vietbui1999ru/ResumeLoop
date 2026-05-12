@@ -14,8 +14,9 @@ export async function GET() {
   const settings = await getAllSettings()
   return NextResponse.json({
     ...settings,
-    jobs_path_exists:   fs.existsSync(settings.jobs_path),
-    output_path_exists: fs.existsSync(settings.output_path),
+    jobs_path_exists:     fs.existsSync(settings.jobs_path),
+    output_path_exists:   fs.existsSync(settings.output_path),
+    outreach_path_exists: settings.outreach_path ? fs.existsSync(settings.outreach_path) : false,
   })
 }
 
@@ -26,11 +27,12 @@ export async function POST(req: Request) {
   if (isCloud()) {
     return NextResponse.json({ error: 'Not available in cloud mode' }, { status: 403 })
   }
-  const body: { jobs_path?: string; output_path?: string } = await req.json()
+  const body: { jobs_path?: string; output_path?: string; outreach_path?: string } = await req.json()
 
   try {
-    if (body.jobs_path !== undefined) await setSetting('jobs_path', body.jobs_path.trim())
-    if (body.output_path !== undefined) await setSetting('output_path', body.output_path.trim())
+    if (body.jobs_path     !== undefined) await setSetting('jobs_path',     body.jobs_path.trim())
+    if (body.output_path   !== undefined) await setSetting('output_path',   body.output_path.trim())
+    if (body.outreach_path !== undefined) await setSetting('outreach_path', body.outreach_path.trim())
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 })
   }

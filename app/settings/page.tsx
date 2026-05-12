@@ -244,10 +244,12 @@ interface FsInfo {
 }
 
 interface Settings {
-  jobs_path: string
-  output_path: string
-  jobs_path_exists: boolean
-  output_path_exists: boolean
+  jobs_path:            string
+  output_path:          string
+  outreach_path:        string
+  jobs_path_exists:     boolean
+  output_path_exists:   boolean
+  outreach_path_exists: boolean
 }
 
 function FolderPicker({
@@ -392,7 +394,7 @@ export default function SettingsPage() {
     fetch('/api/settings').then(r => r.json()).then(setSettings)
   }, [])
 
-  const save = async (patch: Partial<Pick<Settings, 'jobs_path' | 'output_path'>>) => {
+  const save = async (patch: Partial<Pick<Settings, 'jobs_path' | 'output_path' | 'outreach_path'>>) => {
     if (!settings) return
     const next = { ...settings, ...patch }
     setSettings(next)
@@ -444,6 +446,13 @@ export default function SettingsPage() {
           value={settings.output_path}
           onChange={p => save({ output_path: p })}
         />
+
+        <FolderPicker
+          label="Outreach Folder"
+          hint="Optional — folder of networking/contact .md files (Obsidian clippings). The outreach picker in each job modal defaults here."
+          value={settings.outreach_path}
+          onChange={p => save({ outreach_path: p })}
+        />
       </div>
 
       <div className="space-y-3">
@@ -466,6 +475,14 @@ export default function SettingsPage() {
               {settings.output_path_exists ? '✓ found' : '⚠ will be created on first build'}
             </span>
           </div>
+          {settings.outreach_path && (
+            <div className="flex justify-between">
+              <span className="text-zinc-400">Outreach folder</span>
+              <span className={settings.outreach_path_exists ? 'text-green-400' : 'text-red-400'}>
+                {settings.outreach_path_exists ? '✓ found' : '✗ not found'}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
