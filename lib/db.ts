@@ -237,6 +237,9 @@ export function initSchema(db: DB): void {
   const hasApplyUrl = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_jobs') WHERE name='apply_url'`).get() as { c: number }).c > 0
   if (!hasApplyUrl) db.exec(`ALTER TABLE jd_jobs ADD COLUMN apply_url TEXT`)
 
+  const hasApplicationCase = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_jobs') WHERE name='application_case'`).get() as { c: number }).c > 0
+  if (!hasApplicationCase) db.exec('ALTER TABLE jd_jobs ADD COLUMN application_case TEXT')
+
   // Migrate existing DBs that predate outreach_items table
   const hasOutreachItems = (db.prepare(`SELECT COUNT(*) as c FROM sqlite_master WHERE type='table' AND name='outreach_items'`).get() as { c: number }).c > 0
   if (!hasOutreachItems) db.exec(`CREATE TABLE outreach_items (

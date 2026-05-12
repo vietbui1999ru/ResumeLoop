@@ -22,7 +22,7 @@ import OutreachPanel from './OutreachPanel'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-type PanelId = 'jd' | 'pdf' | 'reasoning' | 'cover' | 'outreach'
+type PanelId = 'jd' | 'pdf' | 'reasoning' | 'cover' | 'outreach' | 'case'
 
 interface JobDetail {
   id: string
@@ -90,7 +90,7 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
   const [applyUrlSaving, setApplyUrlSaving] = useState(false)
 
   // Panel state
-  const [panelOrder, setPanelOrder] = useState<PanelId[]>(['jd', 'pdf', 'reasoning', 'cover', 'outreach'])
+  const [panelOrder, setPanelOrder] = useState<PanelId[]>(['jd', 'pdf', 'reasoning', 'cover', 'outreach', 'case'])
   const [openPanels, setOpenPanels] = useState<Set<PanelId>>(new Set<PanelId>(['jd']))
 
   // Cover letter state
@@ -98,6 +98,12 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
   const [coverLoading, setCoverLoading] = useState(false)
   const [coverError, setCoverError] = useState('')
   const [copied, setCopied] = useState(false)
+
+  // Application case state
+  const [caseText, setCaseText] = useState<string | null>(null)
+  const [caseLoading, setCaseLoading] = useState(false)
+  const [caseStreaming, setCaseStreaming] = useState(false)
+  const [caseError, setCaseError] = useState('')
 
   // Auto-open reasoning when output loads with reasoning
   useEffect(() => {
@@ -157,7 +163,9 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
     setOpenPanels(prev => {
       const arr = Array.from(prev)
       if (prev.has(id)) return new Set<PanelId>(arr.filter(p => p !== id))
-      return new Set<PanelId>(arr.concat(id))
+      const next = new Set<PanelId>(arr.concat(id))
+      if (id === 'case') setTimeout(loadCase, 0)
+      return next
     })
   }
 
@@ -198,6 +206,44 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  async function loadCase() {
+    if (caseText !== null) return  // already loaded
+    setCaseLoading(true)
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/case`)
+      if (res.ok) {
+        const data = await res.json() as { case: string | null }
+        setCaseText(data.case)
+      }
+    } catch { /* ignore */ } finally {
+      setCaseLoading(false)
+    }
+  }
+
+  async function generateCase() {
+    setCaseStreaming(true)
+    setCaseError('')
+    setCaseText('')
+    setOpenPanels(prev => new Set<PanelId>(Array.from(prev).concat('case')))
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/case`, { method: 'POST' })
+      if (!res.ok) { setCaseError('Generation failed.'); setCaseStreaming(false); return }
+      const reader = res.body!.getReader()
+      const decoder = new TextDecoder()
+      let text = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        text += decoder.decode(value, { stream: true })
+        setCaseText(text)
+      }
+    } catch (e) {
+      setCaseError(String(e))
+    } finally {
+      setCaseStreaming(false)
+    }
+  }
+
   const tags: string[] = (() => { try { return JSON.parse(job?.tags || '[]') } catch { return [] } })()
   const visiblePanels = panelOrder.filter(id => openPanels.has(id))
   const panelCount = visiblePanels.length
@@ -215,6 +261,7 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
     reasoning: 'AI Why',
     cover: 'Cover Letter',
     outreach: 'Outreach',
+    case: 'Case',
   }
 
   return (
@@ -298,6 +345,15 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
                       />
                     )}
                     {id === 'outreach' && <OutreachPanel jobId={jobId} />}
+                    {id === 'case' && (
+                      <CasePanel
+                        text={caseText}
+                        loading={caseLoading}
+                        streaming={caseStreaming}
+                        error={caseError}
+                        onGenerate={generateCase}
+                      />
+                    )}
                   </SortablePanel>
                 ))}
               </div>
@@ -495,6 +551,49 @@ function CoverPanel({ text, loading, error, onGenerate, onCopy, copied, hasOutpu
         )}
         {text && (
           <pre className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed font-sans">{text}</pre>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Case Panel ────────────────────────────────────────────────────────────────
+
+function CasePanel({ text, loading, streaming, error, onGenerate }: {
+  text: string | null
+  loading: boolean
+  streaming: boolean
+  error: string
+  onGenerate: () => void
+}) {
+  return (
+    <div className="flex flex-col flex-1 min-h-0">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-700 shrink-0">
+        <p className="text-xs text-zinc-500 uppercase tracking-wide">Application Case</p>
+        <button
+          onClick={onGenerate}
+          disabled={streaming}
+          className="text-xs text-indigo-400 hover:text-indigo-300 disabled:opacity-50"
+        >
+          {streaming ? 'Generating…' : text ? 'Regenerate' : 'Generate'}
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto px-4 py-3">
+        {error && <p className="text-xs text-red-400 mb-2">{error}</p>}
+        {loading && <p className="text-sm text-zinc-500 animate-pulse">Loading…</p>}
+        {!loading && !streaming && !text && !error && (
+          <p className="text-sm text-zinc-500">
+            Synthesizes outreach research, resume reasoning, and JD signals into a targeting brief.
+            Press Generate to build it.
+          </p>
+        )}
+        {streaming && !text && (
+          <p className="text-sm text-zinc-500 animate-pulse">Generating…</p>
+        )}
+        {text && (
+          <div className="[&_h2]:text-sm [&_h2]:font-semibold [&_h2]:text-indigo-300 [&_h2]:mt-4 [&_h2]:mb-1 [&_p]:text-sm [&_p]:text-zinc-300 [&_p]:leading-relaxed [&_ul]:text-sm [&_ul]:text-zinc-300 [&_ul]:list-disc [&_ul]:pl-4 [&_li]:mb-0.5 [&_ol]:text-sm [&_ol]:text-zinc-300 [&_ol]:list-decimal [&_ol]:pl-4 [&_strong]:text-zinc-100">
+            <ReactMarkdown>{text}</ReactMarkdown>
+          </div>
         )}
       </div>
     </div>
