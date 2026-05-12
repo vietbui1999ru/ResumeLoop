@@ -70,7 +70,7 @@ export async function getProviderConfig(userId: string, provider: Provider): Pro
   try {
     return {
       provider: row.provider,
-      apiKey:   provider === 'ollama' ? '' : decrypt(row.encrypted_key),
+      apiKey:   provider === 'ollama' ? '' : await decrypt(row.encrypted_key),
       model:    row.model,
       baseUrl:  row.base_url ?? undefined,
     }
@@ -80,7 +80,7 @@ export async function getProviderConfig(userId: string, provider: Provider): Pro
 }
 
 export async function setProviderConfig(userId: string, provider: Provider, apiKey: string, model: string, baseUrl?: string): Promise<void> {
-  const encryptedKey = provider === 'ollama' ? '' : encrypt(apiKey)
+  const encryptedKey = provider === 'ollama' ? '' : await encrypt(apiKey)
   const db = await getAdapter()
   await db.run(
     `INSERT INTO user_settings (user_id, provider, encrypted_key, model, base_url, updated_at)
@@ -110,19 +110,20 @@ export async function listProviderHints(userId: string): Promise<ProviderHint[]>
     `SELECT provider, encrypted_key, model, base_url FROM user_settings WHERE user_id = ? ORDER BY provider`,
     [userId],
   )
-  return rows.flatMap(r => {
+  const hints = await Promise.all(rows.map(async (r): Promise<ProviderHint | null> => {
     try {
-      return [{
+      return {
         provider:  r.provider,
         model:     r.model,
-        key_hint:  r.provider === 'ollama' ? '' : keyHint(decrypt(r.encrypted_key)),
+        key_hint:  r.provider === 'ollama' ? '' : keyHint(await decrypt(r.encrypted_key)),
         base_url:  r.base_url ?? undefined,
         is_active: r.provider === active,
-      }]
+      }
     } catch {
-      return []  // skip rows whose ciphertext fails auth-tag verification
+      return null  // skip rows whose ciphertext fails auth-tag verification
     }
-  })
+  }))
+  return hints.filter((h): h is ProviderHint => h !== null)
 }
 
 function keyHint(key: string): string {

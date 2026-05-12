@@ -9,6 +9,7 @@ const NAV = [
   { href: '/chat',     label: 'Chat' },
   { href: '/config',   label: 'Config' },
   { href: '/settings', label: 'Settings' },
+  { href: '/account',  label: 'Account' },
 ]
 
 export function Sidebar() {

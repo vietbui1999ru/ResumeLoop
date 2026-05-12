@@ -130,10 +130,39 @@ const NEON_SCHEMA = `
   );
 
   CREATE TABLE IF NOT EXISTS users (
+    id                  TEXT PRIMARY KEY,
+    email               TEXT UNIQUE NOT NULL,
+    password            TEXT NOT NULL DEFAULT '',
+    email_verified      INTEGER NOT NULL DEFAULT 0,
+    password_changed_at TIMESTAMPTZ,
+    is_demo             INTEGER NOT NULL DEFAULT 0,
+    created_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS oauth_accounts (
+    id                  TEXT PRIMARY KEY,
+    user_id             TEXT NOT NULL REFERENCES users(id),
+    provider            TEXT NOT NULL,
+    provider_account_id TEXT NOT NULL,
+    created_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(provider, provider_account_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_oauth_provider ON oauth_accounts(provider, provider_account_id);
+
+  CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id         TEXT PRIMARY KEY,
-    email      TEXT UNIQUE NOT NULL,
-    password   TEXT NOT NULL,
-    is_demo    INTEGER NOT NULL DEFAULT 0,
+    user_id    TEXT NOT NULL REFERENCES users(id),
+    token_hash TEXT NOT NULL UNIQUE,
+    expires_at TIMESTAMPTZ NOT NULL,
+    used       INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS email_verification_tokens (
+    id         TEXT PRIMARY KEY,
+    user_id    TEXT NOT NULL REFERENCES users(id),
+    token_hash TEXT NOT NULL UNIQUE,
+    expires_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -261,6 +290,11 @@ class NeonAdapter implements DbAdapter {
         is_active  INTEGER NOT NULL DEFAULT 0,
         created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
       );
+    `)
+    await runSchema(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified      INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMPTZ;
+      ALTER TABLE users ALTER COLUMN password SET DEFAULT '';
     `)
     if (!isCloud()) await runSchema(NEON_DEMO_SEED)
     this.initialized = true
