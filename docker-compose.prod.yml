@@ -1,7 +1,10 @@
 # docker-compose.prod.yml — homelab deployment
 # Uses .env.prod on the host for secrets and paths. Never commit .env.prod.
-# Start: docker compose -f docker-compose.prod.yml up -d
-# Update: docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d
+# Start:  docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+# Update: docker compose -f docker-compose.prod.yml --env-file .env.prod pull app && \
+#         docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+# Note: --env-file is required for Compose to resolve ${VAR} in image/volume paths.
+#       env_file: below only injects vars into the running container, not the YAML parser.
 
 services:
   app:
