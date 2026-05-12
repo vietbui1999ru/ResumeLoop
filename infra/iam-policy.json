@@ -14,7 +14,7 @@
       "Sid": "S3Outputs",
       "Effect": "Allow",
       "Action": ["s3:PutObject", "s3:GetObject"],
-      "Resource": "arn:aws:s3:::resumeanalyze-outputs/*"
+      "Resource": "arn:aws:s3:::resumeanalyze-outputs-<ACCOUNT_ID>/*"
     },
     {
       "Sid": "ECRPull",

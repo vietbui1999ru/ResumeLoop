@@ -1,35 +1,47 @@
-# Stage 1: deps
-FROM node:20-alpine AS deps
-RUN apk add --no-cache libc6-compat python3 make g++
+# ── Stage 1: build ────────────────────────────────────────────────────────────
+FROM node:22-alpine AS builder
+
+# build tools needed only for better-sqlite3 native addon compilation
+RUN apk add --no-cache python3 make g++
+
 WORKDIR /app
-COPY package.json package-lock.json ./
+
+# Install app dependencies first (layer cache)
+COPY package.json package-lock.json* ./
 RUN npm ci
 
-# Stage 2: builder
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
+# Install harness dependencies (docx, puppeteer, mammoth)
+COPY harness/package.json harness/package-lock.json* ./harness/
+RUN cd harness && npm ci
+
+# Copy source and build Next.js (produces .next/standalone)
 COPY . .
-ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
-# Stage 3: runner
-FROM node:20-alpine AS runner
+# ── Stage 2: runtime ──────────────────────────────────────────────────────────
+FROM node:22-alpine AS runner
+
 WORKDIR /app
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production PORT=3000
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Install system Chromium for Puppeteer (harness PDF generation)
+RUN apk add --no-cache chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
+# Next.js standalone includes pre-compiled node_modules (incl. better-sqlite3 .node)
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-# Copy harness scripts needed for DOCX generation pipeline
-COPY --from=builder --chown=nextjs:nodejs /app/harness ./harness
 
-USER nextjs
+# Harness scripts needed at runtime for resume generation
+COPY --from=builder /app/harness ./harness
+
+# Pipeline bootstrap data files
+COPY --from=builder /app/pipeline ./pipeline
+
+# Resume/cover-letter DOCX templates
+COPY --from=builder /app/templates ./templates
+
 EXPOSE 3000
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
 CMD ["node", "server.js"]
