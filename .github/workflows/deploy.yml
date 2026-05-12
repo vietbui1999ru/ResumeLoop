@@ -8,6 +8,14 @@ env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: resumeanalyze
 
+# Required secrets:
+#   AWS_DEPLOY_ROLE_ARN      — IAM role ARN for OIDC
+#   TAILSCALE_AUTHKEY        — Tailscale ephemeral auth key
+#   HOMELAB_SSH_KEY          — private key (PEM) for homelab deploy user
+#   HOMELAB_SSH_HOST_KEY     — known_hosts entry for homelab host
+#   HOMELAB_USER             — SSH username on homelab
+#   HOMELAB_HOST             — homelab hostname or Tailscale IP
+
 jobs:
   build-push:
     name: Build and push to ECR
@@ -48,6 +56,7 @@ jobs:
     name: Deploy to homelab
     runs-on: ubuntu-latest
     needs: build-push
+    permissions: {}
 
     steps:
       - name: Join Tailscale network
@@ -55,11 +64,13 @@ jobs:
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
 
-      - name: Add homelab SSH key
+      - name: Add homelab SSH key and known hosts
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.HOMELAB_SSH_KEY }}" > ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.HOMELAB_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "${{ secrets.HOMELAB_SSH_HOST_KEY }}" >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
 
       - name: Deploy
         env:
@@ -69,7 +80,6 @@ jobs:
           HOMELAB_HOST: ${{ secrets.HOMELAB_HOST }}
         run: |
           ssh -i ~/.ssh/deploy_key \
-              -o StrictHostKeyChecking=no \
               "$HOMELAB_USER@$HOMELAB_HOST" \
               "cd ~/resumeanalyze && \
                aws ecr get-login-password --region us-east-1 \

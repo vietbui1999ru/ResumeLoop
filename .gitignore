@@ -6,6 +6,7 @@ node_modules/
 # Local env
 .env.local
 .env*.local
+.env.prod
 
 # SQLite
 resume.db

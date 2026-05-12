@@ -56,6 +56,14 @@ for SECRET_NAME in APP_MODE DATABASE_URL ENCRYPTION_KEY AUTH_SECRET NEXTAUTH_URL
     || echo "Secret ${SECRET_NAME} already exists"
 done
 
+# ── GitHub OIDC identity provider ─────────────────────────────────────────────
+echo "Creating GitHub Actions OIDC identity provider..."
+aws iam create-open-id-connect-provider \
+  --url https://token.actions.githubusercontent.com \
+  --client-id-list sts.amazonaws.com \
+  --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1 \
+  2>/dev/null || echo "OIDC provider already exists"
+
 # ── GitHub Actions OIDC role ──────────────────────────────────────────────────
 echo "Creating GitHub Actions OIDC role..."
 GITHUB_REPO="vietbui1999ru/ResumeAnalyze"
@@ -90,23 +98,29 @@ aws iam create-role \
 aws iam put-role-policy \
   --role-name "GitHubActionsResumeAnalyze" \
   --policy-name "ECRPush" \
-  --policy-document '{
-    "Version": "2012-10-17",
-    "Statement": [{
-      "Effect": "Allow",
-      "Action": [
-        "ecr:GetAuthorizationToken",
-        "ecr:BatchCheckLayerAvailability",
-        "ecr:GetDownloadUrlForLayer",
-        "ecr:BatchGetImage",
-        "ecr:InitiateLayerUpload",
-        "ecr:UploadLayerPart",
-        "ecr:CompleteLayerUpload",
-        "ecr:PutImage"
-      ],
-      "Resource": "*"
-    }]
-  }'
+  --policy-document "{
+    \"Version\": \"2012-10-17\",
+    \"Statement\": [
+      {
+        \"Effect\": \"Allow\",
+        \"Action\": [\"ecr:GetAuthorizationToken\"],
+        \"Resource\": \"*\"
+      },
+      {
+        \"Effect\": \"Allow\",
+        \"Action\": [
+          \"ecr:BatchCheckLayerAvailability\",
+          \"ecr:GetDownloadUrlForLayer\",
+          \"ecr:BatchGetImage\",
+          \"ecr:InitiateLayerUpload\",
+          \"ecr:UploadLayerPart\",
+          \"ecr:CompleteLayerUpload\",
+          \"ecr:PutImage\"
+        ],
+        \"Resource\": \"arn:aws:ecr:${REGION}:${ACCOUNT_ID}:repository/${ECR_REPO}\"
+      }
+    ]
+  }"
 
 ROLE_ARN=$(aws iam get-role --role-name "GitHubActionsResumeAnalyze" --query "Role.Arn" --output text)
 ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"

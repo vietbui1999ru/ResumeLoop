@@ -1,0 +1,31 @@
+# docker-compose.prod.yml — homelab deployment
+# Uses .env.prod on the host for secrets and paths. Never commit .env.prod.
+# Start: docker compose -f docker-compose.prod.yml up -d
+# Update: docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d
+
+services:
+  app:
+    image: ${ECR_REGISTRY}/resumeanalyze:${IMAGE_TAG:-latest}
+    ports:
+      - "3010:3000"
+    env_file:
+      - .env.prod
+    volumes:
+      # JD source files (read + write — scan tags JDs as resume-ed)
+      - ${OBSIDIAN_JOBS_PATH}:/jobs
+      # DOCX output
+      - ${OUTPUT_PATH}:/output
+      # SQLite DB — persists across image updates
+      - ${DB_PATH:-./resume.db}:/app/resume.db
+      # Pipeline data — edits via /config page persist to host
+      - ${PIPELINE_DATA_PATH:-./pipeline/master_resume_data.json}:/app/pipeline/master_resume_data.json
+    extra_hosts:
+      # Reach Ollama on the homelab host
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
