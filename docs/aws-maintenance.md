@@ -177,7 +177,7 @@ aws apprunner resume-service --service-arn <APP_RUNNER_SERVICE_ARN>
 
 ## Secrets rotation
 
-All secrets are in SSM Parameter Store under `/resumeanalyze/prod/`. After updating a parameter, redeploy the service so the new value is picked up at container startup.
+All secrets are in Secrets Manager under `resumeanalyze/prod/`. After updating a secret, redeploy the service so the new value is picked up at container startup.
 
 ### Rotate ENCRYPTION_KEY
 
@@ -186,27 +186,23 @@ Rotating `ENCRYPTION_KEY` will invalidate any API keys stored in the `user_setti
 ```bash
 NEW_KEY=$(openssl rand -hex 32)
 
-aws ssm put-parameter \
-  --name /resumeanalyze/prod/ENCRYPTION_KEY \
-  --value "$NEW_KEY" \
-  --type SecureString \
-  --overwrite
+aws secretsmanager update-secret \
+  --secret-id resumeanalyze/prod/ENCRYPTION_KEY \
+  --secret-string "$NEW_KEY"
 
 aws apprunner start-deployment --service-arn <APP_RUNNER_SERVICE_ARN>
 ```
 
-### Rotate NEXTAUTH_SECRET
+### Rotate AUTH_SECRET
 
-Rotating `NEXTAUTH_SECRET` invalidates all active user sessions — everyone will be logged out.
+Rotating `AUTH_SECRET` invalidates all active user sessions — everyone will be logged out.
 
 ```bash
 NEW_SECRET=$(openssl rand -base64 32)
 
-aws ssm put-parameter \
-  --name /resumeanalyze/prod/NEXTAUTH_SECRET \
-  --value "$NEW_SECRET" \
-  --type SecureString \
-  --overwrite
+aws secretsmanager update-secret \
+  --secret-id resumeanalyze/prod/AUTH_SECRET \
+  --secret-string "$NEW_SECRET"
 
 aws apprunner start-deployment --service-arn <APP_RUNNER_SERVICE_ARN>
 ```
@@ -215,14 +211,12 @@ aws apprunner start-deployment --service-arn <APP_RUNNER_SERVICE_ARN>
 
 1. Rotate the password in the Neon dashboard (Project → Settings → Reset password)
 2. Copy the new connection string
-3. Update the SSM parameter:
+3. Update the secret:
 
 ```bash
-aws ssm put-parameter \
-  --name /resumeanalyze/prod/DATABASE_URL \
-  --value "postgresql://user:NEWPASS@host/dbname?sslmode=require" \
-  --type SecureString \
-  --overwrite
+aws secretsmanager update-secret \
+  --secret-id resumeanalyze/prod/DATABASE_URL \
+  --secret-string "postgresql://user:NEWPASS@host/dbname?sslmode=require"
 
 aws apprunner start-deployment --service-arn <APP_RUNNER_SERVICE_ARN>
 ```

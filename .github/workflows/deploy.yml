@@ -82,10 +82,10 @@ jobs:
           ssh -i ~/.ssh/deploy_key \
               "$HOMELAB_USER@$HOMELAB_HOST" \
               "cd ~/resumeanalyze && \
+               export IMAGE_TAG=$IMAGE_TAG ECR_REGISTRY=$ECR_REGISTRY && \
                aws ecr get-login-password --region us-east-1 \
                  | docker login --username AWS --password-stdin $ECR_REGISTRY && \
-               IMAGE_TAG=$IMAGE_TAG ECR_REGISTRY=$ECR_REGISTRY \
-               docker compose -f docker-compose.prod.yml pull app && \
-               docker compose -f docker-compose.prod.yml up -d && \
+               docker compose -f docker-compose.prod.yml --env-file .env.prod pull app && \
+               docker compose -f docker-compose.prod.yml --env-file .env.prod up -d && \
                sleep 10 && \
                curl -sf http://localhost:3010/api/health | grep '\"ok\":true'"
