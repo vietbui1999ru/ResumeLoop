@@ -3,13 +3,15 @@ import os from 'os'
 import { getAdapter } from './db-adapter'
 
 export interface AppSettings {
-  jobs_path: string
-  output_path: string
+  jobs_path:     string
+  output_path:   string
+  outreach_path: string  // optional — empty string = not configured
 }
 
 const DEFAULTS: AppSettings = {
-  jobs_path:   process.env.OBSIDIAN_JOBS_PATH ?? path.join(process.cwd(), 'jobs'),
-  output_path: process.env.OUTPUT_PATH        ?? path.join(os.homedir(), 'Desktop', 'Resume Templates'),
+  jobs_path:     process.env.OBSIDIAN_JOBS_PATH ?? path.join(process.cwd(), 'jobs'),
+  output_path:   process.env.OUTPUT_PATH        ?? path.join(os.homedir(), 'Desktop', 'Resume Templates'),
+  outreach_path: process.env.OUTREACH_PATH      ?? '',
 }
 
 // Paths must resolve to one of these roots (prevents writing to ~/.ssh, /etc, etc.)
@@ -49,7 +51,7 @@ export async function getSetting<K extends keyof AppSettings>(key: K): Promise<s
 }
 
 export async function setSetting<K extends keyof AppSettings>(key: K, value: string): Promise<void> {
-  validateSafeDir(value)  // throws if invalid — caller handles the error
+  if (value !== '') validateSafeDir(value)  // empty = clear optional setting, skip validation
   const db = await getAdapter()
   await db.run(
     'INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
@@ -79,9 +81,10 @@ export async function validateIngestPath(raw: string): Promise<string> {
 }
 
 export async function getAllSettings(): Promise<AppSettings> {
-  const [jobs_path, output_path] = await Promise.all([
+  const [jobs_path, output_path, outreach_path] = await Promise.all([
     getSetting('jobs_path'),
     getSetting('output_path'),
+    getSetting('outreach_path'),
   ])
-  return { jobs_path, output_path }
+  return { jobs_path, output_path, outreach_path }
 }
