@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, Fragment } from 'react'
 import ReactMarkdown from 'react-markdown'
 import {
   DndContext,
@@ -45,7 +45,6 @@ interface Props {
   onClose: () => void
 }
 
-
 const fmtDate = (iso: string | null) => {
   if (!iso) return '—'
   const d = new Date(iso)
@@ -54,14 +53,21 @@ const fmtDate = (iso: string | null) => {
 
 // ── SortablePanel wrapper ─────────────────────────────────────────────────────
 
-function SortablePanel({ id, children }: { id: PanelId; children: React.ReactNode }) {
+function SortablePanel({ id, children, flexGrow }: { id: PanelId; children: React.ReactNode; flexGrow: number }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id })
   return (
     <div
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`flex flex-col min-w-0 flex-1 border-r border-zinc-700 last:border-r-0 ${isDragging ? 'opacity-50 z-10' : ''}`}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        flexGrow,
+        flexShrink: 1,
+        flexBasis: 0,
+        minWidth: 150,
+      }}
+      className={`flex flex-col overflow-hidden ${isDragging ? 'opacity-50 z-10' : ''}`}
     >
       {/* Drag handle strip */}
       <div
@@ -74,6 +80,49 @@ function SortablePanel({ id, children }: { id: PanelId; children: React.ReactNod
       </div>
       {children}
     </div>
+  )
+}
+
+// ── Panel resize divider ──────────────────────────────────────────────────────
+
+function ResizeDivider({ leftId, rightId, onResize }: {
+  leftId: PanelId
+  rightId: PanelId
+  onResize: (leftId: PanelId, rightId: PanelId, delta: number) => void
+}) {
+  const [dragging, setDragging] = useState(false)
+
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    e.preventDefault()
+    e.stopPropagation()
+    let lastX = e.clientX
+    const el = e.currentTarget
+    el.setPointerCapture(e.pointerId)
+    setDragging(true)
+
+    function onMove(ev: PointerEvent) {
+      const delta = ev.clientX - lastX
+      lastX = ev.clientX
+      onResize(leftId, rightId, delta)
+    }
+
+    function onUp() {
+      el.removeEventListener('pointermove', onMove as EventListener)
+      setDragging(false)
+    }
+
+    el.addEventListener('pointermove', onMove as EventListener)
+    el.addEventListener('pointerup', onUp, { once: true })
+  }
+
+  return (
+    <div
+      className={`w-1.5 shrink-0 cursor-col-resize transition-colors select-none ${
+        dragging ? 'bg-indigo-500' : 'bg-zinc-700/60 hover:bg-indigo-500/70'
+      }`}
+      onPointerDown={handlePointerDown}
+      title="Drag to resize panels"
+    />
   )
 }
 
@@ -92,6 +141,16 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
   // Panel state
   const [panelOrder, setPanelOrder] = useState<PanelId[]>(['jd', 'pdf', 'reasoning', 'cover', 'outreach', 'case'])
   const [openPanels, setOpenPanels] = useState<Set<PanelId>>(new Set<PanelId>(['jd']))
+
+  // Per-panel flex-grow widths (equal by default)
+  const [panelWidths, setPanelWidths] = useState<Record<PanelId, number>>(
+    { jd: 1, pdf: 1, reasoning: 1, cover: 1, outreach: 1, case: 1 }
+  )
+
+  // Manual modal size (null = auto-size by panel count)
+  const [modalSize, setModalSize] = useState<{ width: number; height: number } | null>(null)
+  const modalRef = useRef<HTMLDivElement>(null)
+  const panelsContainerRef = useRef<HTMLDivElement>(null)
 
   // Cover letter state
   const [coverLetter, setCoverLetter] = useState<string | null>(null)
@@ -169,6 +228,67 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
     })
   }
 
+  // ── Panel resize ────────────────────────────────────────────────────────────
+
+  // Keep a ref so the ResizeDivider closure always calls the latest handler
+  // (avoids stale-closure issues on the panel pointer-capture listener)
+  const visiblePanelsRef = useRef<PanelId[]>([])
+
+  function handlePanelResize(leftId: PanelId, rightId: PanelId, deltaPixels: number) {
+    const container = panelsContainerRef.current
+    if (!container) return
+    const containerWidth = container.clientWidth
+    if (containerWidth === 0) return
+    const visible = visiblePanelsRef.current
+
+    setPanelWidths(prev => {
+      const totalGrow = visible.reduce((sum, id) => sum + (prev[id] ?? 1), 0)
+      const growPerPixel = totalGrow / containerWidth
+      const growDelta = deltaPixels * growPerPixel
+      // Minimum panel: 150px worth of flex-grow
+      const minGrow = Math.max(0.05, totalGrow * (150 / containerWidth))
+      return {
+        ...prev,
+        [leftId]: Math.max(minGrow, (prev[leftId] ?? 1) + growDelta),
+        [rightId]: Math.max(minGrow, (prev[rightId] ?? 1) - growDelta),
+      }
+    })
+  }
+
+  // ── Modal resize ────────────────────────────────────────────────────────────
+
+  function startModalResize(e: React.PointerEvent, dir: 'se' | 's' | 'e') {
+    e.preventDefault()
+    e.stopPropagation()
+    const rect = modalRef.current!.getBoundingClientRect()
+    const startX = e.clientX
+    const startY = e.clientY
+    const startW = rect.width
+    const startH = rect.height
+
+    function onMove(ev: PointerEvent) {
+      const dX = ev.clientX - startX
+      const dY = ev.clientY - startY
+      setModalSize({
+        width:  dir !== 's' ? Math.max(480, Math.min(window.innerWidth  - 32, startW + dX)) : startW,
+        height: dir !== 'e' ? Math.max(300, Math.min(window.innerHeight - 32, startH + dY)) : startH,
+      })
+    }
+
+    function onUp() {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }
+
+  function resetLayout() {
+    setModalSize(null)
+    setPanelWidths({ jd: 1, pdf: 1, reasoning: 1, cover: 1, outreach: 1, case: 1 })
+  }
+
   async function generateCoverLetter() {
     if (!output) {
       setCoverError('Generate a resume first.')
@@ -207,7 +327,7 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
   }
 
   async function loadCase() {
-    if (caseText !== null) return  // already loaded
+    if (caseText !== null) return
     setCaseLoading(true)
     try {
       const res = await fetch(`/api/jobs/${jobId}/case`)
@@ -246,10 +366,11 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
 
   const tags: string[] = (() => { try { return JSON.parse(job?.tags || '[]') } catch { return [] } })()
   const visiblePanels = panelOrder.filter(id => openPanels.has(id))
+  visiblePanelsRef.current = visiblePanels  // keep ref in sync for resize handler
   const panelCount = visiblePanels.length
 
-  // Modal width scales with panel count
-  const modalWidth =
+  // Auto modal width when not manually sized
+  const autoModalWidth =
     panelCount === 0 ? 'max-w-lg' :
     panelCount === 1 ? 'max-w-2xl' :
     panelCount === 2 ? 'max-w-4xl' :
@@ -270,7 +391,13 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className={`relative bg-zinc-900 border border-zinc-700 rounded-lg w-full ${modalWidth} max-h-[92vh] flex flex-col mx-4 transition-all duration-150`}
+        ref={modalRef}
+        className={`relative bg-zinc-900 border border-zinc-700 rounded-lg flex flex-col mx-4 overflow-hidden ${
+          modalSize
+            ? ''
+            : `w-full ${autoModalWidth} max-h-[92vh] transition-all duration-150`
+        }`}
+        style={modalSize ? { width: modalSize.width, height: modalSize.height } : undefined}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -286,7 +413,18 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
                   </>
             }
           </div>
-          <button onClick={onClose} className="ml-4 text-zinc-500 hover:text-zinc-200 text-lg leading-none">✕</button>
+          <div className="flex items-center gap-2 ml-4">
+            {modalSize && (
+              <button
+                onClick={resetLayout}
+                className="text-xs text-zinc-500 hover:text-zinc-300 px-2 py-0.5 rounded border border-zinc-700 hover:border-zinc-500 transition-colors"
+                title="Reset panel and modal sizes"
+              >
+                Reset layout
+              </button>
+            )}
+            <button onClick={onClose} className="text-zinc-500 hover:text-zinc-200 text-lg leading-none">✕</button>
+          </div>
         </div>
 
         {/* Panel toggle toolbar */}
@@ -315,51 +453,85 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={visiblePanels} strategy={horizontalListSortingStrategy}>
-              <div className="flex flex-1 min-h-0 overflow-hidden">
-                {visiblePanels.map(id => (
-                  <SortablePanel key={id} id={id}>
-                    {id === 'jd' && job && (
-                      <JdPanel
-                        job={job}
-                        tags={tags}
-                        output={output}
-                        outputLoading={outputLoading}
-                        onGenCoverLetter={generateCoverLetter}
-                        coverLoading={coverLoading}
-                        applyUrl={applyUrl}
-                        onSaveApplyUrl={saveApplyUrl}
-                        applyUrlSaving={applyUrlSaving}
+              <div ref={panelsContainerRef} className="flex flex-1 min-h-0 overflow-hidden">
+                {visiblePanels.map((id, i) => (
+                  <Fragment key={id}>
+                    <SortablePanel id={id} flexGrow={panelWidths[id] ?? 1}>
+                      {id === 'jd' && job && (
+                        <JdPanel
+                          job={job}
+                          tags={tags}
+                          output={output}
+                          outputLoading={outputLoading}
+                          onGenCoverLetter={generateCoverLetter}
+                          coverLoading={coverLoading}
+                          applyUrl={applyUrl}
+                          onSaveApplyUrl={saveApplyUrl}
+                          applyUrlSaving={applyUrlSaving}
+                        />
+                      )}
+                      {id === 'pdf' && <PdfPanel jobId={jobId} hasPdf={!!output?.pdf_path} />}
+                      {id === 'reasoning' && <ReasoningPanel reasoning={output?.reasoning ?? null} loading={outputLoading} />}
+                      {id === 'cover' && (
+                        <CoverPanel
+                          text={coverLetter}
+                          loading={coverLoading}
+                          error={coverError}
+                          onGenerate={generateCoverLetter}
+                          onCopy={copyToClipboard}
+                          copied={copied}
+                          hasOutput={!!output}
+                        />
+                      )}
+                      {id === 'outreach' && <OutreachPanel jobId={jobId} />}
+                      {id === 'case' && (
+                        <CasePanel
+                          text={caseText}
+                          loading={caseLoading}
+                          streaming={caseStreaming}
+                          error={caseError}
+                          onGenerate={generateCase}
+                        />
+                      )}
+                    </SortablePanel>
+
+                    {i < visiblePanels.length - 1 && (
+                      <ResizeDivider
+                        leftId={id}
+                        rightId={visiblePanels[i + 1]}
+                        onResize={handlePanelResize}
                       />
                     )}
-                    {id === 'pdf' && <PdfPanel jobId={jobId} hasPdf={!!output?.pdf_path} />}
-                    {id === 'reasoning' && <ReasoningPanel reasoning={output?.reasoning ?? null} loading={outputLoading} />}
-                    {id === 'cover' && (
-                      <CoverPanel
-                        text={coverLetter}
-                        loading={coverLoading}
-                        error={coverError}
-                        onGenerate={generateCoverLetter}
-                        onCopy={copyToClipboard}
-                        copied={copied}
-                        hasOutput={!!output}
-                      />
-                    )}
-                    {id === 'outreach' && <OutreachPanel jobId={jobId} />}
-                    {id === 'case' && (
-                      <CasePanel
-                        text={caseText}
-                        loading={caseLoading}
-                        streaming={caseStreaming}
-                        error={caseError}
-                        onGenerate={generateCase}
-                      />
-                    )}
-                  </SortablePanel>
+                  </Fragment>
                 ))}
               </div>
             </SortableContext>
           </DndContext>
         )}
+
+        {/* Modal resize handles */}
+        {/* Right edge */}
+        <div
+          className="absolute top-8 right-0 w-2 cursor-ew-resize select-none"
+          style={{ bottom: 8 }}
+          onPointerDown={e => startModalResize(e, 'e')}
+        />
+        {/* Bottom edge */}
+        <div
+          className="absolute bottom-0 left-8 h-2 cursor-ns-resize select-none"
+          style={{ right: 8 }}
+          onPointerDown={e => startModalResize(e, 's')}
+        />
+        {/* Bottom-right corner grip */}
+        <div
+          className="absolute bottom-0 right-0 w-5 h-5 cursor-se-resize z-10 flex items-end justify-end pb-0.5 pr-0.5 select-none group"
+          onPointerDown={e => startModalResize(e, 'se')}
+          title="Drag to resize"
+        >
+          <svg width="10" height="10" viewBox="0 0 10 10" className="text-zinc-600 group-hover:text-indigo-400 transition-colors">
+            <path d="M2 9 L9 2 M5 9 L9 5 M8 9 L9 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </div>
       </div>
     </div>
   )
@@ -470,7 +642,7 @@ function JdPanel({ job, tags, output, outputLoading, onGenCoverLetter, coverLoad
         </div>
       )}
 
-      {/* Markdown JD content — no prose plugin, plain styling */}
+      {/* Markdown JD content */}
       <div className="flex-1 px-4 py-3 overflow-y-auto text-sm text-zinc-300 leading-relaxed [&_h1]:text-zinc-100 [&_h1]:font-semibold [&_h1]:text-base [&_h1]:mt-3 [&_h1]:mb-1 [&_h2]:text-zinc-200 [&_h2]:font-semibold [&_h2]:text-sm [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-zinc-200 [&_h3]:font-medium [&_h3]:mt-2 [&_h3]:mb-0.5 [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:space-y-0.5 [&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:space-y-0.5 [&_strong]:text-zinc-100 [&_a]:text-indigo-400 [&_a:hover]:text-indigo-300 [&_p]:mb-2 [&_hr]:border-zinc-700 [&_hr]:my-3">
         <ReactMarkdown>{job.raw_content || '(no content)'}</ReactMarkdown>
       </div>

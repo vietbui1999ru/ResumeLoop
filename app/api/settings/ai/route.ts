@@ -185,8 +185,18 @@ export async function POST(req: Request) {
   const testErr = await testKey(provider, rawKey, rawModel, safeUrl)
   if (testErr) return NextResponse.json({ error: testErr }, { status: 400 })
 
-  await setProviderConfig(USER_ID, provider, rawKey, rawModel, safeUrl)
-  if (body.set_active) await setActiveProvider(USER_ID, provider)
+  try {
+    await setProviderConfig(USER_ID, provider, rawKey, rawModel, safeUrl)
+    if (body.set_active) await setActiveProvider(USER_ID, provider)
+  } catch (e) {
+    if (String(e).includes('ENCRYPTION_KEY')) {
+      return NextResponse.json(
+        { error: 'ENCRYPTION_KEY is not set on this server. Add it to .env.local (dev) or Secrets Manager (prod): openssl rand -hex 32' },
+        { status: 503 }
+      )
+    }
+    throw e
+  }
 
   const hint = rawKey.length > 0 ? rawKey.slice(0, 16) + '••••••••••••••••' : ''
   return NextResponse.json({ ok: true, key_hint: hint })
