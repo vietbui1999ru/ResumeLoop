@@ -25,7 +25,7 @@ function bulletsKey(workVariant: string): string {
 }
 
 
-export async function* runPipeline(jobId: string, sessionId = 'default'): AsyncGenerator<SSEEvent> {
+export async function* runPipeline(jobId: string, sessionId = 'default', signal?: AbortSignal): AsyncGenerator<SSEEvent> {
   const job = getDb().prepare(
     'SELECT id, company, role_title, file_path, raw_content FROM jd_jobs WHERE id = ?'
   ).get(jobId) as { id: string; company: string; role_title: string; file_path: string; raw_content: string } | undefined
@@ -44,6 +44,7 @@ export async function* runPipeline(jobId: string, sessionId = 'default'): AsyncG
   }
 
   // Stage 0: Preflight
+  if (signal?.aborted) { yield emit(errEvent('preflight', 'Aborted')); logger.finish('failed'); return }
   yield emit({ stage: 'preflight', status: 'running', data: {} })
   try {
     await preflight(session.data)
@@ -53,6 +54,7 @@ export async function* runPipeline(jobId: string, sessionId = 'default'): AsyncG
   yield emit({ stage: 'preflight', status: 'ok', data: {} })
 
   // Stage 1: AI reasoning
+  if (signal?.aborted) { yield emit(errEvent('ai-reason', 'Aborted')); logger.finish('failed'); return }
   yield emit({ stage: 'ai-reason', status: 'running', data: {} })
   let decision: ReasoningResult
   try {
@@ -64,6 +66,7 @@ export async function* runPipeline(jobId: string, sessionId = 'default'): AsyncG
   yield emit({ stage: 'ai-reason', status: 'ok', data: decision as unknown as Record<string, unknown> })
 
   // Stage 2: Write build script
+  if (signal?.aborted) { yield emit(errEvent('write-script', 'Aborted')); logger.finish('failed'); return }
   yield emit({ stage: 'write-script', status: 'running', data: {} })
   const slug = toSlug(`${job.company}_${job.role_title}`)
   const scriptName = `${slug}.js`
@@ -81,7 +84,7 @@ export async function* runPipeline(jobId: string, sessionId = 'default'): AsyncG
 
   // Stages 3+4+5: Build → Validate → Fix loop
   let docxPath: string | null = null
-  for await (const event of buildValidateLoop(scriptPath, docxName)) {
+  for await (const event of buildValidateLoop(scriptPath, docxName, signal)) {
     yield emit(event)
     if (event.stage === 'finalize' && event.status === 'ok') {
       docxPath = event.data.docx as string
@@ -164,10 +167,11 @@ async function preflight(resumeData: string): Promise<void> {
   }
 }
 
-async function* buildValidateLoop(scriptPath: string, docxName: string): AsyncGenerator<SSEEvent> {
+async function* buildValidateLoop(scriptPath: string, docxName: string, signal?: AbortSignal): AsyncGenerator<SSEEvent> {
   const docxExpected = path.join(BATCH_BUILD, docxName)
 
   for (let attempt = 0; attempt < 3; attempt++) {
+    if (signal?.aborted) { yield errEvent('build', 'Aborted'); return }
     // Build
     yield { stage: 'build', status: 'running', data: { attempt } }
     const buildResult = await spawnAsync('node', [scriptPath], BATCH_BUILD)
