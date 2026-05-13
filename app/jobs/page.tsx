@@ -75,10 +75,9 @@ export default function JobsPage() {
   // Generation state
   const [selected, setSelected]           = useState<Set<string>>(new Set())
   const [genStatus, setGenStatus]         = useState<Map<string, string>>(new Map())
-  const [generating, setGenerating]       = useState(false)
   const [showPanel, setShowPanel]         = useState(false)
+  const [panelMinimized, setPanelMinimized] = useState(false)
   const [generateQueue, setGenerateQueue] = useState<string[]>([])
-  const doneCountRef = useRef(0)
 
   // Sort state — default: newest file first
   const [sort, setSort] = useState<{ col: SortCol; dir: SortDir }>({ col: 'file_mtime', dir: 'desc' })
@@ -120,16 +119,19 @@ export default function JobsPage() {
   const generate = async () => {
     const ids = Array.from(selected)
     if (ids.length === 0) return
-    setGenerating(true)
-    doneCountRef.current = 0
     const res = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jobIds: ids }),
     })
-    if (!res.ok) { setGenerating(false); return }
-    setGenerateQueue(ids)
+    if (!res.ok) return
+    setGenerateQueue(prev => {
+      const existing = new Set(prev)
+      const newIds = ids.filter(id => !existing.has(id))
+      return [...prev, ...newIds]
+    })
     setShowPanel(true)
+    setPanelMinimized(false)
   }
 
   const setRowError = useCallback((id: string, msg: string) => {
@@ -221,10 +223,12 @@ export default function JobsPage() {
         </button>
         <button
           onClick={() => void generate()}
-          disabled={selected.size === 0 || generating}
+          disabled={selected.size === 0}
           className="text-sm px-3 py-1 bg-indigo-600 hover:bg-indigo-500 rounded disabled:opacity-40"
         >
-          {generating ? 'Generating…' : `Generate${selected.size > 0 ? ` ${selected.size}` : ''} selected`}
+          {showPanel
+            ? `Queue ${selected.size > 0 ? selected.size : ''} more`
+            : `Generate${selected.size > 0 ? ` ${selected.size}` : ''}`}
         </button>
         {scanStatus && (
           <span className={`text-sm ${scanStatus.startsWith('Error') ? 'text-red-400' : 'text-green-400'}`}>
@@ -296,26 +300,24 @@ export default function JobsPage() {
         <GenerationPanel
           queue={generateQueue}
           sessionId={activeSessionId}
+          minimized={panelMinimized}
+          onMinimize={() => setPanelMinimized(p => !p)}
+          onClose={() => {
+            setShowPanel(false)
+            setPanelMinimized(false)
+            setGenerateQueue([])
+          }}
           onStageUpdate={(jobId, stage) =>
             setGenStatus(prev => new Map(prev).set(jobId, `⟳ ${stage}`))
           }
           onDone={(jobId) => {
             setGenStatus(prev => new Map(prev).set(jobId, 'done'))
+            setSelected(prev => { const n = new Set(prev); n.delete(jobId); return n })
             reload(q)
-            doneCountRef.current += 1
-            if (doneCountRef.current >= generateQueue.length) {
-              setGenerating(false)
-              doneCountRef.current = 0
-            }
           }}
-          onError={(jobId, msg) => {
+          onError={(jobId, msg) =>
             setGenStatus(prev => new Map(prev).set(jobId, `✗ ${msg.slice(0, 20)}`))
-            doneCountRef.current += 1
-            if (doneCountRef.current >= generateQueue.length) {
-              setGenerating(false)
-              doneCountRef.current = 0
-            }
-          }}
+          }
         />
       )}
 
@@ -346,10 +348,11 @@ export default function JobsPage() {
           {visible.map(job => {
             const currentAction = job.action ?? '0-Saved'
             const rowError = rowErrors.get(job.id)
+            const alreadyGenerated = job.has_output === 1 || genStatus.get(job.id) === 'done'
             return (
               <tr
                 key={job.id}
-                className="border-b border-zinc-800 hover:bg-zinc-800/40 cursor-pointer"
+                className={`border-b border-zinc-800 hover:bg-zinc-800/40 cursor-pointer ${alreadyGenerated ? 'opacity-50' : ''}`}
                 onClick={() => setSelectedJobId(job.id)}
               >
                 <td className="py-2 pr-3" onClick={e => e.stopPropagation()}>
