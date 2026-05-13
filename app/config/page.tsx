@@ -1,7 +1,11 @@
 'use client'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import ReactMarkdown from 'react-markdown'
+import type { Components } from 'react-markdown'
+import type { Element } from 'hast'
+import type { editor as MonacoEditorNS } from 'monaco-editor'
+import { parse as jsonSourceMap } from 'json-source-map'
 import { TourBubble } from '@/components/TourBubble'
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false })
@@ -31,7 +35,7 @@ function charColor(len: number): string {
   return 'border-zinc-700 text-zinc-300'
 }
 
-function BulletsPreview({ json }: { json: string }) {
+function BulletsPreview({ json, onJump }: { json: string; onJump?: (path: string) => void }) {
   let parsed: {
     experience?: Array<{ id: string; bullets: Record<string, string[]> }>
     projects?:   Array<{ id: string; name?: string; bullets: string[] }>
@@ -66,16 +70,25 @@ function BulletsPreview({ json }: { json: string }) {
       {experience.length > 0 && (
         <section>
           <p className="text-zinc-500 uppercase tracking-widest text-[10px] mb-2">Work</p>
-          {experience.map(exp => (
+          {experience.map((exp, ei) => (
             <div key={exp.id} className="mb-3">
-              <p className="text-indigo-400 mb-1">{exp.id}</p>
+              <p
+                className="text-indigo-400 mb-1 cursor-pointer hover:text-indigo-300"
+                onClick={() => onJump?.(`/experience/${ei}`)}
+                title="Jump to JSON"
+              >{exp.id}</p>
               {Object.entries(exp.bullets).map(([variant, bullets]) => (
                 <div key={variant} className="mb-2 ml-2">
                   <p className="text-zinc-600 text-[10px] mb-1">[{variant}]</p>
-                  {(bullets as string[]).map((b, i) => {
+                  {(bullets as string[]).map((b, bi) => {
                     const len = b.length
                     return (
-                      <div key={i} className={`flex items-start gap-2 border-l-2 pl-2 py-0.5 mb-0.5 ${charColor(len)}`}>
+                      <div
+                        key={bi}
+                        className={`flex items-start gap-2 border-l-2 pl-2 py-0.5 mb-0.5 cursor-pointer hover:opacity-80 ${charColor(len)}`}
+                        onClick={() => onJump?.(`/experience/${ei}/bullets/${variant}/${bi}`)}
+                        title="Jump to JSON"
+                      >
                         <span className="flex-1 leading-relaxed">{b}</span>
                         <span className={`shrink-0 tabular-nums text-[10px] ${len > MAX_BULLET ? 'text-red-400 font-bold' : len > 100 ? 'text-amber-500' : 'text-zinc-600'}`}>
                           {len}
@@ -93,13 +106,22 @@ function BulletsPreview({ json }: { json: string }) {
       {projects.length > 0 && (
         <section>
           <p className="text-zinc-500 uppercase tracking-widest text-[10px] mb-2">Projects</p>
-          {projects.map(proj => (
+          {projects.map((proj, pi) => (
             <div key={proj.id} className="mb-3">
-              <p className="text-indigo-400 mb-1">{proj.name ?? proj.id}</p>
-              {(proj.bullets ?? []).map((b, i) => {
+              <p
+                className="text-indigo-400 mb-1 cursor-pointer hover:text-indigo-300"
+                onClick={() => onJump?.(`/projects/${pi}`)}
+                title="Jump to JSON"
+              >{proj.name ?? proj.id}</p>
+              {(proj.bullets ?? []).map((b, bi) => {
                 const len = b.length
                 return (
-                  <div key={i} className={`flex items-start gap-2 border-l-2 pl-2 py-0.5 mb-0.5 ${charColor(len)}`}>
+                  <div
+                    key={bi}
+                    className={`flex items-start gap-2 border-l-2 pl-2 py-0.5 mb-0.5 cursor-pointer hover:opacity-80 ${charColor(len)}`}
+                    onClick={() => onJump?.(`/projects/${pi}/bullets/${bi}`)}
+                    title="Jump to JSON"
+                  >
                     <span className="flex-1 leading-relaxed">{b}</span>
                     <span className={`shrink-0 tabular-nums text-[10px] ${len > MAX_BULLET ? 'text-red-400 font-bold' : len > 100 ? 'text-amber-500' : 'text-zinc-600'}`}>
                       {len}
@@ -115,8 +137,13 @@ function BulletsPreview({ json }: { json: string }) {
       {skills.length > 0 && (
         <section>
           <p className="text-zinc-500 uppercase tracking-widest text-[10px] mb-2">Skills</p>
-          {(skills as string[]).map((row, i) => (
-            <div key={i} className={`flex items-start gap-2 border-l-2 pl-2 py-0.5 mb-0.5 ${charColor(row.length)}`}>
+          {(skills as string[]).map((row, si) => (
+            <div
+              key={si}
+              className={`flex items-start gap-2 border-l-2 pl-2 py-0.5 mb-0.5 cursor-pointer hover:opacity-80 ${charColor(row.length)}`}
+              onClick={() => onJump?.(`/skills/${si}`)}
+              title="Jump to JSON"
+            >
               <span className="flex-1 leading-relaxed">{row}</span>
               <span className="shrink-0 text-zinc-600 text-[10px]">{row.length}</span>
             </div>
@@ -289,6 +316,29 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
   const [status, setStatus]       = useState('')
   const [showBackups, setShowBackups] = useState(false)
 
+  const profileEditorRef = useRef<MonacoEditorNS.IStandaloneCodeEditor | null>(null)
+
+  // Rebuild source map whenever draft changes — used for preview → Monaco jumps
+  const sourceMap = useMemo(() => {
+    try { return jsonSourceMap(draft) } catch { return null }
+  }, [draft])
+
+  const onProfileEditorMount = useCallback((ed: MonacoEditorNS.IStandaloneCodeEditor) => {
+    profileEditorRef.current = ed
+  }, [])
+
+  const jumpToJsonPath = useCallback((path: string) => {
+    const ed = profileEditorRef.current
+    if (!ed || !sourceMap) return
+    const pointer = sourceMap.pointers[path]
+    if (!pointer) return
+    const line   = pointer.value.line + 1   // json-source-map is 0-indexed
+    const column = pointer.value.column + 1
+    ed.setPosition({ lineNumber: line, column })
+    ed.revealLineInCenter(line)
+    ed.focus()
+  }, [sourceMap])
+
   const loadContent = useCallback(() => {
     setLoading(true)
     fetch(`/api/profiles/${profile.id}`)
@@ -363,6 +413,7 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
               theme="vs-dark"
               value={draft}
               onChange={v => setDraft(v ?? '')}
+              onMount={onProfileEditorMount}
               options={{
                 minimap: { enabled: false },
                 fontSize: 12,
@@ -390,7 +441,7 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
               width={260}
             />
           </div>
-          <BulletsPreview json={draft} />
+          <BulletsPreview json={draft} onJump={jumpToJsonPath} />
         </div>
       </div>
     </div>
@@ -399,6 +450,24 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
 
 // ── Two-panel Monaco editor (markdown + rendered preview) ─────────────────────
 
+// Shared CSS for the sync-highlight class — toggled via DOM, not React state.
+const SYNC_HIGHLIGHT_STYLE = `
+  .sync-highlight {
+    border-left: 2px solid rgb(129 140 248);
+    background-color: rgb(99 102 241 / 0.08);
+    padding-left: 0.5rem;
+    margin-left: -0.5rem;
+    border-radius: 0 2px 2px 0;
+    scroll-margin-top: 4rem;
+  }
+`
+
+// Block tags that carry data-source-line and respond to clicks
+const SYNC_TAGS = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote', 'pre'] as const
+
+type SyncTag = typeof SYNC_TAGS[number]
+type BlockProps = React.HTMLAttributes<HTMLElement> & { node?: Element; children?: React.ReactNode }
+
 function DocEditor({ file, label }: { file: DocFileKey; label: string }) {
   const [content, setContent] = useState('')
   const [draft, setDraft]     = useState('')
@@ -406,6 +475,69 @@ function DocEditor({ file, label }: { file: DocFileKey; label: string }) {
   const [saving, setSaving]   = useState(false)
   const [status, setStatus]   = useState('')
   const [showBackups, setShowBackups] = useState(false)
+
+  // Sync refs — no state so cursor moves don't trigger React re-renders
+  const editorRef     = useRef<MonacoEditorNS.IStandaloneCodeEditor | null>(null)
+  const previewRef    = useRef<HTMLDivElement>(null)
+  const activeElRef   = useRef<HTMLElement | null>(null)
+  const debounceRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const highlightLine = useCallback((lineNumber: number) => {
+    const container = previewRef.current
+    if (!container) return
+
+    // Remove previous highlight
+    activeElRef.current?.classList.remove('sync-highlight')
+    activeElRef.current = null
+
+    // Walk all annotated block elements; find last one starting at or before cursor line
+    const els = Array.from(container.querySelectorAll<HTMLElement>('[data-source-line]'))
+    let target: HTMLElement | null = null
+    for (const el of els) {
+      if (parseInt(el.getAttribute('data-source-line') ?? '0', 10) <= lineNumber) target = el
+      else break
+    }
+
+    if (target) {
+      target.classList.add('sync-highlight')
+      target.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      activeElRef.current = target
+    }
+  }, [])
+
+  const jumpToLine = useCallback((lineNumber: number) => {
+    const ed = editorRef.current
+    if (!ed) return
+    ed.setPosition({ lineNumber, column: 1 })
+    ed.revealLineInCenter(lineNumber)
+    ed.focus()
+  }, [])
+
+  const onEditorMount = useCallback((ed: MonacoEditorNS.IStandaloneCodeEditor) => {
+    editorRef.current = ed
+    ed.onDidChangeCursorPosition(e => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => highlightLine(e.position.lineNumber), 150)
+    })
+  }, [highlightLine])
+
+  // Build react-markdown components once — closes over jumpToLine (stable ref-backed fn)
+  const syncComponents = useMemo((): Components => {
+    const make = (Tag: SyncTag) => function SyncBlock({ node, children, ...props }: BlockProps) {
+      const line = node?.position?.start.line
+      return (
+        <Tag
+          data-source-line={line}
+          onClick={line != null ? () => jumpToLine(line) : undefined}
+          style={line != null ? { cursor: 'pointer' } : undefined}
+          {...props as React.HTMLAttributes<HTMLElement>}
+        >
+          {children}
+        </Tag>
+      )
+    }
+    return Object.fromEntries(SYNC_TAGS.map(t => [t, make(t)])) as Components
+  }, [jumpToLine])
 
   const loadContent = useCallback(() => {
     setLoading(true)
@@ -461,11 +593,13 @@ function DocEditor({ file, label }: { file: DocFileKey; label: string }) {
         />
       )}
 
+      <style>{SYNC_HIGHLIGHT_STYLE}</style>
       <div className="grid grid-cols-2 gap-0 border border-zinc-700 rounded-lg overflow-hidden" style={{ height: 480 }}>
         {/* Monaco */}
         <div className="border-r border-zinc-700 flex flex-col min-h-0">
           <div className="px-3 py-1.5 bg-zinc-800 border-b border-zinc-700 shrink-0">
             <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">Editor</span>
+            <span className="ml-2 text-[10px] text-zinc-600 font-mono">click preview block to jump</span>
           </div>
           {loading ? (
             <div className="flex-1 flex items-center justify-center text-zinc-600 text-xs">Loading…</div>
@@ -476,6 +610,7 @@ function DocEditor({ file, label }: { file: DocFileKey; label: string }) {
               theme="vs-dark"
               value={draft}
               onChange={v => setDraft(v ?? '')}
+              onMount={onEditorMount}
               options={{
                 minimap: { enabled: false },
                 fontSize: 12,
@@ -494,8 +629,11 @@ function DocEditor({ file, label }: { file: DocFileKey; label: string }) {
           <div className="px-3 py-1.5 bg-zinc-800 border-b border-zinc-700 shrink-0">
             <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">Preview</span>
           </div>
-          <div className="flex-1 overflow-y-auto px-4 py-3 text-sm text-zinc-300 leading-relaxed [&_h1]:text-zinc-100 [&_h1]:font-semibold [&_h1]:text-base [&_h1]:mt-4 [&_h1]:mb-1 [&_h2]:text-zinc-200 [&_h2]:font-semibold [&_h2]:text-sm [&_h2]:mt-4 [&_h2]:mb-1 [&_h3]:text-zinc-300 [&_h3]:font-medium [&_h3]:mt-3 [&_h3]:mb-0.5 [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:space-y-0.5 [&_ol]:list-decimal [&_ol]:pl-4 [&_strong]:text-zinc-100 [&_code]:bg-zinc-800 [&_code]:px-1 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono [&_pre]:bg-zinc-800 [&_pre]:rounded [&_pre]:p-3 [&_pre]:overflow-x-auto [&_p]:mb-2 [&_hr]:border-zinc-700 [&_hr]:my-3">
-            <ReactMarkdown>{draft}</ReactMarkdown>
+          <div
+            ref={previewRef}
+            className="flex-1 overflow-y-auto px-4 py-3 text-sm text-zinc-300 leading-relaxed [&_h1]:text-zinc-100 [&_h1]:font-semibold [&_h1]:text-base [&_h1]:mt-4 [&_h1]:mb-1 [&_h2]:text-zinc-200 [&_h2]:font-semibold [&_h2]:text-sm [&_h2]:mt-4 [&_h2]:mb-1 [&_h3]:text-zinc-300 [&_h3]:font-medium [&_h3]:mt-3 [&_h3]:mb-0.5 [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:space-y-0.5 [&_ol]:list-decimal [&_ol]:pl-4 [&_strong]:text-zinc-100 [&_code]:bg-zinc-800 [&_code]:px-1 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono [&_pre]:bg-zinc-800 [&_pre]:rounded [&_pre]:p-3 [&_pre]:overflow-x-auto [&_p]:mb-2 [&_hr]:border-zinc-700 [&_hr]:my-3"
+          >
+            <ReactMarkdown components={syncComponents}>{draft}</ReactMarkdown>
           </div>
         </div>
       </div>
