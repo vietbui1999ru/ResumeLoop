@@ -22,11 +22,14 @@ export default async function DashboardPage() {
 
   if (!data || data.total === 0) {
     return (
-      <div className="space-y-4">
-        <h1 className="text-xl font-semibold">Dashboard</h1>
-        <p className="text-zinc-500 text-sm">
+      <div className="min-h-[40vh] flex flex-col items-center justify-center text-center px-6">
+        <h1 className="text-lg font-semibold text-text-primary mb-2">Dashboard</h1>
+        <p className="text-sm text-text-secondary">
           No data yet.{' '}
-          <a href="/jobs" className="text-indigo-400 underline">Go to Jobs → Scan</a> to populate.
+          <a href="/jobs" className="text-indigo-400 hover:text-indigo-300 underline transition-colors duration-100">
+            Go to Jobs → Scan
+          </a>{' '}
+          to populate.
         </p>
       </div>
     )
@@ -35,11 +38,11 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Dashboard</h1>
-        <p className="text-sm text-zinc-500">{data.total} JDs · {data.visaKill} visa-kill</p>
+        <h1 className="text-lg font-semibold text-text-primary">Dashboard</h1>
+        <p className="text-sm text-text-muted">{data.total} JDs · {data.visaKill} visa-kill</p>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="relative">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="relative bg-white/[0.025] border border-zinc-800 rounded-xl p-5 hover:border-indigo-500/20 hover:-translate-y-px transition-all duration-100">
           <RoleTrackChart data={data.role_track_dist} />
           <TourBubble
             tourKey="dashboard-role-chart"
@@ -50,10 +53,16 @@ export default async function DashboardPage() {
             width={270}
           />
         </div>
-        <FitDistChart data={data.fit_dist} />
+        <div className="bg-white/[0.025] border border-zinc-800 rounded-xl p-5 hover:border-indigo-500/20 hover:-translate-y-px transition-all duration-100">
+          <FitDistChart data={data.fit_dist} />
+        </div>
       </div>
-      {data.pipeline && <PipelineSankeyChart data={data.pipeline} />}
-      <div className="relative">
+      {data.pipeline && (
+        <div className="bg-white/[0.025] border border-zinc-800 rounded-xl p-5 hover:border-indigo-500/20 hover:-translate-y-px transition-all duration-100">
+          <PipelineSankeyChart data={data.pipeline} />
+        </div>
+      )}
+      <div className="relative bg-white/[0.025] border border-zinc-800 rounded-xl p-5 hover:border-indigo-500/20 hover:-translate-y-px transition-all duration-100">
         <OutputHistoryTable outputs={data.outputs} />
         <TourBubble
           tourKey="dashboard-outputs"
