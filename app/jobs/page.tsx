@@ -97,10 +97,9 @@ export default function JobsPage() {
   // Generation
   const [selected, setSelected]           = useState<Set<string>>(new Set())
   const [genStatus, setGenStatus]         = useState<Map<string, string>>(new Map())
-  const [generating, setGenerating]       = useState(false)
   const [showPanel, setShowPanel]         = useState(false)
+  const [panelMinimized, setPanelMinimized] = useState(false)
   const [generateQueue, setGenerateQueue] = useState<string[]>([])
-  const doneCountRef = useRef(0)
 
   const [sort, setSort] = useState<{ col: SortCol; dir: SortDir }>({ col: 'clipped_at', dir: 'desc' })
   const [jobsPathExists, setJobsPathExists] = useState<boolean | null>(null)
@@ -150,16 +149,19 @@ export default function JobsPage() {
 
   const generate = async () => {
     const ids = Array.from(selected)
-    if (!ids.length) return
-    setGenerating(true)
-    doneCountRef.current = 0
+    if (ids.length === 0) return
     const res = await fetch('/api/generate', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jobIds: ids }),
     })
-    if (!res.ok) { setGenerating(false); return }
-    setGenerateQueue(ids)
+    if (!res.ok) return
+    setGenerateQueue(prev => {
+      const existing = new Set(prev)
+      const newIds = ids.filter(id => !existing.has(id))
+      return [...prev, ...newIds]
+    })
     setShowPanel(true)
+    setPanelMinimized(false)
   }
 
   const setRowError = useCallback((id: string, msg: string) => {
@@ -515,50 +517,37 @@ export default function JobsPage() {
                 />
                 <button
                   onClick={() => void generate()}
-                  disabled={generating}
+                  disabled={selected.size === 0}
                   className="text-sm px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded disabled:opacity-40 transition-colors"
                 >
-                  Generate {selected.size}
+                  {showPanel ? `Queue ${selected.size > 0 ? selected.size : ''} more` : `Generate ${selected.size}`}
                 </button>
               </div>
             </div>
           ) : (
             /* Generation panel */
-            <div className="max-h-72 overflow-y-auto">
-              <div className="sticky top-0 bg-zinc-900 flex items-center justify-between px-6 py-2 border-b border-zinc-800">
-                <span className="text-xs text-zinc-400 font-medium">Generating</span>
-                {!generating && (
-                  <button
-                    onClick={() => { setShowPanel(false); setSelected(new Set()) }}
-                    className="text-xs text-zinc-500 hover:text-zinc-300"
-                  >
-                    Done ✕
-                  </button>
-                )}
-              </div>
-              <div className="px-6 py-3">
-                <GenerationPanel
-                  queue={generateQueue}
-                  sessionId={activeSessionId}
-                  onStageUpdate={(jobId, stage) =>
-                    setGenStatus(prev => new Map(prev).set(jobId, `⟳ ${stage}`))}
-                  onDone={jobId => {
-                    setGenStatus(prev => new Map(prev).set(jobId, 'done'))
-                    reload()
-                    doneCountRef.current += 1
-                    if (doneCountRef.current >= generateQueue.length) {
-                      setGenerating(false); doneCountRef.current = 0
-                    }
-                  }}
-                  onError={(jobId, msg) => {
-                    setGenStatus(prev => new Map(prev).set(jobId, `✗ ${msg.slice(0, 20)}`))
-                    doneCountRef.current += 1
-                    if (doneCountRef.current >= generateQueue.length) {
-                      setGenerating(false); doneCountRef.current = 0
-                    }
-                  }}
-                />
-              </div>
+            <div className="px-6 py-3">
+              <GenerationPanel
+                queue={generateQueue}
+                sessionId={activeSessionId}
+                minimized={panelMinimized}
+                onMinimize={() => setPanelMinimized(p => !p)}
+                onClose={() => {
+                  setShowPanel(false)
+                  setPanelMinimized(false)
+                  setGenerateQueue([])
+                  setSelected(new Set())
+                }}
+                onStageUpdate={(jobId, stage) =>
+                  setGenStatus(prev => new Map(prev).set(jobId, `⟳ ${stage}`))}
+                onDone={jobId => {
+                  setGenStatus(prev => new Map(prev).set(jobId, 'done'))
+                  reload()
+                }}
+                onError={(jobId, msg) =>
+                  setGenStatus(prev => new Map(prev).set(jobId, `✗ ${msg.slice(0, 20)}`))
+                }
+              />
             </div>
           )}
         </div>

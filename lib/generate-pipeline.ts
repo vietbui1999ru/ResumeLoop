@@ -27,7 +27,7 @@ function bulletsKey(workVariant: string): string {
 }
 
 
-export async function* runPipeline(jobId: string, sessionId = 'default', userId = 'default'): AsyncGenerator<SSEEvent> {
+export async function* runPipeline(jobId: string, sessionId = 'default', userId = 'default', signal?: AbortSignal): AsyncGenerator<SSEEvent> {
   const db = await getAdapter()
   const job = await db.queryOne<{ id: string; company: string; role_title: string; file_path: string; raw_content: string }>(
     'SELECT id, company, role_title, file_path, raw_content FROM jd_jobs WHERE id = ? AND user_id = ?',
@@ -51,6 +51,7 @@ export async function* runPipeline(jobId: string, sessionId = 'default', userId 
   const jobBuildDir = path.join(BATCH_BUILD_ROOT, jobId)
 
   // Stage 0: Preflight
+  if (signal?.aborted) { yield emit(errEvent('preflight', 'Aborted')); logger.finish('failed'); return }
   yield emit({ stage: 'preflight', status: 'running', data: {} })
   try {
     await preflight(session.data, jobBuildDir)
@@ -60,6 +61,7 @@ export async function* runPipeline(jobId: string, sessionId = 'default', userId 
   yield emit({ stage: 'preflight', status: 'ok', data: {} })
 
   // Stage 1: AI reasoning
+  if (signal?.aborted) { yield emit(errEvent('ai-reason', 'Aborted')); logger.finish('failed'); return }
   yield emit({ stage: 'ai-reason', status: 'running', data: {} })
   let decision: ReasoningResult
   try {
@@ -71,6 +73,7 @@ export async function* runPipeline(jobId: string, sessionId = 'default', userId 
   yield emit({ stage: 'ai-reason', status: 'ok', data: decision as unknown as Record<string, unknown> })
 
   // Stage 2: Write build script
+  if (signal?.aborted) { yield emit(errEvent('write-script', 'Aborted')); logger.finish('failed'); return }
   yield emit({ stage: 'write-script', status: 'running', data: {} })
   const slug = toSlug(`${job.company}_${job.role_title}`)
   const scriptName = `${slug}.js`
@@ -99,7 +102,7 @@ export async function* runPipeline(jobId: string, sessionId = 'default', userId 
   // We capture it here but do NOT forward it to the SSE stream — the outer
   // runPipeline emits its own finalize:ok after the DB write.
   let docxPath: string | null = null
-  for await (const event of buildValidateLoop(scriptPath, docxName, jobBuildDir)) {
+  for await (const event of buildValidateLoop(scriptPath, docxName, jobBuildDir, signal)) {
     if (event.stage === 'finalize' && event.status === 'ok') {
       docxPath = event.data.docx as string
       continue // captured — do not forward to SSE stream
@@ -217,10 +220,11 @@ async function preflight(resumeData: string, jobBuildDir: string): Promise<void>
   fs.writeFileSync(path.join(jobBuildDir, 'master_resume_data.json'), resumeData, 'utf8')
 }
 
-async function* buildValidateLoop(scriptPath: string, docxName: string, jobBuildDir: string): AsyncGenerator<SSEEvent> {
+async function* buildValidateLoop(scriptPath: string, docxName: string, jobBuildDir: string, signal?: AbortSignal): AsyncGenerator<SSEEvent> {
   const docxExpected = path.join(jobBuildDir, docxName)
 
   for (let attempt = 0; attempt < 3; attempt++) {
+    if (signal?.aborted) { yield errEvent('build', 'Aborted'); return }
     // Build
     yield { stage: 'build', status: 'running', data: { attempt } }
     const buildResult = await spawnAsync('node', [scriptPath], jobBuildDir)

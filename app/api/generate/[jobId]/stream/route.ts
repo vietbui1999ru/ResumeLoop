@@ -20,7 +20,7 @@ export async function GET(
       const encode = (event: object) =>
         new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`)
       try {
-        for await (const event of runPipeline(jobId, sessionId, userId)) {
+        for await (const event of runPipeline(jobId, sessionId, userId, request.signal)) {
           controller.enqueue(encode(event))
         }
       } catch (err) {
