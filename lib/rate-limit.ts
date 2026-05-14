@@ -83,12 +83,12 @@ const DEFAULT_MAX    = 10
  * Returns true if the request is allowed, false if rate-limited.
  */
 export function checkRateLimit(ip: string, opts?: { window?: number; max?: number }): boolean {
-  const window = opts?.window ?? DEFAULT_WINDOW
-  const max    = opts?.max    ?? DEFAULT_MAX
-  const now    = Date.now()
-  const entry  = _store.get(ip)
+  const windowMs = opts?.window ?? DEFAULT_WINDOW
+  const max      = opts?.max    ?? DEFAULT_MAX
+  const now      = Date.now()
+  const entry    = _store.get(ip)
   if (!entry || now > entry.resetAt) {
-    _store.set(ip, { count: 1, resetAt: now + window })
+    _store.set(ip, { count: 1, resetAt: now + windowMs })
     return true
   }
   if (entry.count >= max) return false
