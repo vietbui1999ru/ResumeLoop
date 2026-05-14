@@ -24,7 +24,7 @@ export async function DELETE(req: Request) {
   if (!await checkLogsAuth(req)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
-  if (!checkRateLimit(extractIp(req))) {
+  if (!checkRateLimit(`logs:${extractIp(req)}`)) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }
 

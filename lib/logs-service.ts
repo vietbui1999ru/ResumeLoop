@@ -66,9 +66,12 @@ export function getLog(id: string): GenerationLog | null {
 export function deleteLog(id: string): boolean {
   const logPath = resolveLogPath(id)
   if (!logPath) return false
-  if (!fs.existsSync(logPath)) return false
-  fs.unlinkSync(logPath)
-  return true
+  try {
+    fs.unlinkSync(logPath)
+    return true
+  } catch {
+    return false
+  }
 }
 
 export function purgeAll(): number {
