@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { checkRateLimit, extractIp, _resetForTesting } from './rate-limit'
 
 beforeEach(() => {
@@ -23,6 +23,15 @@ describe('checkRateLimit', () => {
   it('accepts custom window and max opts', () => {
     for (let i = 0; i < 3; i++) checkRateLimit('9.9.9.9', { max: 3 })
     expect(checkRateLimit('9.9.9.9', { max: 3 })).toBe(false)
+  })
+
+  it('allows requests again after window expires', () => {
+    vi.useFakeTimers()
+    for (let i = 0; i < 10; i++) checkRateLimit('1.2.3.4')
+    expect(checkRateLimit('1.2.3.4')).toBe(false)
+    vi.advanceTimersByTime(60_001)
+    expect(checkRateLimit('1.2.3.4')).toBe(true)
+    vi.useRealTimers()
   })
 })
 
