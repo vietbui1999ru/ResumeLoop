@@ -74,6 +74,18 @@ function fmtDate(iso: string | null): string {
   return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
 }
 
+function FitBadge({ pct }: { pct: number }) {
+  if (pct >= 80) return (
+    <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-400">{pct}%</span>
+  )
+  if (pct >= 60) return (
+    <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-amber-500/10 text-amber-400">{pct}%</span>
+  )
+  return (
+    <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-zinc-800 text-zinc-500">{pct}%</span>
+  )
+}
+
 export default function JobsPage() {
   const { activeSessionId } = useSession()
   const [jobs, setJobs]         = useState<Job[]>([])
@@ -255,25 +267,25 @@ export default function JobsPage() {
             value={q}
             onChange={e => setQ(e.target.value)}
             placeholder="Search company, role…"
-            className="flex-1 min-w-0 bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm placeholder:text-zinc-600"
+            className="flex-1 min-w-0 h-8 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary placeholder:text-text-muted focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-colors duration-100"
           />
           <select
             value={actionFilter}
             onChange={e => setActionFilter(e.target.value)}
-            className="shrink-0 bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-sm text-zinc-300"
+            className="shrink-0 h-8 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary focus:outline-none focus:border-indigo-500 transition-colors duration-100"
           >
             <option value="">All stages</option>
             {VALID_ACTIONS.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
-          <div className="shrink-0 flex items-center gap-1.5 bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-sm">
-            <span className="text-zinc-500">Fit ≥</span>
+          <div className="shrink-0 flex items-center gap-1.5 h-8 bg-surface-card border border-zinc-800 rounded-lg px-2.5 text-sm focus-within:border-indigo-500 transition-colors duration-100">
+            <span className="text-text-muted">Fit ≥</span>
             <input
               type="number" min={0} max={100} step={10}
               value={fitMin}
               onChange={e => setFitMin(Number(e.target.value))}
               className="w-10 bg-transparent text-zinc-200 text-center"
             />
-            <span className="text-zinc-500">%</span>
+            <span className="text-text-muted">%</span>
           </div>
           <button
             onClick={() => setShowSecondary(v => !v)}
@@ -295,7 +307,7 @@ export default function JobsPage() {
             <select
               value={trackFilter}
               onChange={e => setTrackFilter(e.target.value)}
-              className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-sm text-zinc-300"
+              className="h-8 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary focus:outline-none focus:border-indigo-500 transition-colors duration-100"
             >
               <option value="">All tracks</option>
               {tracks.map(t => <option key={t} value={t}>{t}</option>)}
@@ -303,7 +315,7 @@ export default function JobsPage() {
             <select
               value={tagFilter}
               onChange={e => setTagFilter(e.target.value)}
-              className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-sm text-zinc-300"
+              className="h-8 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary focus:outline-none focus:border-indigo-500 transition-colors duration-100"
             >
               <option value="">All tags</option>
               {allTags.map(t => <option key={t} value={t}>{t}</option>)}
@@ -311,7 +323,7 @@ export default function JobsPage() {
             <select
               value={visaFilter}
               onChange={e => setVisaFilter(e.target.value as typeof visaFilter)}
-              className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-sm text-zinc-300"
+              className="h-8 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary focus:outline-none focus:border-indigo-500 transition-colors duration-100"
             >
               <option value="proceed">Visa: proceed</option>
               <option value="kill">Visa: kill</option>
@@ -371,7 +383,7 @@ export default function JobsPage() {
               return (
                 <tr
                   key={job.id}
-                  className={`border-b border-zinc-800/60 hover:bg-zinc-800/40 cursor-pointer group ${job.hidden ? 'opacity-40' : ''}`}
+                  className={`border-b border-zinc-800/60 hover:bg-surface-raised hover:-translate-y-px transition-all duration-100 cursor-pointer group ${job.id === selectedJobId ? 'border-l-2 border-indigo-500 bg-indigo-500/5' : ''} ${job.hidden ? 'opacity-40' : ''}`}
                   onClick={() => setSelectedJobId(job.id)}
                 >
                   {/* Checkbox */}
@@ -380,7 +392,7 @@ export default function JobsPage() {
                   </td>
 
                   {/* Company — visa ⊘ inline */}
-                  <td className="py-2.5 pr-4">
+                  <td className="py-3 pr-4">
                     <div className="flex items-center gap-1.5">
                       {job.visa_status === 'kill' && (
                         <span className="text-red-500 text-[10px]" title="No sponsorship">⊘</span>
@@ -390,7 +402,7 @@ export default function JobsPage() {
                   </td>
 
                   {/* Role + track badge */}
-                  <td className="py-2.5 pr-4">
+                  <td className="py-3 pr-4">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-zinc-300">{job.role_title}</span>
                       {job.role_track && (
@@ -402,8 +414,8 @@ export default function JobsPage() {
                   </td>
 
                   {/* Fit% */}
-                  <td className="py-2.5 pr-4">
-                    <span className={job.fit_pct >= 60 ? 'text-green-400' : 'text-zinc-400'}>{job.fit_pct}%</span>
+                  <td className="py-3 pr-4">
+                    <FitBadge pct={job.fit_pct} />
                   </td>
 
                   {/* Action dropdown */}
@@ -433,7 +445,7 @@ export default function JobsPage() {
                   </td>
 
                   {/* Clipped date — color-coded by staleness */}
-                  <td className={`py-2.5 pr-4 text-xs font-mono ${clipColor(clippedIso)}`}>
+                  <td className={`py-3 pr-4 text-xs font-mono ${clipColor(clippedIso)}`}>
                     {fmtDate(clippedIso)}
                   </td>
 
