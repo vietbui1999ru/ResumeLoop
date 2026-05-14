@@ -114,7 +114,7 @@ export async function POST(req: Request) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const USER_ID = session.user.id
 
-  if (!checkRateLimit(extractIp(req))) {
+  if (!checkRateLimit(`settings:${extractIp(req)}`)) {
     return NextResponse.json({ error: 'Too many requests — wait a minute' }, { status: 429 })
   }
 
