@@ -46,13 +46,15 @@ async function getUpstashLimiter() {
   return _upstashLimiter
 }
 
-// ── Public API ────────────────────────────────────────────────────────────────
+// ── Async API (auth routes — Upstash-aware) ───────────────────────────────────
 
 /**
- * Check rate limit for a key (e.g. `auth:login:${ip}` or `auth:login:${email}`).
- * limit + windowMs only apply in local mode (cloud uses Upstash config above).
+ * Async rate limit check for auth routes.
+ * Uses Upstash Redis in cloud mode, in-process sliding window locally.
+ * key: e.g. `auth:login:${ip}` or `auth:login:${email}`.
+ * limit + windowMs only apply in local mode.
  */
-export async function checkRateLimit(
+export async function checkRateLimitAsync(
   key: string,
   limit = 10,
   windowMs = 60_000,
@@ -68,4 +70,40 @@ export async function checkRateLimit(
     }
   }
   return localCheck(key, limit, windowMs)
+}
+
+// ── Sync API (simple per-IP fixed window, for settings/ai and logs routes) ───
+
+const _store = new Map<string, { count: number; resetAt: number }>()
+const DEFAULT_WINDOW = 60_000
+const DEFAULT_MAX    = 10
+
+/**
+ * Synchronous per-IP fixed-window rate limiter.
+ * Returns true if the request is allowed, false if rate-limited.
+ */
+export function checkRateLimit(ip: string, opts?: { window?: number; max?: number }): boolean {
+  const window = opts?.window ?? DEFAULT_WINDOW
+  const max    = opts?.max    ?? DEFAULT_MAX
+  const now    = Date.now()
+  const entry  = _store.get(ip)
+  if (!entry || now > entry.resetAt) {
+    _store.set(ip, { count: 1, resetAt: now + window })
+    return true
+  }
+  if (entry.count >= max) return false
+  entry.count++
+  return true
+}
+
+export function extractIp(req: Request): string {
+  // Use the first (leftmost) address from x-forwarded-for — the original client.
+  const fwd = req.headers.get('x-forwarded-for')
+  if (fwd) return fwd.split(',')[0].trim()
+  return 'local'
+}
+
+/** Clear the sync rate-limit store. Only for use in tests. */
+export function _resetForTesting() {
+  _store.clear()
 }

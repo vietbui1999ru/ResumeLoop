@@ -2,14 +2,14 @@ import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { createUser } from '@/lib/account'
 import { sendVerificationEmail } from '@/lib/email'
-import { checkRateLimit } from '@/lib/rate-limit'
+import { checkRateLimitAsync } from '@/lib/rate-limit'
 import { isCloud } from '@/lib/app-mode'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export async function POST(req: Request) {
   const ip = (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
-  const rl = await checkRateLimit(`auth:signup:${ip}`, 5, 60_000)
+  const rl = await checkRateLimitAsync(`auth:signup:${ip}`, 5, 60_000)
   if (!rl.success) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }

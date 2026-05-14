@@ -2,13 +2,13 @@ import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { getAdapter } from '@/lib/db-adapter'
 import { sendPasswordResetEmail } from '@/lib/email'
-import { checkRateLimit } from '@/lib/rate-limit'
+import { checkRateLimitAsync } from '@/lib/rate-limit'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export async function POST(req: Request) {
   const ip = (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
-  const rl = await checkRateLimit(`auth:forgot:${ip}`, 5, 60_000)
+  const rl = await checkRateLimitAsync(`auth:forgot:${ip}`, 5, 60_000)
   if (!rl.success) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }
