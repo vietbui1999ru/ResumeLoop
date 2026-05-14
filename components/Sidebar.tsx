@@ -8,7 +8,9 @@ import {
   FileText,
   Settings2,
   UserCircle,
+  HelpCircle,
 } from 'lucide-react'
+import { useTourContext } from '@/contexts/TourContext'
 
 const NAV = [
   { href: '/jobs',     label: 'Jobs',      Icon: Briefcase },
@@ -20,6 +22,7 @@ const NAV = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { reset } = useTourContext()
   return (
     <nav className="w-12 shrink-0 border-r border-zinc-800 bg-surface-card flex flex-col items-center py-3 gap-1 h-full">
       {/* Logo mark */}
@@ -49,8 +52,15 @@ export function Sidebar() {
         )
       })}
 
-      {/* Spacer + account */}
+      {/* Spacer + tour + account */}
       <div className="flex-1" />
+      <button
+        onClick={reset}
+        title="Restart tour"
+        className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-text-secondary hover:bg-surface-raised transition-colors duration-100"
+      >
+        <HelpCircle size={16} strokeWidth={1.75} />
+      </button>
       <Link
         href="/account"
         title="Account"
