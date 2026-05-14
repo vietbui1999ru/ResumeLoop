@@ -11,6 +11,9 @@ export async function POST(req: Request) {
   if (!Array.isArray(jobIds) || jobIds.length === 0) {
     return NextResponse.json({ error: 'jobIds must be non-empty array' }, { status: 400 })
   }
+  if (jobIds.length > 50) {
+    return NextResponse.json({ error: 'Too many jobs — max 50 per request' }, { status: 400 })
+  }
 
   const db = await getAdapter()
   const unknown: string[] = []

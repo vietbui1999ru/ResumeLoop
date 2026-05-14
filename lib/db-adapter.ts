@@ -323,7 +323,11 @@ export function getAdapter(): Promise<DbAdapter> {
         await adapter.initialize()
         return adapter
       }
-    })()
+    })().catch(err => {
+      // Reset so next call retries rather than replaying the same rejected promise
+      _adapterPromise = null
+      throw err
+    })
   }
   return _adapterPromise
 }

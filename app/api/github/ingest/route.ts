@@ -5,6 +5,10 @@ import { auth } from '@/lib/auth'
 const URL_MAX_LEN = 300
 
 export async function POST(req: Request) {
+  const session = await auth()
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const userId = session.user.id
+
   const body = await req.json() as { url?: unknown }
   const url = typeof body.url === 'string' ? body.url.trim() : ''
   if (!url) return NextResponse.json({ error: 'url required' }, { status: 400 })
@@ -12,10 +16,6 @@ export async function POST(req: Request) {
 
   const parsed = parseGithubUrl(url)
   if (!parsed) return NextResponse.json({ error: 'Invalid GitHub URL' }, { status: 400 })
-
-  const session = await auth()
-  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const userId = session.user.id
 
   try {
     const entry = await summarizeRepo(parsed.owner, parsed.repo, userId)

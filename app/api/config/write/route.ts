@@ -23,6 +23,9 @@ export async function POST(req: Request) {
   if (!file || !Object.prototype.hasOwnProperty.call(ALLOWED, file)) {
     return NextResponse.json({ error: 'Unknown file' }, { status: 400 })
   }
+  if (typeof content !== 'string' || content.length > 5 * 1024 * 1024) {
+    return NextResponse.json({ error: 'Content too large (max 5 MB)' }, { status: 400 })
+  }
 
   if (file.endsWith('.json')) {
     try { JSON.parse(content) } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }

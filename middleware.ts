@@ -39,10 +39,17 @@ function isPublicPath(pathname: string): boolean {
 export default auth((req: NextAuthRequest) => {
   const { pathname } = req.nextUrl
 
-  // CSRF guard: non-auth API mutations must come from a safe origin
+  // CSRF guard: non-auth API mutations must originate from a safe origin.
+  // Missing Origin is also rejected — legitimate browser fetches always send it.
+  // Falls back to Referer so same-origin SSR actions still work.
   if (pathname.startsWith('/api/') && !pathname.startsWith('/api/auth/') && MUTATING.has(req.method)) {
     const origin = req.headers.get('origin')
-    if (origin && !SAFE_ORIGINS.has(origin)) {
+    const referer = req.headers.get('referer')
+    let sourceOrigin: string | null = origin
+    if (!sourceOrigin && referer) {
+      try { sourceOrigin = new URL(referer).origin } catch { /* malformed referer */ }
+    }
+    if (!sourceOrigin || !SAFE_ORIGINS.has(sourceOrigin)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
   }
