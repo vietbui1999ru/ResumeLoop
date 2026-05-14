@@ -10,6 +10,7 @@ import ReasoningModal from '@/components/ReasoningModal'
 import { TourBubble } from '@/components/TourBubble'
 import { SetupPanel } from '@/components/SetupPanel'
 import { useSession } from '@/contexts/SessionContext'
+import { AnimatePresence } from 'framer-motion'
 
 const ACTION_COLORS: Record<string, string> = {
   '0-Saved':        'text-zinc-400',
@@ -543,6 +544,7 @@ export default function JobsPage() {
             </div>
           ) : (
             /* Generation panel */
+            <AnimatePresence>
             <div className="px-6 py-3">
               <GenerationPanel
                 queue={generateQueue}
@@ -566,6 +568,7 @@ export default function JobsPage() {
                 }
               />
             </div>
+            </AnimatePresence>
           )}
         </div>
       )}
