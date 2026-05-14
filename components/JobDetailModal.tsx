@@ -19,6 +19,8 @@ import { CSS } from '@dnd-kit/utilities'
 import { useJobOutput } from '@/lib/useJobOutput'
 import PdfViewer from './PdfViewer'
 import OutreachPanel from './OutreachPanel'
+import { motion, AnimatePresence } from 'framer-motion'
+import { DURATION, EASE } from '@/lib/motion'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -386,18 +388,27 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+    <AnimatePresence>
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: DURATION.fast, ease: EASE }}
       onClick={onClose}
     >
-      <div
+      <motion.div
         ref={modalRef}
-        className={`relative bg-zinc-900 border border-zinc-700 rounded-lg flex flex-col mx-4 overflow-hidden ${
+        className={`relative bg-surface-card border border-zinc-800 rounded-2xl flex flex-col mx-4 overflow-hidden ${
           modalSize
             ? ''
             : `w-full ${autoModalWidth} max-h-[92vh] transition-all duration-150`
         }`}
         style={modalSize ? { width: modalSize.width, height: modalSize.height } : undefined}
+        initial={{ scale: 0.96, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.96, opacity: 0 }}
+        transition={{ duration: DURATION.base, ease: EASE }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -532,8 +543,9 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
             <path d="M2 9 L9 2 M5 9 L9 5 M8 9 L9 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
+    </AnimatePresence>
   )
 }
 

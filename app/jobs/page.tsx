@@ -499,20 +499,25 @@ export default function JobsPage() {
       </div>
 
       {/* ── Modals ─────────────────────────────────────────────── */}
-      {selectedJobId && (
-        <JobDetailModal jobId={selectedJobId} onClose={() => setSelectedJobId(null)} />
-      )}
-      {reasoningJobId && (() => {
-        const j = jobs.find(x => x.id === reasoningJobId)
-        return j ? (
-          <ReasoningModal
-            jobId={reasoningJobId}
-            company={j.company}
-            roleTitle={j.role_title}
-            onClose={() => setReasoningJobId(null)}
-          />
-        ) : null
-      })()}
+      <AnimatePresence>
+        {selectedJobId && (
+          <JobDetailModal key={selectedJobId} jobId={selectedJobId} onClose={() => setSelectedJobId(null)} />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {reasoningJobId && (() => {
+          const j = jobs.find(x => x.id === reasoningJobId)
+          return j ? (
+            <ReasoningModal
+              key={reasoningJobId}
+              jobId={reasoningJobId}
+              company={j.company}
+              roleTitle={j.role_title}
+              onClose={() => setReasoningJobId(null)}
+            />
+          ) : null
+        })()}
+      </AnimatePresence>
 
       {/* ── Sticky bottom drawer — selection + generation ──────── */}
       {drawerOpen && (
