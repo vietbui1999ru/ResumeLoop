@@ -1,43 +1,63 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useTourContext } from '@/contexts/TourContext'
+import {
+  Briefcase,
+  LayoutDashboard,
+  MessageSquare,
+  FileText,
+  Settings2,
+  UserCircle,
+} from 'lucide-react'
 
 const NAV = [
-  { href: '/jobs',     label: 'Jobs' },
-  { href: '/',         label: 'Dashboard' },
-  { href: '/chat',     label: 'Chat' },
-  { href: '/config',   label: 'Config' },
-  { href: '/settings', label: 'Settings' },
-  { href: '/account',  label: 'Account' },
+  { href: '/jobs',     label: 'Jobs',      Icon: Briefcase },
+  { href: '/',         label: 'Dashboard', Icon: LayoutDashboard },
+  { href: '/chat',     label: 'Chat',      Icon: MessageSquare },
+  { href: '/config',   label: 'Config',    Icon: FileText },
+  { href: '/settings', label: 'Settings',  Icon: Settings2 },
 ]
 
 export function Sidebar() {
-  const pathname  = usePathname()
-  const { reset } = useTourContext()
+  const pathname = usePathname()
   return (
-    <nav className="w-44 shrink-0 border-r border-zinc-700 bg-zinc-900 flex flex-col gap-1 p-4 h-full overflow-y-auto">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-semibold text-zinc-500 uppercase">ResumeAnalyze</p>
-        <button
-          onClick={reset}
-          title="Restart tour"
-          className="text-[10px] w-4 h-4 flex items-center justify-center rounded-full border border-zinc-700 text-zinc-500 hover:text-zinc-300 hover:border-zinc-500 transition-colors"
-        >?</button>
+    <nav className="w-12 shrink-0 border-r border-zinc-800 bg-surface-card flex flex-col items-center py-3 gap-1 h-full">
+      {/* Logo mark */}
+      <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center mb-2 shrink-0">
+        <span className="text-[10px] font-bold text-white tracking-tight">RA</span>
       </div>
-      {NAV.map(({ href, label }) => (
-        <Link
-          key={href}
-          href={href}
-          className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-            pathname === href
-              ? 'bg-zinc-700 text-white'
-              : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-          }`}
-        >
-          {label}
-        </Link>
-      ))}
+
+      {/* Nav items */}
+      {NAV.map(({ href, label, Icon }) => {
+        const active = pathname === href
+        return (
+          <Link
+            key={href}
+            href={href}
+            title={label}
+            className={`relative w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-100 ${
+              active
+                ? 'bg-surface-raised text-indigo-400'
+                : 'text-text-muted hover:text-text-secondary hover:bg-surface-raised'
+            }`}
+          >
+            {active && (
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-indigo-500 rounded-r-full -ml-px" />
+            )}
+            <Icon size={16} strokeWidth={1.75} />
+          </Link>
+        )
+      })}
+
+      {/* Spacer + account */}
+      <div className="flex-1" />
+      <Link
+        href="/account"
+        title="Account"
+        className="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-text-muted hover:text-text-secondary transition-colors duration-100"
+      >
+        <UserCircle size={18} strokeWidth={1.75} />
+      </Link>
     </nav>
   )
 }
