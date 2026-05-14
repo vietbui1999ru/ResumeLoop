@@ -35,6 +35,8 @@ export async function decrypt(ciphertext: string): Promise<string> {
   const iv       = Buffer.from(ivB64,   'base64')
   const tag      = Buffer.from(tagB64,  'base64')
   const data     = Buffer.from(dataB64, 'base64')
+  if (iv.length !== IV_LEN) throw new Error('Invalid IV length in encrypted value')
+  if (tag.length !== 16) throw new Error('Invalid auth tag length in encrypted value')
   const decipher = createDecipheriv(ALGORITHM, key, iv)
   decipher.setAuthTag(tag)
   return decipher.update(data).toString('utf8') + decipher.final('utf8')

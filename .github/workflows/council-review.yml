@@ -14,18 +14,19 @@ on:
 
 jobs:
   council:
-    # Skip approved reviews (nothing to fix) and skip reviews from Claude itself
+    # Only run for trusted collaborators — prevents prompt injection via external reviewer bodies
     if: |
       github.event.review.state != 'approved' &&
       !startsWith(github.event.review.user.login, 'claude') &&
-      github.event.review.user.login != 'github-actions[bot]'
+      github.event.review.user.login != 'github-actions[bot]' &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'),
+               github.event.review.author_association)
 
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
       issues: read
-      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -65,7 +66,7 @@ jobs:
                Skip: already-resolved items, pure style preferences, out-of-scope feature requests.
             4. Apply every actionable fix directly to the source files.
             5. If changes were made, push them:
-               git add -A
+               git add -- $(git diff --name-only HEAD)
                git commit -m "fix: address review comments from $REVIEWER"
                git push origin "$PR_HEAD_REF"
             6. If nothing actionable — do nothing. No empty commits.

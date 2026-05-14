@@ -8,5 +8,12 @@ export async function GET(req: Request) {
   const userId = await consumeVerificationToken(token)
   if (!userId) return NextResponse.json({ error: 'Invalid or expired token' }, { status: 400 })
 
-  return NextResponse.json({ ok: true })
+  return new NextResponse(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+      'Referrer-Policy': 'no-referrer',
+    },
+  })
 }

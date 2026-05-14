@@ -7,7 +7,12 @@ import type { NextAuthRequest } from 'next-auth'
 const { auth } = NextAuth(authConfig)
 
 function buildSafeOrigins(): Set<string> {
-  const origins = new Set(['http://localhost:3000', 'http://127.0.0.1:3000'])
+  const origins = new Set<string>()
+  // localhost only safe in non-production; production origin comes from env vars below
+  if (process.env.NODE_ENV !== 'production') {
+    origins.add('http://localhost:3000')
+    origins.add('http://127.0.0.1:3000')
+  }
   for (const envKey of ['NEXTAUTH_URL', 'AUTH_URL', 'NEXT_PUBLIC_BASE_URL']) {
     const val = process.env[envKey]
     if (val) {
