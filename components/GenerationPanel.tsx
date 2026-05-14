@@ -35,6 +35,18 @@ interface Props {
   onClose: () => void
 }
 
+function StageDot({ status }: { status: 'ok' | 'fail' | 'running' }) {
+  if (status === 'running') return (
+    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shrink-0 mt-0.5" />
+  )
+  if (status === 'ok') return (
+    <span className="w-2 h-2 rounded-full bg-green-500 shrink-0 mt-0.5" />
+  )
+  return (
+    <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 mt-0.5" />
+  )
+}
+
 export default function GenerationPanel({
   queue, sessionId,
   onStageUpdate, onDone, onError,
@@ -159,18 +171,6 @@ export default function GenerationPanel({
     if (status === 'ok')   return <span className="text-green-400">✓</span>
     if (status === 'fail') return <span className="text-red-400">✗</span>
     return <span className="text-zinc-400 animate-spin inline-block">⟳</span>
-  }
-
-  function StageDot({ status }: { status: 'ok' | 'fail' | 'running' }) {
-    if (status === 'running') return (
-      <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shrink-0 mt-0.5" />
-    )
-    if (status === 'ok') return (
-      <span className="w-2 h-2 rounded-full bg-green-500 shrink-0 mt-0.5" />
-    )
-    return (
-      <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 mt-0.5" />
-    )
   }
 
   const stageSummary = (ev: SSEEvent): string => {

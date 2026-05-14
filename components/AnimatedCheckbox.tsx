@@ -1,5 +1,6 @@
 'use client'
 import { motion } from 'framer-motion'
+import { DURATION, EASE } from '@/lib/motion'
 
 interface Props {
   checked: boolean
@@ -35,7 +36,7 @@ export function AnimatedCheckbox({ checked, onChange, className = '', label }: P
           d="M1 4L3.5 6.5L9 1"
           strokeDasharray="12"
           animate={{ strokeDashoffset: checked ? 0 : 12 }}
-          transition={{ duration: 0.12, ease: 'easeOut' }}
+          transition={{ duration: DURATION.fast, ease: EASE }}
         />
       </svg>
     </button>

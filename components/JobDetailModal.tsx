@@ -388,7 +388,6 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
   }
 
   return (
-    <AnimatePresence>
     <motion.div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
       initial={{ opacity: 0 }}
@@ -545,7 +544,6 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
         </div>
       </motion.div>
     </motion.div>
-    </AnimatePresence>
   )
 }
 

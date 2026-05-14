@@ -366,7 +366,7 @@ export default function JobsPage() {
           <thead>
             <tr className="border-b border-zinc-800">
               <th className="pb-2 pr-3 w-6">
-                <input type="checkbox" checked={allVisibleSelected} onChange={toggleAll} className="accent-indigo-500" />
+                <AnimatedCheckbox checked={allVisibleSelected} onChange={toggleAll} label="Select all" />
               </th>
               <SortTh label="Company"  col="company"    sort={sort} onSort={onSort} />
               <SortTh label="Role"     col="role_title" sort={sort} onSort={onSort} />
@@ -521,10 +521,10 @@ export default function JobsPage() {
 
       {/* ── Sticky bottom drawer — selection + generation ──────── */}
       {drawerOpen && (
-        <div className="fixed bottom-0 left-44 right-0 z-20 bg-zinc-900 border-t border-zinc-800 shadow-xl shadow-black/40">
+        <div className="fixed bottom-0 left-44 right-0 z-20 bg-zinc-900 border-t border-zinc-800 shadow-xl shadow-black/40 px-6 py-3">
           {!showPanel ? (
             /* Compact selection bar */
-            <div className="flex items-center gap-3 px-6 py-3">
+            <div className="flex items-center gap-3">
               <span className="text-sm text-zinc-300 font-medium">{selected.size} selected</span>
               <button onClick={() => setSelected(new Set())} className="text-xs text-zinc-500 hover:text-zinc-300">
                 Clear
@@ -550,7 +550,6 @@ export default function JobsPage() {
           ) : (
             /* Generation panel */
             <AnimatePresence>
-            <div className="px-6 py-3">
               <GenerationPanel
                 queue={generateQueue}
                 sessionId={activeSessionId}
@@ -572,7 +571,6 @@ export default function JobsPage() {
                   setGenStatus(prev => new Map(prev).set(jobId, `✗ ${msg.slice(0, 20)}`))
                 }
               />
-            </div>
             </AnimatePresence>
           )}
         </div>

@@ -48,9 +48,8 @@ export default function ReasoningModal({ jobId, company, roleTitle, onClose }: P
     : []
 
   return (
-    <AnimatePresence>
-      <motion.div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -90,7 +89,6 @@ export default function ReasoningModal({ jobId, company, roleTitle, onClose }: P
             ))}
           </div>
         </motion.div>
-      </motion.div>
-    </AnimatePresence>
+    </motion.div>
   )
 }
