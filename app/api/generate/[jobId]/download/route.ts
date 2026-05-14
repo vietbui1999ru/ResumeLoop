@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { getAdapter } from '@/lib/db-adapter'
 import { isS3Key, getPresignedUrl } from '@/lib/storage'
+import { getSetting } from '@/lib/settings'
 import fs from 'fs'
-import os from 'os'
 import path from 'path'
 
 export async function GET(
@@ -39,14 +39,16 @@ export async function GET(
     return NextResponse.json({ error: 'DOCX file not found on disk' }, { status: 404 })
   }
 
-  const home = os.homedir()
-  const safeRoots = [
-    path.join(home, 'Desktop'),
-    path.join(home, 'Documents'),
-    path.join(home, 'Downloads'),
-    process.cwd(),
-  ].map(r => { try { return fs.realpathSync(r) } catch { return r } })
-  const isSafe = safeRoots.some(r => resolvedDocx.startsWith(r + path.sep) || resolvedDocx === r)
+  if (!resolvedDocx.endsWith('.docx')) {
+    return NextResponse.json({ error: 'Invalid path' }, { status: 403 })
+  }
+
+  // Allow the configured output dir + the in-process build dir under cwd
+  const outputPath = await getSetting('output_path').catch(() => null)
+  const safeRoots = [process.cwd()]
+  if (outputPath) safeRoots.push(outputPath)
+  const resolvedRoots = safeRoots.map(r => { try { return fs.realpathSync(r) } catch { return r } })
+  const isSafe = resolvedRoots.some(r => resolvedDocx.startsWith(r + path.sep))
   if (!isSafe) {
     return NextResponse.json({ error: 'Invalid path' }, { status: 403 })
   }

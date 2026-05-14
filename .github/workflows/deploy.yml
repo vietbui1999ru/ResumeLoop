@@ -87,5 +87,8 @@ jobs:
                  | docker login --username AWS --password-stdin $ECR_REGISTRY && \
                docker compose -f docker-compose.prod.yml --env-file .env.prod pull app && \
                docker compose -f docker-compose.prod.yml --env-file .env.prod up -d && \
-               sleep 10 && \
-               curl -sf http://localhost:3010/api/health | grep '\"ok\":true'"
+               for i in \$(seq 1 12); do \
+                 curl -sf http://localhost:3010/api/health | grep '\"ok\":true' && break; \
+                 [ \$i -eq 12 ] && echo 'Health check failed after 60s' && exit 1; \
+                 sleep 5; \
+               done"

@@ -212,7 +212,8 @@ async function preflight(resumeData: string, jobBuildDir: string): Promise<void>
   fs.copyFileSync(PATHS.pipeline.builder, path.join(BATCH_BUILD_ROOT, 'buildv2.js'))
   const nodeModules = path.join(BATCH_BUILD_ROOT, 'node_modules')
   if (!fs.existsSync(nodeModules)) {
-    await spawnAsync('npm', ['install', 'docx'], BATCH_BUILD_ROOT)
+    const installResult = await spawnAsync('npm', ['install', 'docx'], BATCH_BUILD_ROOT)
+    if (installResult.code !== 0) throw new Error(`npm install failed: ${installResult.stderr}`)
   }
 
   // Per-job dir for script + output files
@@ -232,6 +233,11 @@ async function* buildValidateLoop(scriptPath: string, docxName: string, jobBuild
       yield errEvent('build', buildResult.stderr || buildResult.stdout); return
     }
     yield { stage: 'build', status: 'ok', data: { script: path.basename(scriptPath), attempt } }
+
+    if (!fs.existsSync(docxExpected)) {
+      yield errEvent('build', `Build exited 0 but DOCX not found at ${docxExpected}`)
+      return
+    }
 
     // Validate
     yield { stage: 'validate', status: 'running', data: {} }
@@ -346,11 +352,12 @@ Packer.toBuffer(doc).then(buf => {
 
 function spawnAsync(cmd: string, args: string[], cwd: string): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise(resolve => {
-    const out: string[] = [], err: string[] = []
+    const out: string[] = [], errChunks: string[] = []
     const proc = spawn(cmd, args, { cwd })
     proc.stdout.on('data', (d: Buffer) => out.push(d.toString()))
-    proc.stderr.on('data', (d: Buffer) => err.push(d.toString()))
-    proc.on('close', code => resolve({ code: code ?? 1, stdout: out.join(''), stderr: err.join('') }))
+    proc.stderr.on('data', (d: Buffer) => errChunks.push(d.toString()))
+    proc.on('close', code => resolve({ code: code ?? 1, stdout: out.join(''), stderr: errChunks.join('') }))
+    proc.on('error', e => resolve({ code: 1, stdout: out.join(''), stderr: e.message }))
   })
 }
 

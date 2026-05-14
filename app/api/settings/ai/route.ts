@@ -94,7 +94,10 @@ function checkRateLimit(ip: string): boolean {
 // ── Live key test ─────────────────────────────────────────────────────────────
 async function testKey(provider: Provider, apiKey: string, model: string, baseUrl?: string): Promise<string | null> {
   try {
-    const testModel = buildModel(provider, apiKey, model, baseUrl)
+    // Ollama doesn't use API keys; use a placeholder to avoid forwarding any real key
+    // to a user-controlled base URL (SSRF key-harvesting mitigation)
+    const keyToTest = provider === 'ollama' ? 'ollama' : apiKey
+    const testModel = buildModel(provider, keyToTest, model, baseUrl)
     await generateText({ model: testModel, maxOutputTokens: 1, messages: [{ role: 'user', content: '.' }] })
     return null
   } catch (e) {
@@ -112,7 +115,8 @@ async function testKey(provider: Provider, apiKey: string, model: string, baseUr
 // ── GET ───────────────────────────────────────────────────────────────────────
 export async function GET() {
   const session = await auth()
-  const USER_ID = session?.user?.id ?? 'default'
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const USER_ID = session.user.id
 
   let configs: Awaited<ReturnType<typeof listProviderHints>>
   try {
@@ -131,7 +135,8 @@ export async function GET() {
 // ── POST ──────────────────────────────────────────────────────────────────────
 export async function POST(req: Request) {
   const session = await auth()
-  const USER_ID = session?.user?.id ?? 'default'
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const USER_ID = session.user.id
 
   if (!checkRateLimit(extractIp(req))) {
     return NextResponse.json({ error: 'Too many requests — wait a minute' }, { status: 429 })
@@ -205,7 +210,8 @@ export async function POST(req: Request) {
 // ── DELETE ────────────────────────────────────────────────────────────────────
 export async function DELETE(req: Request) {
   const session = await auth()
-  const USER_ID = session?.user?.id ?? 'default'
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const USER_ID = session.user.id
 
   const url      = new URL(req.url)
   const provider = url.searchParams.get('provider') as Provider | null
@@ -219,7 +225,8 @@ export async function DELETE(req: Request) {
 // ── PATCH — set active provider ───────────────────────────────────────────────
 export async function PATCH(req: Request) {
   const session = await auth()
-  const USER_ID = session?.user?.id ?? 'default'
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const USER_ID = session.user.id
 
   let body: { provider?: string }
   try { body = await req.json() } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
