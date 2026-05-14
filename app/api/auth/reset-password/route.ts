@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { consumePasswordResetToken } from '@/lib/email'
 import { changePassword } from '@/lib/account'
-import { checkRateLimit } from '@/lib/rate-limit'
+import { checkRateLimitAsync } from '@/lib/rate-limit'
 
 export async function POST(req: Request) {
   const ip = (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
-  const rl = await checkRateLimit(`auth:reset:${ip}`, 10, 60_000)
+  const rl = await checkRateLimitAsync(`auth:reset:${ip}`, 10, 60_000)
   if (!rl.success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
 
   let body: { token?: string; password?: string }

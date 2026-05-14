@@ -7,6 +7,7 @@ import {
   type Provider,
 } from '@/lib/user-settings'
 import { buildModel } from '@/lib/ai-client'
+import { checkRateLimit, extractIp } from '@/lib/rate-limit'
 
 // ── Input limits ──────────────────────────────────────────────────────────────
 const MAX_KEY_LEN   = 500
@@ -64,31 +65,6 @@ function validateOllamaUrl(raw: string): string | null {
   if (/^172\.(1[6-9]|2[0-9]|3[01])\./.test(host)) return raw  // 172.16.0.0/12
 
   return null  // reject all other hosts (public IPs, external hostnames)
-}
-
-// ── Rate limiter (per-IP, 10 attempts/min) ────────────────────────────────────
-const attempts = new Map<string, { count: number; resetAt: number }>()
-const WINDOW_MS    = 60_000
-const MAX_ATTEMPTS = 10
-
-function extractIp(req: Request): string {
-  // Use the first (leftmost) address from x-forwarded-for — the original client.
-  // Not forgeable when behind a trusted reverse proxy that strips/replaces the header.
-  const fwd = req.headers.get('x-forwarded-for')
-  if (fwd) return fwd.split(',')[0].trim()
-  return 'local'
-}
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now()
-  const entry = attempts.get(ip)
-  if (!entry || now > entry.resetAt) {
-    attempts.set(ip, { count: 1, resetAt: now + WINDOW_MS })
-    return true
-  }
-  if (entry.count >= MAX_ATTEMPTS) return false
-  entry.count++
-  return true
 }
 
 // ── Live key test ─────────────────────────────────────────────────────────────
