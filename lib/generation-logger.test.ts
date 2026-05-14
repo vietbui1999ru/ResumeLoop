@@ -42,6 +42,7 @@ describe('GenerationLogger.stage', () => {
     expect(written.stages).toHaveLength(1)
     expect(written.stages[0].stage).toBe('fetch')
     expect(written.stages[0].status).toBe('ok')
+    expect(written.stages[0].ts).toBeTruthy()
   })
 
   it('replaces existing running entry for same stage', () => {
@@ -60,6 +61,16 @@ describe('GenerationLogger.stage', () => {
     const written = JSON.parse(mockFs.writeFileSync.mock.calls.at(-1)![1] as string)
     expect(written.stages).toHaveLength(1)
     expect(written.stages[0].status).toBe('ok')
+  })
+
+  it('appends distinct stages independently', () => {
+    const logger = new GenerationLogger('job-1', 'Acme', 'SWE')
+    logger.stage({ stage: 'fetch', status: 'ok', data: {} })
+    logger.stage({ stage: 'build', status: 'running', data: {} })
+    const written = JSON.parse(mockFs.writeFileSync.mock.calls.at(-1)![1] as string)
+    expect(written.stages).toHaveLength(2)
+    expect(written.stages[0].stage).toBe('fetch')
+    expect(written.stages[1].stage).toBe('build')
   })
 })
 
@@ -114,6 +125,7 @@ describe('listLogs', () => {
   })
 
   it('returns files sorted newest-first', () => {
+    // ISO-8601 timestamps sort lexicographically = chronologically; reverse = newest-first
     mockFs.readdirSync.mockReturnValue([
       'job-1__2026-05-01T10-00-00.json',
       'job-1__2026-05-03T10-00-00.json',
