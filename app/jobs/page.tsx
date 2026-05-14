@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { extractAllTags, jobMatchesTagFilter } from '@/lib/tag-filter'
+import { AnimatedCheckbox } from '@/components/AnimatedCheckbox'
 import JobDetailModal from '@/components/JobDetailModal'
 import GenerationPanel from '@/components/GenerationPanel'
 import SessionSwitcher from '@/components/SessionSwitcher'
@@ -387,8 +388,12 @@ export default function JobsPage() {
                   onClick={() => setSelectedJobId(job.id)}
                 >
                   {/* Checkbox */}
-                  <td className="py-2.5 pr-3" onClick={e => e.stopPropagation()}>
-                    <input type="checkbox" checked={selected.has(job.id)} onChange={() => toggleSelect(job.id)} className="accent-indigo-500" />
+                  <td className="py-3 pr-3" onClick={e => e.stopPropagation()}>
+                    <AnimatedCheckbox
+                      checked={selected.has(job.id)}
+                      onChange={() => toggleSelect(job.id)}
+                      label={`Select ${job.company}`}
+                    />
                   </td>
 
                   {/* Company — visa ⊘ inline */}
