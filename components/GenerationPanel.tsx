@@ -1,5 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
+import { DURATION, EASE } from '@/lib/motion'
 
 interface SSEEvent {
   stage: string
@@ -159,6 +161,18 @@ export default function GenerationPanel({
     return <span className="text-zinc-400 animate-spin inline-block">⟳</span>
   }
 
+  function StageDot({ status }: { status: 'ok' | 'fail' | 'running' }) {
+    if (status === 'running') return (
+      <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse shrink-0 mt-0.5" />
+    )
+    if (status === 'ok') return (
+      <span className="w-2 h-2 rounded-full bg-green-500 shrink-0 mt-0.5" />
+    )
+    return (
+      <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 mt-0.5" />
+    )
+  }
+
   const stageSummary = (ev: SSEEvent): string => {
     if (ev.data.tagline)    return `tagline: "${String(ev.data.tagline)}"`
     if (ev.data.script)     return String(ev.data.script)
@@ -178,7 +192,7 @@ export default function GenerationPanel({
   // Minimized bar
   if (minimized) {
     return (
-      <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2">
+      <div className="flex items-center gap-3 bg-surface-card border border-zinc-800 rounded-lg px-4 py-2">
         <span className="text-sm text-zinc-300">
           {runningCount > 0
             ? <span className="flex items-center gap-1.5"><span className="text-indigo-400 animate-pulse">⟳</span>{runningCount} running</span>
@@ -198,7 +212,13 @@ export default function GenerationPanel({
   }
 
   return (
-    <div className="bg-zinc-900 border border-zinc-700 rounded-lg overflow-hidden flex flex-col" style={{ maxHeight: '40vh' }}>
+    <motion.div
+      initial={{ y: 20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 20, opacity: 0 }}
+      transition={{ duration: DURATION.base, ease: EASE }}
+    >
+    <div className="bg-surface-card border border-zinc-800 rounded-lg overflow-hidden flex flex-col" style={{ maxHeight: '40vh' }}>
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-2 border-b border-zinc-800 shrink-0">
         <h3 className="text-sm font-semibold text-zinc-300 flex-1">
@@ -208,8 +228,8 @@ export default function GenerationPanel({
             : <span className="ml-2 text-xs text-zinc-500">{doneCount}/{queue.length} done</span>
           }
         </h3>
-        <button onClick={onMinimize} className="text-zinc-400 hover:text-zinc-200 w-5 h-5 text-sm leading-none" title="Minimize">—</button>
-        <button onClick={onClose}    className="text-zinc-400 hover:text-red-400 w-5 h-5 text-sm leading-none" title="Clear">✕</button>
+        <button onClick={onMinimize} className="text-zinc-400 hover:text-zinc-200 hover:bg-surface-raised w-5 h-5 text-sm leading-none rounded-md transition-colors duration-100" title="Minimize">—</button>
+        <button onClick={onClose}    className="text-zinc-400 hover:text-red-400 hover:bg-surface-raised w-5 h-5 text-sm leading-none rounded-md transition-colors duration-100" title="Clear">✕</button>
       </div>
 
       {/* Job list */}
@@ -271,7 +291,7 @@ export default function GenerationPanel({
                 <div className="mt-2 space-y-0.5 border-t border-zinc-800 pt-2">
                   {jp.stages.map(ev => (
                     <div key={`${ev.stage}-${ev.status}`} className="flex gap-2 text-xs items-start">
-                      {stageIcon(ev.status)}
+                      <StageDot status={ev.status} />
                       <span className="text-zinc-400 w-24 shrink-0">{ev.stage}</span>
                       <span className="text-zinc-500 truncate max-w-xs">{stageSummary(ev)}</span>
                     </div>
@@ -318,5 +338,6 @@ export default function GenerationPanel({
         })}
       </div>
     </div>
+    </motion.div>
   )
 }
