@@ -5,14 +5,16 @@ interface Props {
   checked: boolean
   onChange: (checked: boolean) => void
   className?: string
+  label?: string
 }
 
-export function AnimatedCheckbox({ checked, onChange, className = '' }: Props) {
+export function AnimatedCheckbox({ checked, onChange, className = '', label }: Props) {
   return (
     <button
       type="button"
       role="checkbox"
       aria-checked={checked}
+      aria-label={label ?? 'Select'}
       onClick={() => onChange(!checked)}
       className={`w-4 h-4 rounded flex items-center justify-center border transition-colors duration-100 ${
         checked
