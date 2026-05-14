@@ -140,4 +140,13 @@ describe('purgeAll', () => {
     expect(count).toBe(2)
     expect(mockFs.unlinkSync).toHaveBeenCalledTimes(2)
   })
+
+  it('returns count of successfully deleted files only', () => {
+    const files = ['a__2026-05-01T10-00-00.json', 'b__2026-05-01T10-00-00.json']
+    mockList.mockReturnValue(files.map(f => path.join(LOG_DIR, f)))
+    mockFs.unlinkSync.mockImplementationOnce(() => { throw new Error('EACCES') })
+    // First file fails, second succeeds
+    const count = purgeAll()
+    expect(count).toBe(1)
+  })
 })

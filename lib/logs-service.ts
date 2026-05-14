@@ -73,8 +73,9 @@ export function deleteLog(id: string): boolean {
 
 export function purgeAll(): number {
   const paths = listLogs()
+  let deleted = 0
   for (const p of paths) {
-    try { fs.unlinkSync(p) } catch { /* ignore */ }
+    try { fs.unlinkSync(p); deleted++ } catch { /* ignore */ }
   }
-  return paths.length
+  return deleted
 }
