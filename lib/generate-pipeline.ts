@@ -121,7 +121,7 @@ export async function* runPipeline(jobId: string, sessionId = 'default', userId 
   const pdfExpected = path.join(jobBuildDir, pdfName)
   const toPdfScript = path.join(process.cwd(), 'harness', 'to-pdf.js')
   try {
-    const pdfResult = await spawnAsync('node', [toPdfScript, docxPath, pdfExpected], process.cwd())
+    const pdfResult = await spawnAsync('node', [toPdfScript, docxPath, pdfExpected], process.cwd(), signal)
     if (pdfResult.code === 0) {
       pdfPath = pdfExpected
       yield emit({ stage: 'pdf', status: 'ok', data: { pdf: pdfPath } })
@@ -228,7 +228,8 @@ async function* buildValidateLoop(scriptPath: string, docxName: string, jobBuild
     if (signal?.aborted) { yield errEvent('build', 'Aborted'); return }
     // Build
     yield { stage: 'build', status: 'running', data: { attempt } }
-    const buildResult = await spawnAsync('node', [scriptPath], jobBuildDir)
+    const buildResult = await spawnAsync('node', [scriptPath], jobBuildDir, signal)
+    if (signal?.aborted) { yield errEvent('build', 'Aborted'); return }
     if (buildResult.code !== 0) {
       yield errEvent('build', buildResult.stderr || buildResult.stdout); return
     }
@@ -241,7 +242,8 @@ async function* buildValidateLoop(scriptPath: string, docxName: string, jobBuild
 
     // Validate
     yield { stage: 'validate', status: 'running', data: {} }
-    const validateResult = await spawnAsync('node', [VALIDATE_JS, scriptPath], process.cwd())
+    const validateResult = await spawnAsync('node', [VALIDATE_JS, scriptPath], process.cwd(), signal)
+    if (signal?.aborted) { yield errEvent('validate', 'Aborted'); return }
     if (validateResult.code === 0) {
       yield { stage: 'validate', status: 'ok', data: {} }
       yield { stage: 'finalize', status: 'ok', data: { docx: docxExpected } }
@@ -350,14 +352,26 @@ Packer.toBuffer(doc).then(buf => {
 `
 }
 
-function spawnAsync(cmd: string, args: string[], cwd: string): Promise<{ code: number; stdout: string; stderr: string }> {
+function spawnAsync(cmd: string, args: string[], cwd: string, signal?: AbortSignal): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise(resolve => {
+    if (signal?.aborted) {
+      resolve({ code: 1, stdout: '', stderr: 'Aborted before spawn' })
+      return
+    }
     const out: string[] = [], errChunks: string[] = []
     const proc = spawn(cmd, args, { cwd })
+    const onAbort = () => { proc.kill('SIGTERM') }
+    signal?.addEventListener('abort', onAbort, { once: true })
     proc.stdout.on('data', (d: Buffer) => out.push(d.toString()))
     proc.stderr.on('data', (d: Buffer) => errChunks.push(d.toString()))
-    proc.on('close', code => resolve({ code: code ?? 1, stdout: out.join(''), stderr: errChunks.join('') }))
-    proc.on('error', e => resolve({ code: 1, stdout: out.join(''), stderr: e.message }))
+    proc.on('close', code => {
+      signal?.removeEventListener('abort', onAbort)
+      resolve({ code: code ?? 1, stdout: out.join(''), stderr: errChunks.join('') })
+    })
+    proc.on('error', e => {
+      signal?.removeEventListener('abort', onAbort)
+      resolve({ code: 1, stdout: out.join(''), stderr: e.message })
+    })
   })
 }
 
