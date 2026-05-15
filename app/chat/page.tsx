@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import ChatDiff from '@/components/ChatDiff'
 import GithubIngest from '@/components/GithubIngest'
-import { TourBubble } from '@/components/TourBubble'
 import { useSession } from '@/contexts/SessionContext'
 
 const newId = () => crypto.randomUUID()
@@ -157,13 +156,6 @@ export default function ChatPage() {
           >
             + New session
           </button>
-          <TourBubble
-            tourKey="chat-sessions"
-            title="Resume sessions"
-            body="Each session holds its own resume variant. Create a new session before generating to keep edits isolated."
-            position="right"
-            width={240}
-          />
         </div>
         <div className="flex-1 overflow-y-auto min-h-0">
           {sessions.map(s => (
@@ -229,14 +221,6 @@ export default function ChatPage() {
 
             {/* Input — fixed at bottom */}
             <div className="relative border-t border-zinc-800 px-4 py-3 flex gap-2 flex-shrink-0">
-              <TourBubble
-                tourKey="chat-input"
-                title="Edit your resume with AI"
-                body='Ask Claude to tailor your resume for a role — e.g. "Emphasize Go experience" or "Swap in the systems bullets for this JD." Changes appear as diffs you can accept or reject.'
-                position="above"
-                align="left"
-                width={300}
-              />
               <textarea
                 value={input}
                 onChange={e => setInput(e.target.value)}

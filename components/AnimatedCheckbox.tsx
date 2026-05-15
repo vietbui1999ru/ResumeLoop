@@ -35,6 +35,7 @@ export function AnimatedCheckbox({ checked, onChange, className = '', label }: P
         <motion.path
           d="M1 4L3.5 6.5L9 1"
           strokeDasharray="12"
+          initial={{ strokeDashoffset: checked ? 0 : 12 }}
           animate={{ strokeDashoffset: checked ? 0 : 12 }}
           transition={{ duration: DURATION.fast, ease: EASE }}
         />

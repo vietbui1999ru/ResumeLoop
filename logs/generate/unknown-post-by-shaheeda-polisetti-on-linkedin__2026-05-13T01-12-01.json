@@ -1,0 +1,118 @@
+{
+  "jobId": "unknown-post-by-shaheeda-polisetti-on-linkedin",
+  "company": "Unknown",
+  "role_title": "Post by Shaheeda Polisetti on LinkedIn",
+  "started_at": "2026-05-13T01:12:01.467Z",
+  "stages": [
+    {
+      "stage": "preflight",
+      "status": "ok",
+      "data": {},
+      "ts": "2026-05-13T01:12:02.411Z"
+    },
+    {
+      "stage": "ai-reason",
+      "status": "ok",
+      "data": {
+        "track": "GenAI / AI Engineer",
+        "workVariant": "genai",
+        "workIds": [
+          "gitlab",
+          "carboncopies",
+          "udayton"
+        ],
+        "projects": [
+          "obsidian_ai_workflow",
+          "maze_drl",
+          "mrr_dashboard"
+        ],
+        "personaTitle": "Founding Research Engineer — ML Systems & RL",
+        "tagline": "Founding Research Engineer — PyTorch, RL, distributed ML systems",
+        "skillsRows": [
+          "Python · PyTorch · Reinforcement Learning · Deep Q-Network · NumPy",
+          "Distributed Systems · FastAPI · Docker · GitHub Actions · Linux",
+          "AI & Agents · Claude API · LangChain · MCP · Prompt Engineering · RAG",
+          "ML Research · Adversarial RL · Post-Training · Model Evaluation · scikit-learn",
+          "Databases & Data · PostgreSQL · BigQuery · Redis · ETL Pipelines · SQL"
+        ],
+        "reasoning": "\n## Track\nGenAI / AI Engineer track selected — JD explicitly requires LLMs/generative ML, distributed systems, RL/post-training, Python + PyTorch, and GPU/memory constraints. This is the closest match in the role-track table for a founding ML/research engineering role. \"genai\" work variant used to front-load Python, ML frameworks, and AI tooling across all three work entries.\n\n## Work Experience\n- **gitlab**: Included for open-source contribution credibility and LLM tooling prototypes (CodePath mentorship, LLM-assisted code review) — JD keyword \"LLMs / generative ML systems\" maps directly to the genai bullet track.\n- **carboncopies**: Anchors distributed systems + Python pipelines at scale — JD keywords \"distributed systems,\" \"performance at scale,\" and \"Python\" all hit here. FastAPI + Docker microservices + ETL pipelines show production ML-adjacent engineering.\n- **udayton**: Critical for RL/post-training signal — KSE 2024 paper on adversarial RL robustness (entropy-based imposter detection, 97%+ accuracy) directly addresses \"RL / post-training / evaluation.\" Coq bullet shows rigorous systems thinking. NSF-funded research adds credibility.\n\n## Projects\n- **obsidian_ai_workflow**: Strongest LLM/generative systems signal — TypeScript Agent Orchestrator chaining LLM calls, MCP connectors, React Flow pipeline canvas. Hits \"LLMs / generative ML systems\" and \"evaluation\" keywords.\n- **maze_drl**: Directly maps to \"RL / post-training / evaluation\" — Deep Q-Network agent in PyTorch, epsilon-greedy exploration, experience replay, convergence benchmarking. Best RL project in portfolio.\n- **mrr_dashboard**: Rounds out the \"distributed systems + performance at scale\" narrative with FastAPI endpoints at sub-200ms, BigQuery ETL, idempotent pipeline engineering — shows production data systems discipline expected at a founding eng role.\n\n## Tagline\n\"Founding Research Engineer — PyTorch, RL, distributed ML systems\" — 56 chars, within 76-char limit. Uses exact JD job title \"Founding Research Engineer,\" front-loads PyTorch (JD explicitly named), RL (core JD requirement), and distributed ML systems (JD skill #1). Value-oriented format, not generic tech list.\n\n## Skills\n- Row 1: Python · PyTorch · Reinforcement Learning · Deep Q-Network · NumPy — hits JD's \"Python,\" \"PyTorch,\" \"RL\" requirements head-on.\n- Row 2: Distributed Systems · FastAPI · Docker · GitHub Actions · Linux — maps to JD's \"distributed systems + performance at scale.\"\n- Row 3: AI & Agents · Claude API · LangChain · MCP · Prompt Engineering · RAG — covers \"LLMs / generative ML systems.\"\n- Row 4: ML Research · Adversarial RL · Post-Training · Model Evaluation · scikit-learn — directly echoes JD's \"RL / post-training / evaluation.\"\n- Row 5: Databases & Data · PostgreSQL · BigQuery · Redis · ETL Pipelines · SQL — supporting data engineering depth for a founding role.\n"
+      },
+      "ts": "2026-05-13T01:12:26.042Z"
+    },
+    {
+      "stage": "write-script",
+      "status": "ok",
+      "data": {
+        "script": "unknown_post_by_shaheeda_polisetti_on_linkedin.js"
+      },
+      "ts": "2026-05-13T01:12:26.045Z"
+    },
+    {
+      "stage": "build",
+      "status": "ok",
+      "data": {
+        "script": "unknown_post_by_shaheeda_polisetti_on_linkedin.js",
+        "attempt": 0
+      },
+      "ts": "2026-05-13T01:12:26.150Z"
+    },
+    {
+      "stage": "validate",
+      "status": "ok",
+      "data": {},
+      "ts": "2026-05-13T01:12:26.199Z"
+    },
+    {
+      "stage": "pdf",
+      "status": "ok",
+      "data": {
+        "pdf": "/Users/vietquocbui/repos/ResumeAnalyze/harness/batch-build/unknown-post-by-shaheeda-polisetti-on-linkedin/unknown_post_by_shaheeda_polisetti_on_linkedin_VietBui.pdf"
+      },
+      "ts": "2026-05-13T01:12:28.921Z"
+    },
+    {
+      "stage": "finalize",
+      "status": "ok",
+      "data": {
+        "path": "/Users/vietquocbui/Desktop/Test Resume/unknown_post_by_shaheeda_polisetti_on_linkedin_VietBui.docx"
+      },
+      "ts": "2026-05-13T01:12:28.924Z"
+    },
+    {
+      "stage": "done",
+      "status": "ok",
+      "data": {
+        "outputId": "ff943061-2bdd-4286-a186-8030c5692ef1"
+      },
+      "ts": "2026-05-13T01:12:28.925Z"
+    }
+  ],
+  "ai_decision": {
+    "track": "GenAI / AI Engineer",
+    "workVariant": "genai",
+    "workIds": [
+      "gitlab",
+      "carboncopies",
+      "udayton"
+    ],
+    "projects": [
+      "obsidian_ai_workflow",
+      "maze_drl",
+      "mrr_dashboard"
+    ],
+    "personaTitle": "Founding Research Engineer — ML Systems & RL",
+    "tagline": "Founding Research Engineer — PyTorch, RL, distributed ML systems",
+    "skillsRows": [
+      "Python · PyTorch · Reinforcement Learning · Deep Q-Network · NumPy",
+      "Distributed Systems · FastAPI · Docker · GitHub Actions · Linux",
+      "AI & Agents · Claude API · LangChain · MCP · Prompt Engineering · RAG",
+      "ML Research · Adversarial RL · Post-Training · Model Evaluation · scikit-learn",
+      "Databases & Data · PostgreSQL · BigQuery · Redis · ETL Pipelines · SQL"
+    ],
+    "reasoning": "\n## Track\nGenAI / AI Engineer track selected — JD explicitly requires LLMs/generative ML, distributed systems, RL/post-training, Python + PyTorch, and GPU/memory constraints. This is the closest match in the role-track table for a founding ML/research engineering role. \"genai\" work variant used to front-load Python, ML frameworks, and AI tooling across all three work entries.\n\n## Work Experience\n- **gitlab**: Included for open-source contribution credibility and LLM tooling prototypes (CodePath mentorship, LLM-assisted code review) — JD keyword \"LLMs / generative ML systems\" maps directly to the genai bullet track.\n- **carboncopies**: Anchors distributed systems + Python pipelines at scale — JD keywords \"distributed systems,\" \"performance at scale,\" and \"Python\" all hit here. FastAPI + Docker microservices + ETL pipelines show production ML-adjacent engineering.\n- **udayton**: Critical for RL/post-training signal — KSE 2024 paper on adversarial RL robustness (entropy-based imposter detection, 97%+ accuracy) directly addresses \"RL / post-training / evaluation.\" Coq bullet shows rigorous systems thinking. NSF-funded research adds credibility.\n\n## Projects\n- **obsidian_ai_workflow**: Strongest LLM/generative systems signal — TypeScript Agent Orchestrator chaining LLM calls, MCP connectors, React Flow pipeline canvas. Hits \"LLMs / generative ML systems\" and \"evaluation\" keywords.\n- **maze_drl**: Directly maps to \"RL / post-training / evaluation\" — Deep Q-Network agent in PyTorch, epsilon-greedy exploration, experience replay, convergence benchmarking. Best RL project in portfolio.\n- **mrr_dashboard**: Rounds out the \"distributed systems + performance at scale\" narrative with FastAPI endpoints at sub-200ms, BigQuery ETL, idempotent pipeline engineering — shows production data systems discipline expected at a founding eng role.\n\n## Tagline\n\"Founding Research Engineer — PyTorch, RL, distributed ML systems\" — 56 chars, within 76-char limit. Uses exact JD job title \"Founding Research Engineer,\" front-loads PyTorch (JD explicitly named), RL (core JD requirement), and distributed ML systems (JD skill #1). Value-oriented format, not generic tech list.\n\n## Skills\n- Row 1: Python · PyTorch · Reinforcement Learning · Deep Q-Network · NumPy — hits JD's \"Python,\" \"PyTorch,\" \"RL\" requirements head-on.\n- Row 2: Distributed Systems · FastAPI · Docker · GitHub Actions · Linux — maps to JD's \"distributed systems + performance at scale.\"\n- Row 3: AI & Agents · Claude API · LangChain · MCP · Prompt Engineering · RAG — covers \"LLMs / generative ML systems.\"\n- Row 4: ML Research · Adversarial RL · Post-Training · Model Evaluation · scikit-learn — directly echoes JD's \"RL / post-training / evaluation.\"\n- Row 5: Databases & Data · PostgreSQL · BigQuery · Redis · ETL Pipelines · SQL — supporting data engineering depth for a founding role.\n"
+  },
+  "script_path": "/Users/vietquocbui/repos/ResumeAnalyze/harness/batch-build/unknown-post-by-shaheeda-polisetti-on-linkedin/unknown_post_by_shaheeda_polisetti_on_linkedin.js",
+  "script_content": "// Generated by ResumeAnalyze — 2026-05-13T01:12:26.044Z\nconst { makeDoc, TL, T } = require('../buildv2.js');\nconst { Packer } = require('docx');\nconst fs = require('fs');\nconst path = require('path');\n\nconst doc = makeDoc({\n  tagline: TL(\"Founding Research Engineer — PyTorch, RL, distributed ML systems\"),\n  work: [\n    {\n      id: \"gitlab\",\n      bullets: [\n      T(\"Contributed to GitLab CE in Ruby; shipped bug fixes reviewed and merged by senior platform engineers\"),\n      T(\"Built LLM-assisted tooling for code review workflows as part of CodePath mentorship with GitLab engineers\"),\n      T(\"Configured GitLab CI/CD pipelines for automated lint, test, and deploy stages across open-source Ruby projects\"),\n      T(\"Automated deployment workflows with Ansible and Terraform, enabling reproducible environment setup across projects\"),\n      T(\"Collaborated on LLM integration research, prototyping prompt-based code analysis tools with engineering mentors\"),\n      ],\n    },\n    {\n      id: \"carboncopies\",\n      bullets: [\n      T(\"Built Python pipelines for neuron simulation analysis using FastAPI and Docker, cutting validation time by 60%\"),\n      T(\"Developed FastAPI endpoints serving simulation analytics to React dashboards, processing 1K+ data points per run\"),\n      T(\"Automated data ETL pipelines in Python + Docker, enabling reproducible simulation runs and consistent data quality\"),\n      T(\"Built Python analysis pipelines for biophysical neuron simulation data for computational neuroscience research\"),\n      T(\"Debugged pipeline failures in Python by tracing outputs, isolating transformation bugs, and shipping targeted fixes\"),\n      ],\n    },\n    {\n      id: \"udayton\",\n      bullets: [\n      T(\"Co-authored IEEE KSE 2024 paper on adversarial RL robustness; entropy-based imposter detection at 97%+ accuracy\"),\n      T(\"Built Coq framework translating Program Graphs to safety proofs; detected integer overflow and injection attacks\"),\n      T(\"Wrote Python and TypeScript tooling for data processing, automation, and multi-system state management\"),\n      T(\"Designed and executed test suites for research systems; analyzed failure modes and iterated on fixes\"),\n      T(\"Authored technical documentation for 3 systems; presented research to cross-functional teams of 100+ students\"),\n      ],\n    }\n  ],\n  projects: [\n    {\n      id: \"obsidian_ai_workflow\",\n      bullets: [\n      T(\"Built TypeScript Agent Orchestrator chaining LLM calls across parsing, profile matching, and DOCX generation\"),\n      T(\"Designed MCP connectors for filesystem I/O and vector retrieval with end-to-end validation across 50+ file batches\"),\n      T(\"Shipped React Flow canvas for composable agent workflows with JSON/YAML pipeline configs for reproducible batch runs\"),\n      ],\n    },\n    {\n      id: \"maze_drl\",\n      bullets: [\n      T(\"Built Deep Q-Network agent in PyTorch solving stochastic maze environments end-to-end within 500 training episodes\"),\n      T(\"Designed reward shaping and epsilon-greedy exploration; benchmarked convergence and cut solve time by 35%\"),\n      T(\"Built training pipeline with experience replay, target network updates, and reward plotting to tune hyperparameters\"),\n      ],\n    },\n    {\n      id: \"mrr_dashboard\",\n      bullets: [\n      T(\"Built Stripe-to-BigQuery ETL pipeline in Python normalizing 6 months of billing data with idempotent loads\"),\n      T(\"Designed 4 FastAPI endpoints serving MRR metrics and subscription breakdowns at sub-200ms response time\"),\n      T(\"Wrote BigQuery SQL with window functions reconciling monthly and annual billing plans against Stripe invoice totals\"),\n      ],\n    }\n  ],\n  skills: [\n    \"Python · PyTorch · Reinforcement Learning · Deep Q-Network · NumPy\",\n    \"Distributed Systems · FastAPI · Docker · GitHub Actions · Linux\",\n    \"AI & Agents · Claude API · LangChain · MCP · Prompt Engineering · RAG\",\n    \"ML Research · Adversarial RL · Post-Training · Model Evaluation · scikit-learn\",\n    \"Databases & Data · PostgreSQL · BigQuery · Redis · ETL Pipelines · SQL\"\n  ],\n});\n\nPacker.toBuffer(doc).then(buf => {\n  const out = path.join(__dirname, \"unknown_post_by_shaheeda_polisetti_on_linkedin_VietBui.docx\");\n  fs.writeFileSync(out, buf);\n  console.log('\\u2713 Written:', out);\n});\n",
+  "outcome": "success",
+  "completed_at": "2026-05-13T01:12:28.924Z"
+}

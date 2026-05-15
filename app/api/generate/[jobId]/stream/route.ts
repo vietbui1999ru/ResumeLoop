@@ -24,8 +24,11 @@ export async function GET(
           controller.enqueue(encode(event))
         }
       } catch (err) {
+        // Strip internal paths from error messages before sending to client
+        const raw = err instanceof Error ? err.message : String(err)
+        const safe = raw.replace(/\/[^\s"']+/g, '[path]')
         controller.enqueue(encode({
-          stage: 'error', status: 'fail', data: { message: String(err) }
+          stage: 'error', status: 'fail', data: { message: safe }
         }))
       } finally {
         controller.close()

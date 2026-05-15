@@ -7,7 +7,7 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   return (
     <AnimatePresence mode="wait">
-      <motion.div
+      <motion.main
         key={pathname}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -16,7 +16,7 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
         className="flex-1 min-h-0 overflow-auto"
       >
         {children}
-      </motion.div>
+      </motion.main>
     </AnimatePresence>
   )
 }

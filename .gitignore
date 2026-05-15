@@ -39,3 +39,9 @@ tsconfig.tsbuildinfo
 # Generated screenshots
 *.png
 .playwright-mcp
+
+# AWS — never commit these
+infra/.env
+infra/*.tfstate
+infra/*.tfstate.backup
+.terraform/

@@ -51,7 +51,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
 
     if (!fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) {
-      return NextResponse.json({ error: `File not found: ${resolved}` }, { status: 400 })
+      return NextResponse.json({ error: 'File not found' }, { status: 400 })
     }
 
     const rawMarkdown = fs.readFileSync(resolved, 'utf-8')
