@@ -167,12 +167,6 @@ export default function GenerationPanel({
   const runningCount = queue.filter(id => !progress.get(id)?.done).length
   const doneCount    = queue.filter(id => { const p = progress.get(id); return p?.done && !p.failed && !p.aborted }).length
 
-  const stageIcon = (status: SSEEvent['status']) => {
-    if (status === 'ok')   return <span className="text-green-400">✓</span>
-    if (status === 'fail') return <span className="text-red-400">✗</span>
-    return <span className="text-zinc-400 animate-spin inline-block">⟳</span>
-  }
-
   const stageSummary = (ev: SSEEvent): string => {
     if (ev.data.tagline)    return `tagline: "${String(ev.data.tagline)}"`
     if (ev.data.script)     return String(ev.data.script)
@@ -185,7 +179,7 @@ export default function GenerationPanel({
   const toggleCollapsed = (jobId: string) =>
     setCollapsedJobs(prev => {
       const next = new Set(prev)
-      next.has(jobId) ? next.delete(jobId) : next.add(jobId)
+      if (next.has(jobId)) next.delete(jobId); else next.add(jobId)
       return next
     })
 

@@ -6,8 +6,6 @@ import type { Components } from 'react-markdown'
 import type { Element } from 'hast'
 import type { editor as MonacoEditorNS } from 'monaco-editor'
 import { parse as jsonSourceMap } from 'json-source-map'
-import { TourBubble } from '@/components/TourBubble'
-
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false })
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -309,7 +307,7 @@ function BackupPanel({ file, currentContent, onRestored }: {
 // ── Two-panel Monaco editor (JSON + bullets preview) ─────────────────────────
 
 function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => void }) {
-  const [content, setContent]     = useState('')
+  const [, setContent]            = useState('')
   const [draft, setDraft]         = useState('')
   const [loading, setLoading]     = useState(true)
   const [saving, setSaving]       = useState(false)
@@ -432,14 +430,6 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
           <div className="relative px-3 py-1.5 bg-zinc-800 border-b border-zinc-700 flex items-center gap-2 shrink-0">
             <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">Bullets</span>
             <span className="ml-auto text-[10px] text-zinc-600 font-mono">live</span>
-            <TourBubble
-              tourKey="config-bullets"
-              title="Char-limit heatmap"
-              body="Amber = 100–116 chars (tight). Red = over 116 chars — bullet won't fit on the 1-page resume and must be shortened."
-              position="below"
-              align="right"
-              width={260}
-            />
           </div>
           <BulletsPreview json={draft} onJump={jumpToJsonPath} />
         </div>
@@ -469,7 +459,7 @@ type SyncTag = typeof SYNC_TAGS[number]
 type BlockProps = React.HTMLAttributes<HTMLElement> & { node?: Element; children?: React.ReactNode }
 
 function DocEditor({ file, label }: { file: DocFileKey; label: string }) {
-  const [content, setContent] = useState('')
+  const [, setContent] = useState('')
   const [draft, setDraft]     = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
@@ -911,14 +901,6 @@ export default function ConfigPage() {
       <div className="space-y-4">
         <div className="relative inline-block">
           <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Resume Profile</h2>
-          <TourBubble
-            tourKey="config-profiles"
-            title="Role-specific resume variants"
-            body="Fork the active profile to create a variant for a different role track — e.g. one for GenAI roles, one for Systems. The active profile is used for every generation."
-            position="below"
-            align="left"
-            width={280}
-          />
         </div>
         {profilesLoading ? (
           <div className="text-zinc-500 text-sm">Loading profiles…</div>

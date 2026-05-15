@@ -1,13 +1,12 @@
 'use client'
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import { extractAllTags, jobMatchesTagFilter } from '@/lib/tag-filter'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { extractAllTags } from '@/lib/tag-filter'
 import { AnimatedCheckbox } from '@/components/AnimatedCheckbox'
 import JobDetailModal from '@/components/JobDetailModal'
 import GenerationPanel from '@/components/GenerationPanel'
 import SessionSwitcher from '@/components/SessionSwitcher'
 import { VALID_ACTIONS } from '@/lib/actions'
 import ReasoningModal from '@/components/ReasoningModal'
-import { TourBubble } from '@/components/TourBubble'
 import { SetupPanel } from '@/components/SetupPanel'
 import { useSession } from '@/contexts/SessionContext'
 import { AnimatePresence } from 'framer-motion'
@@ -159,7 +158,7 @@ export default function JobsPage() {
       : { col, dir: NUM_COLS.includes(col) ? 'desc' : 'asc' })
 
   const toggleSelect = (id: string) =>
-    setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+    setSelected(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
 
   const generate = async () => {
     const ids = Array.from(selected)
@@ -251,14 +250,6 @@ export default function JobsPage() {
               <button onClick={scan} className="text-sm px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 rounded transition-colors">
                 Scan
               </button>
-              <TourBubble
-                tourKey="scan"
-                title="Sync your job folder"
-                body="Scan reads your Jobs folder and imports new JD markdown files. Set the folder path in Settings first. Unchanged files are always skipped."
-                position="below"
-                align="right"
-                width={280}
-              />
             </div>
           </div>
         </div>
@@ -429,24 +420,14 @@ export default function JobsPage() {
                     {rowError ? (
                       <span className="text-red-400 text-xs">{rowError}</span>
                     ) : (
-                      <div className="relative inline-block">
-                        <select
-                          value={currentAction}
-                          onChange={e => void handleActionChange(job.id, e.target.value)}
-                          className={`bg-zinc-800 border border-zinc-700 rounded px-1.5 py-0.5 text-xs ${ACTION_COLORS[currentAction] ?? 'text-zinc-400'}`}
-                        >
-                          {VALID_ACTIONS.map(a => <option key={a} value={a}>{a}</option>)}
-                        </select>
-                        {idx === 0 && (
-                          <TourBubble
-                            tourKey="action"
-                            title="Track your application status"
-                            body="Changing the stage here writes directly back to the markdown file in your Jobs folder — your Obsidian vault sees the update instantly."
-                            position="below"
-                            width={275}
-                          />
-                        )}
-                      </div>
+                      <select
+                        data-tour={idx === 0 ? 'action-cell' : undefined}
+                        value={currentAction}
+                        onChange={e => void handleActionChange(job.id, e.target.value)}
+                        className={`bg-zinc-800 border border-zinc-700 rounded px-1.5 py-0.5 text-xs ${ACTION_COLORS[currentAction] ?? 'text-zinc-400'}`}
+                      >
+                        {VALID_ACTIONS.map(a => <option key={a} value={a}>{a}</option>)}
+                      </select>
                     )}
                   </td>
 
@@ -529,48 +510,44 @@ export default function JobsPage() {
               <button onClick={() => setSelected(new Set())} className="text-xs text-zinc-500 hover:text-zinc-300">
                 Clear
               </button>
-              <div className="ml-auto relative inline-block">
-                <TourBubble
-                  tourKey="generate"
-                  title="Generate tailored resumes"
-                  body="The AI picks the best bullets, role track, and projects for each JD, then builds a DOCX. Progress streams here live. Select multiple jobs to batch-generate."
-                  position="above"
-                  align="right"
-                  width={295}
-                />
+              <div className="ml-auto">
                 <button
+                  data-tour="generate-btn"
                   onClick={() => void generate()}
                   disabled={selected.size === 0}
                   className="text-sm px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded disabled:opacity-40 transition-colors"
                 >
-                  {showPanel ? `Queue ${selected.size > 0 ? selected.size : ''} more` : `Generate ${selected.size}`}
+                  {`Generate ${selected.size}`}
                 </button>
               </div>
             </div>
           ) : (
-            /* Generation panel */
+            /* Generation panel — AnimatePresence stays mounted so exit animation fires */
             <AnimatePresence>
-              <GenerationPanel
-                queue={generateQueue}
-                sessionId={activeSessionId}
-                minimized={panelMinimized}
-                onMinimize={() => setPanelMinimized(p => !p)}
-                onClose={() => {
-                  setShowPanel(false)
-                  setPanelMinimized(false)
-                  setGenerateQueue([])
-                  setSelected(new Set())
-                }}
-                onStageUpdate={(jobId, stage) =>
-                  setGenStatus(prev => new Map(prev).set(jobId, `⟳ ${stage}`))}
-                onDone={jobId => {
-                  setGenStatus(prev => new Map(prev).set(jobId, 'done'))
-                  reload()
-                }}
-                onError={(jobId, msg) =>
-                  setGenStatus(prev => new Map(prev).set(jobId, `✗ ${msg.slice(0, 20)}`))
-                }
-              />
+              {showPanel && (
+                <GenerationPanel
+                  key="gen-panel"
+                  queue={generateQueue}
+                  sessionId={activeSessionId}
+                  minimized={panelMinimized}
+                  onMinimize={() => setPanelMinimized(p => !p)}
+                  onClose={() => {
+                    setShowPanel(false)
+                    setPanelMinimized(false)
+                    setGenerateQueue([])
+                    setSelected(new Set())
+                  }}
+                  onStageUpdate={(jobId, stage) =>
+                    setGenStatus(prev => new Map(prev).set(jobId, `⟳ ${stage}`))}
+                  onDone={jobId => {
+                    setGenStatus(prev => new Map(prev).set(jobId, 'done'))
+                    reload()
+                  }}
+                  onError={(jobId, msg) =>
+                    setGenStatus(prev => new Map(prev).set(jobId, `✗ ${msg.slice(0, 20)}`))
+                  }
+                />
+              )}
             </AnimatePresence>
           )}
         </div>
