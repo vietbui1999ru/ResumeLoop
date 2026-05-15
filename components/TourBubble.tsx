@@ -7,8 +7,8 @@ type Align    = 'left'  | 'right' | 'center'
 const POS_CLASS: Record<Position, (align: Align) => string> = {
   below: a => `top-full mt-2 ${a === 'right' ? 'right-0' : a === 'center' ? 'left-1/2 -translate-x-1/2' : 'left-0'}`,
   above: a => `bottom-full mb-2 ${a === 'right' ? 'right-0' : a === 'center' ? 'left-1/2 -translate-x-1/2' : 'left-0'}`,
-  right: _ => 'left-full ml-3 top-0',
-  left:  _ => 'right-full mr-3 top-0',
+  right: _align => 'left-full ml-3 top-0',
+  left:  _align => 'right-full mr-3 top-0',
 }
 
 const ARROW_CLASS: Record<Position, string> = {

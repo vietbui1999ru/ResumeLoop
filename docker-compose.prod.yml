@@ -8,7 +8,7 @@
 
 services:
   app:
-    image: ${ECR_REGISTRY}/resumeanalyze:${IMAGE_TAG:-latest}
+    image: ${ECR_REGISTRY}/resumeloop:${IMAGE_TAG:-latest}
     ports:
       - "3010:3000"
     env_file:

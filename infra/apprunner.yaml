@@ -5,26 +5,26 @@
 #   <ECR_REGISTRY>  — output of: aws ecr describe-repositories --query 'repositories[0].repositoryUri'
 #   <ACCOUNT_ID>    — output of: aws sts get-caller-identity --query Account --output text
 
-ServiceName: resumeanalyze
+ServiceName: resumeloop
 SourceConfiguration:
   ImageRepository:
-    ImageIdentifier: <ECR_REGISTRY>/resumeanalyze:latest
+    ImageIdentifier: <ECR_REGISTRY>/resumeloop:latest
     ImageRepositoryType: ECR
     ImageConfiguration:
       Port: "3000"
       RuntimeEnvironmentSecrets:
-        APP_MODE: arn:aws:ssm:us-east-1:<ACCOUNT_ID>:parameter/resumeanalyze/prod/APP_MODE
-        DATABASE_URL: arn:aws:ssm:us-east-1:<ACCOUNT_ID>:parameter/resumeanalyze/prod/DATABASE_URL
-        ENCRYPTION_KEY: arn:aws:ssm:us-east-1:<ACCOUNT_ID>:parameter/resumeanalyze/prod/ENCRYPTION_KEY
-        NEXTAUTH_SECRET: arn:aws:ssm:us-east-1:<ACCOUNT_ID>:parameter/resumeanalyze/prod/NEXTAUTH_SECRET
-        NEXTAUTH_URL: arn:aws:ssm:us-east-1:<ACCOUNT_ID>:parameter/resumeanalyze/prod/NEXTAUTH_URL
-        S3_BUCKET: arn:aws:ssm:us-east-1:<ACCOUNT_ID>:parameter/resumeanalyze/prod/S3_BUCKET
-        AWS_REGION: arn:aws:ssm:us-east-1:<ACCOUNT_ID>:parameter/resumeanalyze/prod/AWS_REGION
+        APP_MODE: arn:aws:ssm:us-east-1:<ACCOUNT_ID>:parameter/resumeloop/prod/APP_MODE
+        DATABASE_URL: arn:aws:ssm:us-east-1:<ACCOUNT_ID>:parameter/resumeloop/prod/DATABASE_URL
+        ENCRYPTION_KEY: arn:aws:ssm:us-east-1:<ACCOUNT_ID>:parameter/resumeloop/prod/ENCRYPTION_KEY
+        NEXTAUTH_SECRET: arn:aws:ssm:us-east-1:<ACCOUNT_ID>:parameter/resumeloop/prod/NEXTAUTH_SECRET
+        NEXTAUTH_URL: arn:aws:ssm:us-east-1:<ACCOUNT_ID>:parameter/resumeloop/prod/NEXTAUTH_URL
+        S3_BUCKET: arn:aws:ssm:us-east-1:<ACCOUNT_ID>:parameter/resumeloop/prod/S3_BUCKET
+        AWS_REGION: arn:aws:ssm:us-east-1:<ACCOUNT_ID>:parameter/resumeloop/prod/AWS_REGION
   AutoDeploymentsEnabled: false
 InstanceConfiguration:
   Cpu: "0.5 vCPU"
   Memory: "1 GB"
-  InstanceRoleArn: arn:aws:iam::<ACCOUNT_ID>:role/AppRunnerResumeAnalyzeRole
+  InstanceRoleArn: arn:aws:iam::<ACCOUNT_ID>:role/AppRunnerResumeLoopRole
 HealthCheckConfiguration:
   Protocol: HTTP
   Path: /api/health

@@ -2,27 +2,45 @@
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "SecretsManagerRead",
       "Effect": "Allow",
       "Action": [
         "secretsmanager:GetSecretValue",
         "secretsmanager:DescribeSecret"
       ],
-      "Resource": "arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeanalyze/prod/*"
+      "Resource": "arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeloop/prod/*"
     },
     {
-      "Sid": "S3Outputs",
-      "Effect": "Allow",
-      "Action": ["s3:PutObject", "s3:GetObject"],
-      "Resource": "arn:aws:s3:::resumeanalyze-outputs-<ACCOUNT_ID>/*"
-    },
-    {
-      "Sid": "ECRPull",
       "Effect": "Allow",
       "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "arn:aws:s3:::resumeloop-outputs-<ACCOUNT_ID>/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Resource": "arn:aws:s3:::resumeloop-outputs-<ACCOUNT_ID>"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ecr:GetAuthorizationToken",
+        "ecr:BatchCheckLayerAvailability",
         "ecr:GetDownloadUrlForLayer",
-        "ecr:BatchGetImage",
-        "ecr:GetAuthorizationToken"
+        "ecr:BatchGetImage"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
       ],
       "Resource": "*"
     }

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# infra/setup-aws.sh — provision AWS resources for ResumeAnalyze
+# infra/setup-aws.sh — provision AWS resources for ResumeLoop
 # Run once: bash infra/setup-aws.sh
 # Requires: aws cli v2, AWS credentials with admin permissions
 
@@ -7,9 +7,9 @@ set -euo pipefail
 
 REGION="us-east-1"
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-ECR_REPO="resumeanalyze"
-S3_BUCKET="resumeanalyze-outputs-${ACCOUNT_ID}"
-SECRET_PREFIX="resumeanalyze/prod"
+ECR_REPO="resumeloop"
+S3_BUCKET="resumeloop-outputs-${ACCOUNT_ID}"
+SECRET_PREFIX="resumeloop/prod"
 
 echo "Account: $ACCOUNT_ID  Region: $REGION"
 
@@ -50,7 +50,7 @@ echo "Creating Secrets Manager placeholders..."
 for SECRET_NAME in APP_MODE DATABASE_URL ENCRYPTION_KEY AUTH_SECRET NEXTAUTH_URL S3_BUCKET AWS_REGION; do
   aws secretsmanager create-secret \
     --name "${SECRET_PREFIX}/${SECRET_NAME}" \
-    --description "ResumeAnalyze ${SECRET_NAME}" \
+    --description "ResumeLoop ${SECRET_NAME}" \
     --secret-string "REPLACE_ME" \
     --region "$REGION" 2>/dev/null \
     || echo "Secret ${SECRET_NAME} already exists"
@@ -66,7 +66,7 @@ aws iam create-open-id-connect-provider \
 
 # ── GitHub Actions OIDC role ──────────────────────────────────────────────────
 echo "Creating GitHub Actions OIDC role..."
-GITHUB_REPO="vietbui1999ru/ResumeAnalyze"
+GITHUB_REPO="vietbui1999ru/ResumeLoop"
 
 TRUST_POLICY=$(cat <<EOF
 {
@@ -91,12 +91,12 @@ EOF
 )
 
 aws iam create-role \
-  --role-name "GitHubActionsResumeAnalyze" \
+  --role-name "GitHubActionsResumeLoop" \
   --assume-role-policy-document "$TRUST_POLICY" 2>/dev/null \
   || echo "IAM role already exists"
 
 aws iam put-role-policy \
-  --role-name "GitHubActionsResumeAnalyze" \
+  --role-name "GitHubActionsResumeLoop" \
   --policy-name "ECRPush" \
   --policy-document "{
     \"Version\": \"2012-10-17\",
@@ -122,7 +122,7 @@ aws iam put-role-policy \
     ]
   }"
 
-ROLE_ARN=$(aws iam get-role --role-name "GitHubActionsResumeAnalyze" --query "Role.Arn" --output text)
+ROLE_ARN=$(aws iam get-role --role-name "GitHubActionsResumeLoop" --query "Role.Arn" --output text)
 ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
 
 echo ""

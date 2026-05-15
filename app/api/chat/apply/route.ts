@@ -22,7 +22,7 @@ export async function POST(req: Request) {
 
   if (!row) return NextResponse.json({ error: 'No pending edit' }, { status: 404 })
 
-  const { description: _desc, new_content } = JSON.parse(row.value) as {
+  const { description: _, new_content } = JSON.parse(row.value) as {
     file: string
     description: string
     new_content: string

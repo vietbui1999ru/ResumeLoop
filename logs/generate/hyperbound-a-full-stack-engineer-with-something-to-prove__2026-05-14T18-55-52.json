@@ -1,0 +1,118 @@
+{
+  "jobId": "hyperbound-a-full-stack-engineer-with-something-to-prove",
+  "company": "Hyperbound",
+  "role_title": "A Full Stack Engineer (with something to prove)",
+  "started_at": "2026-05-14T18:55:52.536Z",
+  "stages": [
+    {
+      "stage": "preflight",
+      "status": "ok",
+      "data": {},
+      "ts": "2026-05-14T18:55:53.613Z"
+    },
+    {
+      "stage": "ai-reason",
+      "status": "ok",
+      "data": {
+        "track": "Software Engineer / Full-Stack",
+        "workVariant": "genai",
+        "workIds": [
+          "gitlab",
+          "carboncopies",
+          "udayton"
+        ],
+        "projects": [
+          "homeboard",
+          "mrr_dashboard",
+          "spotiswipe"
+        ],
+        "personaTitle": "Full-Stack Engineer — Next.js, FastAPI, PostgreSQL, AWS",
+        "tagline": "Full Stack Engineer building agentic apps with Next.js, NestJS, and",
+        "skillsRows": [
+          "TypeScript · Next.js · React · Node.js · NestJS · REST APIs",
+          "Python · FastAPI · PostgreSQL · MongoDB · SQL · Redis",
+          "AWS · Docker · GitHub Actions CI/CD · Terraform · Ansible · Nginx",
+          "Claude API · LangChain · Gemini AI · MCP · Prompt Engineering · RAG",
+          "Git · Linux · Prisma · EF Core · xUnit · Testcontainers · OAuth 2.0"
+        ],
+        "reasoning": "\n## Track\nFull-Stack Software Engineer track matches the JD's explicit stack: Next.js/React, Node.js/NestJS, PostgreSQL, TypeScript, and AWS CI/CD. HomeBoard (ASP.NET/C# + React + PostgreSQL), MRR Dashboard (FastAPI + React + BigQuery/SQL), and SpotiSwipe (Next.js + tRPC + PostgreSQL + Docker) collectively cover every major JD keyword. The JD also mentions FastAPI (Python) backend — Carboncopies and MRR Dashboard directly hit this.\n\n## Work Experience\n- **GitLab (genai)**: Hits CI/CD pipelines, infrastructure-as-code (Terraform/Ansible), and open-source engineering culture — maps to JD's \"deploy your own code / CI/CD pipelines / AWS infrastructure.\"\n- **Carboncopies (genai)**: FastAPI + Python + Docker + GitHub Actions — directly mirrors JD's FastAPI backend + deployment strategies. The \"4+ production features per sprint\" bullet speaks to Hyperbound's \"ship fast\" culture.\n- **UDayton (genai)**: Python/TypeScript tooling + test suites — shows breadth and research rigor; supports the JD's engineer-driven, ownership-heavy framing.\n\n## Projects\n- **HomeBoard**: ASP.NET Core 8 + C# + React + PostgreSQL + Redis + Docker + xUnit + Testcontainers — full-stack ownership, resilience patterns (Polly), real DB integration tests. Maps to JD's PostgreSQL + deployment + full ownership model.\n- **MRR Dashboard**: FastAPI + Python + BigQuery + SQL + React + Recharts + Stripe ETL — backend API design, data pipelines, sub-200ms endpoints. Directly mirrors JD's FastAPI Python backend + analytics use cases.\n- **SpotiSwipe**: Next.js + tRPC + PostgreSQL + OAuth 2.0 + Docker + GitHub Actions — closest match to JD's Next.js/React + PostgreSQL + CI/CD stack. \"99.5% uptime\" and \"cut release cycles 30→5 min\" speak directly to Hyperbound's performance culture.\n\n## Tagline\n\"Full Stack Engineer building agentic apps with Next.js, NestJS, and PostgreSQL\" — 66 chars, under limit. Uses exact title from JD (\"Full Stack Engineer\"), mirrors two JD stack keywords (Next.js, PostgreSQL), and adds NestJS which is explicitly listed in the JD tech stack. Value-oriented, not generic.\n\n## Skills\nRow 1 front-loads TypeScript, Next.js, React, Node.js, NestJS — all explicitly named in JD. Row 2 hits Python, FastAPI, PostgreSQL, MongoDB — JD's backend stack verbatim. Row 3 covers AWS, Docker, GitHub Actions, CI/CD — JD deployment keywords. Row 4 adds AI/GenAI depth (Hyperbound is an AI-first company). Row 5 covers testing and auth patterns relevant to enterprise SaaS (xUnit, Testcontainers, OAuth 2.0).\n"
+      },
+      "ts": "2026-05-14T18:56:14.400Z"
+    },
+    {
+      "stage": "write-script",
+      "status": "ok",
+      "data": {
+        "script": "hyperbound_a_full_stack_engineer_with_something_to_prove.js"
+      },
+      "ts": "2026-05-14T18:56:14.403Z"
+    },
+    {
+      "stage": "build",
+      "status": "ok",
+      "data": {
+        "script": "hyperbound_a_full_stack_engineer_with_something_to_prove.js",
+        "attempt": 0
+      },
+      "ts": "2026-05-14T18:56:14.524Z"
+    },
+    {
+      "stage": "validate",
+      "status": "ok",
+      "data": {},
+      "ts": "2026-05-14T18:56:14.610Z"
+    },
+    {
+      "stage": "pdf",
+      "status": "ok",
+      "data": {
+        "pdf": "/Users/vietquocbui/repos/ResumeAnalyze/harness/batch-build/hyperbound-a-full-stack-engineer-with-something-to-prove/hyperbound_a_full_stack_engineer_with_something_to_prove_VietBui.pdf"
+      },
+      "ts": "2026-05-14T18:56:19.665Z"
+    },
+    {
+      "stage": "finalize",
+      "status": "ok",
+      "data": {
+        "path": "/Users/vietquocbui/Desktop/Test Resume/hyperbound_a_full_stack_engineer_with_something_to_prove_VietBui.docx"
+      },
+      "ts": "2026-05-14T18:56:19.670Z"
+    },
+    {
+      "stage": "done",
+      "status": "ok",
+      "data": {
+        "outputId": "2ad61566-8db4-4d84-a376-ffb71e61f237"
+      },
+      "ts": "2026-05-14T18:56:19.671Z"
+    }
+  ],
+  "ai_decision": {
+    "track": "Software Engineer / Full-Stack",
+    "workVariant": "genai",
+    "workIds": [
+      "gitlab",
+      "carboncopies",
+      "udayton"
+    ],
+    "projects": [
+      "homeboard",
+      "mrr_dashboard",
+      "spotiswipe"
+    ],
+    "personaTitle": "Full-Stack Engineer — Next.js, FastAPI, PostgreSQL, AWS",
+    "tagline": "Full Stack Engineer building agentic apps with Next.js, NestJS, and",
+    "skillsRows": [
+      "TypeScript · Next.js · React · Node.js · NestJS · REST APIs",
+      "Python · FastAPI · PostgreSQL · MongoDB · SQL · Redis",
+      "AWS · Docker · GitHub Actions CI/CD · Terraform · Ansible · Nginx",
+      "Claude API · LangChain · Gemini AI · MCP · Prompt Engineering · RAG",
+      "Git · Linux · Prisma · EF Core · xUnit · Testcontainers · OAuth 2.0"
+    ],
+    "reasoning": "\n## Track\nFull-Stack Software Engineer track matches the JD's explicit stack: Next.js/React, Node.js/NestJS, PostgreSQL, TypeScript, and AWS CI/CD. HomeBoard (ASP.NET/C# + React + PostgreSQL), MRR Dashboard (FastAPI + React + BigQuery/SQL), and SpotiSwipe (Next.js + tRPC + PostgreSQL + Docker) collectively cover every major JD keyword. The JD also mentions FastAPI (Python) backend — Carboncopies and MRR Dashboard directly hit this.\n\n## Work Experience\n- **GitLab (genai)**: Hits CI/CD pipelines, infrastructure-as-code (Terraform/Ansible), and open-source engineering culture — maps to JD's \"deploy your own code / CI/CD pipelines / AWS infrastructure.\"\n- **Carboncopies (genai)**: FastAPI + Python + Docker + GitHub Actions — directly mirrors JD's FastAPI backend + deployment strategies. The \"4+ production features per sprint\" bullet speaks to Hyperbound's \"ship fast\" culture.\n- **UDayton (genai)**: Python/TypeScript tooling + test suites — shows breadth and research rigor; supports the JD's engineer-driven, ownership-heavy framing.\n\n## Projects\n- **HomeBoard**: ASP.NET Core 8 + C# + React + PostgreSQL + Redis + Docker + xUnit + Testcontainers — full-stack ownership, resilience patterns (Polly), real DB integration tests. Maps to JD's PostgreSQL + deployment + full ownership model.\n- **MRR Dashboard**: FastAPI + Python + BigQuery + SQL + React + Recharts + Stripe ETL — backend API design, data pipelines, sub-200ms endpoints. Directly mirrors JD's FastAPI Python backend + analytics use cases.\n- **SpotiSwipe**: Next.js + tRPC + PostgreSQL + OAuth 2.0 + Docker + GitHub Actions — closest match to JD's Next.js/React + PostgreSQL + CI/CD stack. \"99.5% uptime\" and \"cut release cycles 30→5 min\" speak directly to Hyperbound's performance culture.\n\n## Tagline\n\"Full Stack Engineer building agentic apps with Next.js, NestJS, and PostgreSQL\" — 66 chars, under limit. Uses exact title from JD (\"Full Stack Engineer\"), mirrors two JD stack keywords (Next.js, PostgreSQL), and adds NestJS which is explicitly listed in the JD tech stack. Value-oriented, not generic.\n\n## Skills\nRow 1 front-loads TypeScript, Next.js, React, Node.js, NestJS — all explicitly named in JD. Row 2 hits Python, FastAPI, PostgreSQL, MongoDB — JD's backend stack verbatim. Row 3 covers AWS, Docker, GitHub Actions, CI/CD — JD deployment keywords. Row 4 adds AI/GenAI depth (Hyperbound is an AI-first company). Row 5 covers testing and auth patterns relevant to enterprise SaaS (xUnit, Testcontainers, OAuth 2.0).\n"
+  },
+  "script_path": "/Users/vietquocbui/repos/ResumeAnalyze/harness/batch-build/hyperbound-a-full-stack-engineer-with-something-to-prove/hyperbound_a_full_stack_engineer_with_something_to_prove.js",
+  "script_content": "// Generated by ResumeAnalyze — 2026-05-14T18:56:14.403Z\nconst { makeDoc, TL, T } = require('../buildv2.js');\nconst { Packer } = require('docx');\nconst fs = require('fs');\nconst path = require('path');\n\nconst doc = makeDoc({\n  tagline: TL(\"Full Stack Engineer building agentic apps with Next.js, NestJS, and\"),\n  work: [\n    {\n      id: \"gitlab\",\n      bullets: [\n      T(\"Contributed to GitLab CE in Ruby; shipped bug fixes reviewed and merged by senior platform engineers\"),\n      T(\"Built LLM-assisted tooling for code review workflows as part of CodePath mentorship with GitLab engineers\"),\n      T(\"Configured GitLab CI/CD pipelines for automated lint, test, and deploy stages across open-source Ruby projects\"),\n      T(\"Automated deployment workflows with Ansible and Terraform, enabling reproducible environment setup across projects\"),\n      T(\"Collaborated on LLM integration research, prototyping prompt-based code analysis tools with engineering mentors\"),\n      ],\n    },\n    {\n      id: \"carboncopies\",\n      bullets: [\n      T(\"Built Python pipelines for neuron simulation analysis using FastAPI and Docker, cutting validation time by 60%\"),\n      T(\"Developed FastAPI endpoints serving simulation analytics to React dashboards, processing 1K+ data points per run\"),\n      T(\"Automated data ETL pipelines in Python + Docker, enabling reproducible simulation runs and consistent data quality\"),\n      T(\"Built Python analysis pipelines for biophysical neuron simulation data for computational neuroscience research\"),\n      T(\"Debugged pipeline failures in Python by tracing outputs, isolating transformation bugs, and shipping targeted fixes\"),\n      ],\n    },\n    {\n      id: \"udayton\",\n      bullets: [\n      T(\"Co-authored IEEE KSE 2024 paper on adversarial RL robustness; entropy-based imposter detection at 97%+ accuracy\"),\n      T(\"Built Coq framework translating Program Graphs to safety proofs; detected integer overflow and injection attacks\"),\n      T(\"Wrote Python and TypeScript tooling for data processing, automation, and multi-system state management\"),\n      T(\"Designed and executed test suites for research systems; analyzed failure modes and iterated on fixes\"),\n      T(\"Authored technical documentation for 3 systems; presented research to cross-functional teams of 100+ students\"),\n      ],\n    }\n  ],\n  projects: [\n    {\n      id: \"homeboard\",\n      bullets: [\n      T(\"Designed modular ASP.NET Core 8 (C#) backend with 5 domain modules following clean architecture and OOP patterns\"),\n      T(\"Implemented JWT auth, Redis caching with TTLs, and React frontend with TanStack Query for optimistic updates\"),\n      T(\"Built Polly HTTP resilience pipeline with retry, exponential backoff, and circuit breaker for external API calls\"),\n      ],\n    },\n    {\n      id: \"mrr_dashboard\",\n      bullets: [\n      T(\"Built Stripe-to-BigQuery ETL pipeline in Python normalizing 6 months of billing data with idempotent loads\"),\n      T(\"Designed 4 FastAPI endpoints serving MRR metrics and subscription breakdowns at sub-200ms response time\"),\n      T(\"Wrote BigQuery SQL with window functions reconciling monthly and annual billing plans against Stripe invoice totals\"),\n      ],\n    },\n    {\n      id: \"spotiswipe\",\n      bullets: [\n      T(\"Built music discovery platform in Next.js with tRPC APIs and Prisma ORM supporting 100+ concurrent users\"),\n      T(\"Integrated OAuth 2.0 with PKCE flow across Spotify, Last.fm, and Google with multi-provider account linking\"),\n      T(\"Optimized tRPC endpoints for 99.5% uptime via PostgreSQL indexing, query tuning, and connection pooling\"),\n      ],\n    }\n  ],\n  skills: [\n    \"TypeScript · Next.js · React · Node.js · NestJS · REST APIs\",\n    \"Python · FastAPI · PostgreSQL · MongoDB · SQL · Redis\",\n    \"AWS · Docker · GitHub Actions CI/CD · Terraform · Ansible · Nginx\",\n    \"Claude API · LangChain · Gemini AI · MCP · Prompt Engineering · RAG\",\n    \"Git · Linux · Prisma · EF Core · xUnit · Testcontainers · OAuth 2.0\"\n  ],\n});\n\nPacker.toBuffer(doc).then(buf => {\n  const out = path.join(__dirname, \"hyperbound_a_full_stack_engineer_with_something_to_prove_VietBui.docx\");\n  fs.writeFileSync(out, buf);\n  console.log('\\u2713 Written:', out);\n});\n",
+  "outcome": "success",
+  "completed_at": "2026-05-14T18:56:19.669Z"
+}
