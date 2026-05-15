@@ -169,3 +169,116 @@ jobs:
         with:
           name: reviewer2
           path: reviewer2.json
+
+  synthesize:
+    needs: [review-gpt4o, review-llama]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Compute diff (for Claude to read)
+        shell: bash
+        run: |
+          set -eo pipefail
+          git fetch origin main --depth=1
+          git diff origin/main...HEAD -- '*.ts' '*.tsx' '*.js' '*.jsx' > diff.txt
+
+      - name: Download reviewer artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: reviewer*
+          merge-multiple: true
+
+      - name: Synthesize and post PR comment
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            You are the council synthesizer. Two AI reviewers analyzed the PR diff and produced JSON.
+
+            Files in the working directory:
+            - reviewer1.json  — GPT-4o findings
+            - reviewer2.json  — Meta-Llama-3.3-70B-Instruct findings
+            - diff.txt        — the raw PR diff
+
+            Execute these steps IN ORDER:
+
+            1. Read all three files:
+               cat reviewer1.json
+               cat reviewer2.json
+               wc -l diff.txt
+
+            2. Merge issues by (file, line, category). Apply disagreement logic per group:
+               - Both flag same (file, line, category) → include. Use higher severity if they differ; note discrepancy in detail block.
+               - One flags, one silent → read diff.txt independently, decide include/skip, write your reasoning in the detail block with marker ⚠️ *disputed*
+               - Both agree on severity → include as-is.
+
+            3. For each included issue, run grep to find direct importers and call sites:
+               BASENAME=$(basename <file> | sed 's/\..*//')
+               grep -rn "from.*$BASENAME" --include="*.ts" --include="*.tsx" . 2>/dev/null | grep -v node_modules | head -5
+
+            4. Generate a review UUID:
+               REVIEW_UUID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || uuidgen)
+
+            5. Write the PR comment to /tmp/council-comment.md using this exact structure:
+
+               ## 🔍 Council AI Review
+               > GPT-4o · Llama-3.3-70B · synthesized by Claude
+
+               ---
+
+               ### Security
+               - [ ] 🔴 **HIGH** — `<file>:<line>` — <title>
+                 <details><summary>Detail</summary>
+
+                 <detail text>
+
+                 **Fix:** <fix>
+
+                 **Check these files too:**
+                 - `<importer>:<line>` — <relationship note>
+                 </details>
+
+               [repeat per issue in this category; omit section if zero issues]
+
+               ### Correctness
+               [same structure — omit if no issues]
+
+               ### Performance
+               [same structure — omit if no issues]
+
+               ### Type Safety
+               [same structure — omit if no issues]
+
+               ### Dead Code
+               [same structure — omit if no issues]
+
+               ---
+               *Check the boxes for fixes you want applied, then post `/apply-fixes`.*
+               <!-- council-review-id: $RUN_ID-$REVIEW_UUID -->
+
+               Rules:
+               - Severity icons: 🔴 HIGH, 🟡 MED, ⚪ LOW
+               - Disputed issues: add ⚠️ *disputed* after the severity icon in the title line
+               - The <!-- council-review-id: ... --> marker MUST be the very last line
+               - Omit any category section with zero issues
+
+            6. Post the comment:
+               gh pr comment $PR_NUMBER --repo $REPO --body-file /tmp/council-comment.md
+
+            Special case — if both reviewer files contain empty issues arrays:
+               gh pr comment $PR_NUMBER --repo $REPO --body "## 🔍 Council AI Review
+
+               No issues found in this diff by either reviewer. ✅"
+               Then stop.
