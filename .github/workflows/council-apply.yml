@@ -1,0 +1,101 @@
+name: Council Apply — HITL fix applicator
+
+# Fires on any issue/PR comment. Guard condition restricts to trusted collaborators on PRs only.
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  apply:
+    if: |
+      contains(github.event.comment.body, '/apply-fixes') &&
+      github.event.issue.pull_request != null &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'),
+               github.event.issue.author_association)
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Get PR head ref and SHA
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -eo pipefail
+          PR_DATA=$(gh api "repos/$REPO/pulls/$ISSUE_NUMBER")
+          echo "head_ref=$(echo "$PR_DATA" | jq -r '.head.ref')" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$(echo "$PR_DATA" | jq -r '.head.sha')" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.pr.outputs.head_sha }}
+
+      - name: Apply checked fixes
+        env:
+          PR_NUMBER: ${{ github.event.issue.number }}
+          PR_HEAD_REF: ${{ steps.pr.outputs.head_ref }}
+          COMMENTER: ${{ github.event.comment.user.login }}
+          REPO: ${{ github.repository }}
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            You are the council fix applicator. A trusted collaborator posted /apply-fixes on PR $PR_NUMBER.
+
+            Execute these steps IN ORDER:
+
+            1. Find the council review comment (most recent one with the marker):
+               gh api "repos/$REPO/issues/$PR_NUMBER/comments" \
+                 --jq '[.[] | select(.body | contains("council-review-id"))] | last | .body' \
+                 > /tmp/council-comment.txt
+               cat /tmp/council-comment.txt
+
+            2. If /tmp/council-comment.txt is empty or its content is "null":
+               gh issue comment $PR_NUMBER --repo $REPO \
+                 --body "No council review comment found on this PR. Run the Council AI Review workflow first (mark PR as ready for review, or use workflow_dispatch)."
+               Stop here.
+
+            3. Count checked vs unchecked items:
+               CHECKED=$(grep -c '^\- \[x\]' /tmp/council-comment.txt || echo 0)
+               echo "Checked items: $CHECKED"
+
+            4. If $CHECKED is 0:
+               gh issue comment $PR_NUMBER --repo $REPO \
+                 --body "No fixes selected — check at least one box before posting \`/apply-fixes\`."
+               Stop here.
+
+            5. For each line matching `- [x]` in /tmp/council-comment.txt:
+               a. Extract the file path and line number from the item title (pattern: \`file.ts:42\`)
+               b. Read the <details> block immediately following that item line to get the fix
+               c. Apply the fix directly to the source file
+
+            6. Check which files changed:
+               CHANGED=$(git diff --name-only HEAD)
+               echo "Changed files: $CHANGED"
+
+            7. If any files changed:
+               CHECKED=$(grep -c '^\- \[x\]' /tmp/council-comment.txt)
+               REVIEW_ID=$(grep -o 'council-review-id: [^ -]*-[^ ]*' /tmp/council-comment.txt | tail -1 | sed 's/council-review-id: //')
+               git add -- $(git diff --name-only HEAD)
+               git commit -m "fix: apply council-reviewed fixes ($CHECKED items)
+
+               Applied by council-apply workflow on behalf of $COMMENTER
+               council-review-id: $REVIEW_ID"
+               git push origin "$PR_HEAD_REF"
+               COMMIT_SHA=$(git rev-parse HEAD)
+               gh issue comment $PR_NUMBER --repo $REPO \
+                 --body "Applied $CHECKED fixes in $COMMIT_SHA. Unchecked items were skipped."
+
+            8. If a specific fix fails (file not found, patch rejected):
+               Continue with remaining fixes. At the end, report which succeeded and which failed with reasons.
+
+            Never create an empty commit. If no files changed after all attempts:
+               gh issue comment $PR_NUMBER --repo $REPO \
+                 --body "No files were changed — fixes may already be applied or instructions were unclear."
