@@ -32,9 +32,11 @@ jobs:
 
       - name: Call GPT-4o via GitHub Models
         if: env.SKIP != 'true'
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -eo pipefail
           cat > /tmp/system_prompt.txt << 'PROMPT'
           You are a code reviewer. Analyze the diff across exactly these 5 categories.
           Return ONLY valid JSON matching the schema below — no prose outside the JSON.
@@ -74,7 +76,7 @@ jobs:
               ]
             }' > /tmp/request.json
 
-          curl -sf https://models.inference.ai.azure.com/chat/completions \
+          curl -sf --max-time 60 https://models.inference.ai.azure.com/chat/completions \
             -H "Authorization: Bearer $GITHUB_TOKEN" \
             -H "Content-Type: application/json" \
             -d @/tmp/request.json \
@@ -110,9 +112,11 @@ jobs:
 
       - name: Call Llama-3.3-70B via GitHub Models
         if: env.SKIP != 'true'
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -eo pipefail
           cat > /tmp/system_prompt.txt << 'PROMPT'
           You are a code reviewer. Analyze the diff across exactly these 5 categories.
           Return ONLY valid JSON matching the schema below — no prose outside the JSON.
@@ -152,7 +156,7 @@ jobs:
               ]
             }' > /tmp/request.json
 
-          curl -sf https://models.inference.ai.azure.com/chat/completions \
+          curl -sf --max-time 60 https://models.inference.ai.azure.com/chat/completions \
             -H "Authorization: Bearer $GITHUB_TOKEN" \
             -H "Content-Type: application/json" \
             -d @/tmp/request.json \
