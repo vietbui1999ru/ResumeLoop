@@ -200,7 +200,6 @@ jobs:
         env:
           PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
           REPO: ${{ github.repository }}
-          RUN_ID: ${{ github.run_id }}
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -266,7 +265,7 @@ jobs:
 
                ---
                *Check the boxes for fixes you want applied, then post `/apply-fixes`.*
-               <!-- council-review-id: $RUN_ID-$REVIEW_UUID -->
+               <!-- council-review-id: ${{ github.run_id }}-$REVIEW_UUID -->
 
                Rules:
                - Severity icons: 🔴 HIGH, 🟡 MED, ⚪ LOW
