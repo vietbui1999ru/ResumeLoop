@@ -11,7 +11,7 @@ jobs:
       contains(github.event.comment.body, '/apply-fixes') &&
       github.event.issue.pull_request != null &&
       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'),
-               github.event.issue.author_association)
+               github.event.comment.user.author_association)
 
     runs-on: ubuntu-latest
     permissions:
@@ -82,8 +82,8 @@ jobs:
 
             7. If any files changed:
                CHECKED=$(grep -c '^\- \[x\]' /tmp/council-comment.txt)
-               REVIEW_ID=$(grep -o 'council-review-id: [^ -]*-[^ ]*' /tmp/council-comment.txt | tail -1 | sed 's/council-review-id: //')
-               git add -- $(git diff --name-only HEAD)
+               REVIEW_ID=$(grep -oE 'council-review-id: [a-zA-Z0-9_-]+' /tmp/council-comment.txt | tail -1 | sed 's/council-review-id: //')
+               git add -u
                git commit -m "fix: apply council-reviewed fixes ($CHECKED items)
 
                Applied by council-apply workflow on behalf of $COMMENTER
