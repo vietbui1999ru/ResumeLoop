@@ -3,7 +3,7 @@ import { Resend } from 'resend'
 import { getAdapter } from './db-adapter'
 import { randomUUID } from 'crypto'
 
-const FROM = 'ResumeAnalyze <noreply@resumeanalyze.app>'
+const FROM = 'ResumeLoop <noreply@resumeloop.app>'
 const PASSWORD_RESET_TTL_MS    = 60 * 60 * 1000       // 1 hour
 const EMAIL_VERIFY_TTL_MS      = 24 * 60 * 60 * 1000  // 24 hours
 
@@ -37,7 +37,7 @@ export async function sendPasswordResetEmail(userId: string, toEmail: string): P
   await getResend().emails.send({
     from:    FROM,
     to:      toEmail,
-    subject: 'Reset your ResumeAnalyze password',
+    subject: 'Reset your ResumeLoop password',
     html:    `<p>Click to reset your password (expires in 1 hour):</p>
               <p><a href="${link}">${link}</a></p>
               <p>If you didn't request this, you can ignore this email.</p>`,
@@ -78,7 +78,7 @@ export async function sendVerificationEmail(userId: string, toEmail: string): Pr
   await getResend().emails.send({
     from:    FROM,
     to:      toEmail,
-    subject: 'Verify your ResumeAnalyze email',
+    subject: 'Verify your ResumeLoop email',
     html:    `<p>Click to verify your email address:</p>
               <p><a href="${link}">${link}</a></p>
               <p>Link expires in 24 hours.</p>`,

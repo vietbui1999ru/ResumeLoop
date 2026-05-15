@@ -6,7 +6,7 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  ECR_REPOSITORY: resumeanalyze
+  ECR_REPOSITORY: resumeloop
 
 # Required secrets:
 #   AWS_DEPLOY_ROLE_ARN      — IAM role ARN for OIDC
@@ -81,7 +81,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key \
               "$HOMELAB_USER@$HOMELAB_HOST" \
-              "cd ~/resumeanalyze && \
+              "cd ~/resumeloop && \
                export IMAGE_TAG=$IMAGE_TAG ECR_REGISTRY=$ECR_REGISTRY && \
                aws ecr get-login-password --region us-east-1 \
                  | docker login --username AWS --password-stdin $ECR_REGISTRY && \

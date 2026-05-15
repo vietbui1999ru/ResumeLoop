@@ -8,13 +8,13 @@
         "secretsmanager:GetSecretValue",
         "secretsmanager:DescribeSecret"
       ],
-      "Resource": "arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeanalyze/prod/*"
+      "Resource": "arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeloop/prod/*"
     },
     {
       "Sid": "S3Outputs",
       "Effect": "Allow",
       "Action": ["s3:PutObject", "s3:GetObject"],
-      "Resource": "arn:aws:s3:::resumeanalyze-outputs-<ACCOUNT_ID>/*"
+      "Resource": "arn:aws:s3:::resumeloop-outputs-<ACCOUNT_ID>/*"
     },
     {
       "Sid": "ECRPull",
