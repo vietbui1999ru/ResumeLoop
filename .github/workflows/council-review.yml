@@ -29,7 +29,7 @@ jobs:
       issues: read
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
         with:
           fetch-depth: 0
           # Use the SHA (immutable) rather than the branch ref to avoid
@@ -42,7 +42,7 @@ jobs:
           PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
           REVIEWER: ${{ github.event.review.user.login }}
           REPO: ${{ github.repository }}
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@51ea8ea73a139f2a74ff649e3092c25a904aed7e  # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
