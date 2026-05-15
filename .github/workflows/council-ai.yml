@@ -1,0 +1,167 @@
+name: Council AI Review
+
+on:
+  pull_request:
+    types: [ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: PR number to review
+        required: true
+
+jobs:
+  review-gpt4o:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Compute diff
+        run: |
+          git fetch origin main --depth=1
+          git diff origin/main...HEAD -- '*.ts' '*.tsx' '*.js' '*.jsx' > diff.txt
+          if [ ! -s diff.txt ]; then
+            echo '{"issues":[]}' > reviewer1.json
+            echo "SKIP=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Call GPT-4o via GitHub Models
+        if: env.SKIP != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cat > /tmp/system_prompt.txt << 'PROMPT'
+          You are a code reviewer. Analyze the diff across exactly these 5 categories.
+          Return ONLY valid JSON matching the schema below — no prose outside the JSON.
+
+          Categories:
+            security      — XSS, injection, auth bypass, path traversal, secret exposure
+            correctness   — logic errors, wrong assumptions, broken edge cases, type unsafety
+            performance   — unnecessary re-renders, N+1 queries, unbounded loops, memory leaks
+            type_safety   — missing null checks, unsafe casts, implicit any, unhandled undefined
+            dead_code     — unused imports, unreachable branches, stale variables
+
+          Output schema:
+          {
+            "issues": [
+              {
+                "category": "security|correctness|performance|type_safety|dead_code",
+                "severity": "HIGH|MED|LOW",
+                "file": "path/to/file.ts",
+                "line": 42,
+                "title": "one-line description",
+                "detail": "why this is a problem",
+                "fix": "concrete fix as code snippet or clear instruction"
+              }
+            ]
+          }
+          PROMPT
+
+          jq -n \
+            --rawfile system /tmp/system_prompt.txt \
+            --rawfile user diff.txt \
+            '{
+              model: "gpt-4o",
+              response_format: {type: "json_object"},
+              messages: [
+                {role: "system", content: $system},
+                {role: "user",   content: $user}
+              ]
+            }' > /tmp/request.json
+
+          curl -sf https://models.inference.ai.azure.com/chat/completions \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d @/tmp/request.json \
+            | jq -r '.choices[0].message.content' > reviewer1.json
+
+          jq -e '.issues' reviewer1.json > /dev/null
+
+      - name: Upload GPT-4o review
+        uses: actions/upload-artifact@v4
+        with:
+          name: reviewer1
+          path: reviewer1.json
+
+  review-llama:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Compute diff
+        run: |
+          git fetch origin main --depth=1
+          git diff origin/main...HEAD -- '*.ts' '*.tsx' '*.js' '*.jsx' > diff.txt
+          if [ ! -s diff.txt ]; then
+            echo '{"issues":[]}' > reviewer2.json
+            echo "SKIP=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Call Llama-3.3-70B via GitHub Models
+        if: env.SKIP != 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cat > /tmp/system_prompt.txt << 'PROMPT'
+          You are a code reviewer. Analyze the diff across exactly these 5 categories.
+          Return ONLY valid JSON matching the schema below — no prose outside the JSON.
+
+          Categories:
+            security      — XSS, injection, auth bypass, path traversal, secret exposure
+            correctness   — logic errors, wrong assumptions, broken edge cases, type unsafety
+            performance   — unnecessary re-renders, N+1 queries, unbounded loops, memory leaks
+            type_safety   — missing null checks, unsafe casts, implicit any, unhandled undefined
+            dead_code     — unused imports, unreachable branches, stale variables
+
+          Output schema:
+          {
+            "issues": [
+              {
+                "category": "security|correctness|performance|type_safety|dead_code",
+                "severity": "HIGH|MED|LOW",
+                "file": "path/to/file.ts",
+                "line": 42,
+                "title": "one-line description",
+                "detail": "why this is a problem",
+                "fix": "concrete fix as code snippet or clear instruction"
+              }
+            ]
+          }
+          PROMPT
+
+          jq -n \
+            --rawfile system /tmp/system_prompt.txt \
+            --rawfile user diff.txt \
+            '{
+              model: "Meta-Llama-3.3-70B-Instruct",
+              response_format: {type: "json_object"},
+              messages: [
+                {role: "system", content: $system},
+                {role: "user",   content: $user}
+              ]
+            }' > /tmp/request.json
+
+          curl -sf https://models.inference.ai.azure.com/chat/completions \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d @/tmp/request.json \
+            | jq -r '.choices[0].message.content' > reviewer2.json
+
+          jq -e '.issues' reviewer2.json > /dev/null
+
+      - name: Upload Llama review
+        uses: actions/upload-artifact@v4
+        with:
+          name: reviewer2
+          path: reviewer2.json
