@@ -22,8 +22,8 @@ export const TOUR_STEPS: TourStepDef[] = [
   },
   {
     id: 'dash-role-chart', page: '/', target: 'dashboard-role-chart',
-    title: 'Role breakdown',
-    body: "Donut chart shows how many jobs fall into each role track you're targeting. Role tracks come from your Config.",
+    title: 'Pipeline flow',
+    body: 'Sankey chart shows how jobs move through your pipeline stages — Saved → Applied → Interview → Offer. Spot where drop-off happens.',
   },
   {
     id: 'dash-outputs', page: '/', target: 'dashboard-outputs',
