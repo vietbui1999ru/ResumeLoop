@@ -1,0 +1,67 @@
+{
+  "family": "resumeloop",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::985526967036:role/ECSTaskResumeLoop",
+  "taskRoleArn": "arn:aws:iam::985526967036:role/ECSTaskResumeLoop",
+  "runtimePlatform": {
+    "cpuArchitecture": "ARM64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "containerDefinitions": [
+    {
+      "name": "resumeloop",
+      "image": "985526967036.dkr.ecr.us-east-1.amazonaws.com/resumeloop:latest",
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "secrets": [
+        {
+          "name": "APP_MODE",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:985526967036:secret:resumeloop/prod/APP_MODE-8u3l6f"
+        },
+        {
+          "name": "DATABASE_URL",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:985526967036:secret:resumeloop/prod/DATABASE_URL-zKlXfT"
+        },
+        {
+          "name": "AUTH_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:985526967036:secret:resumeloop/prod/AUTH_SECRET-j7GSva"
+        },
+        {
+          "name": "ENCRYPTION_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:985526967036:secret:resumeloop/prod/ENCRYPTION_KEY-DGQzCh"
+        },
+        {
+          "name": "NEXTAUTH_URL",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:985526967036:secret:resumeloop/prod/NEXTAUTH_URL-611ZwQ"
+        },
+        {
+          "name": "S3_BUCKET",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:985526967036:secret:resumeloop/prod/S3_BUCKET-VFpBfX"
+        },
+        {
+          "name": "AWS_REGION",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:985526967036:secret:resumeloop/prod/AWS_REGION-biy1bk"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/resumeloop",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs",
+          "awslogs-create-group": "true"
+        }
+      }
+    }
+  ]
+}
