@@ -418,7 +418,7 @@ export default function SettingsPage() {
   if (!settings) return <div className="text-zinc-500 text-sm">Loading…</div>
 
   return (
-    <div className="space-y-6 max-w-2xl p-6">
+    <div className="space-y-6 max-w-2xl mx-auto p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Settings</h1>
         {(saving || saveStatus) && (
