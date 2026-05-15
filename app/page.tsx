@@ -42,7 +42,7 @@ export default async function DashboardPage() {
         <p className="text-sm text-text-muted">{data.total} JDs · {data.visaKill} visa-kill</p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <div data-tour="dashboard-role-chart" className="bg-white/[0.025] border border-zinc-800 rounded-xl p-5 hover:border-indigo-500/20 hover:-translate-y-px transition-all duration-100">
+        <div className="bg-white/[0.025] border border-zinc-800 rounded-xl p-5 hover:border-indigo-500/20 hover:-translate-y-px transition-all duration-100">
           <RoleTrackChart data={data.role_track_dist} />
         </div>
         <div className="bg-white/[0.025] border border-zinc-800 rounded-xl p-5 hover:border-indigo-500/20 hover:-translate-y-px transition-all duration-100">
@@ -50,7 +50,7 @@ export default async function DashboardPage() {
         </div>
       </div>
       {data.pipeline && (
-        <div className="bg-white/[0.025] border border-zinc-800 rounded-xl p-5 hover:border-indigo-500/20 hover:-translate-y-px transition-all duration-100">
+        <div data-tour="dashboard-role-chart" className="bg-white/[0.025] border border-zinc-800 rounded-xl p-5 hover:border-indigo-500/20 hover:-translate-y-px transition-all duration-100">
           <PipelineSankeyChart data={data.pipeline} />
         </div>
       )}

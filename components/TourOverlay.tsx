@@ -80,13 +80,23 @@ function bubbleStyle(rect: Rect | null): React.CSSProperties {
     return { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
   }
   const estimatedBubbleH = 180
+  const vw = window.innerWidth
+  const vh = window.innerHeight
   const below = rect.top + rect.height + PAD + 12
   const above = rect.top - PAD - 12 - estimatedBubbleH
-  const l = Math.max(BUBBLE_MARGIN, Math.min(rect.left, window.innerWidth - BUBBLE_W - BUBBLE_MARGIN))
-  if (below + estimatedBubbleH > window.innerHeight && above > BUBBLE_MARGIN) {
-    return { position: 'fixed', top: above, left: l }
+  const l = Math.max(BUBBLE_MARGIN, Math.min(rect.left, vw - BUBBLE_W - BUBBLE_MARGIN))
+
+  let top: number
+  if (below + estimatedBubbleH <= vh) {
+    top = below
+  } else if (above >= BUBBLE_MARGIN) {
+    top = above
+  } else {
+    // Target fills viewport — center bubble vertically
+    top = Math.max(BUBBLE_MARGIN, (vh - estimatedBubbleH) / 2)
   }
-  return { position: 'fixed', top: below, left: l }
+
+  return { position: 'fixed', top, left: l }
 }
 
 function PageProgress({ step }: { step: TourStepDef }) {
