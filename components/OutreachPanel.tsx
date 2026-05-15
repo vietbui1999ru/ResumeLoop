@@ -255,7 +255,7 @@ function FilePicker({
   function toggleFile(fullPath: string) {
     setSelectedPaths(prev => {
       const next = new Set(prev)
-      next.has(fullPath) ? next.delete(fullPath) : next.add(fullPath)
+      if (next.has(fullPath)) next.delete(fullPath); else next.add(fullPath)
       return next
     })
   }

@@ -455,7 +455,7 @@ export default function SettingsPage() {
         />
       </div>
 
-      <div className="space-y-3">
+      <div data-tour="ai-settings" className="space-y-3">
         <h2 className="text-xs font-semibold text-zinc-500 uppercase">AI Provider</h2>
         <AIProviderSection />
       </div>

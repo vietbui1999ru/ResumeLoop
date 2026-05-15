@@ -1,14 +1,15 @@
 'use client'
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import { extractAllTags, jobMatchesTagFilter } from '@/lib/tag-filter'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { extractAllTags } from '@/lib/tag-filter'
+import { AnimatedCheckbox } from '@/components/AnimatedCheckbox'
 import JobDetailModal from '@/components/JobDetailModal'
 import GenerationPanel from '@/components/GenerationPanel'
 import SessionSwitcher from '@/components/SessionSwitcher'
 import { VALID_ACTIONS } from '@/lib/actions'
 import ReasoningModal from '@/components/ReasoningModal'
-import { TourBubble } from '@/components/TourBubble'
 import { SetupPanel } from '@/components/SetupPanel'
 import { useSession } from '@/contexts/SessionContext'
+import { AnimatePresence } from 'framer-motion'
 
 const ACTION_COLORS: Record<string, string> = {
   '0-Saved':        'text-zinc-400',
@@ -72,6 +73,18 @@ function fmtDate(iso: string | null): string {
   if (!iso) return '—'
   const d = new Date(iso)
   return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`
+}
+
+function FitBadge({ pct }: { pct: number }) {
+  if (pct >= 80) return (
+    <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-400">{pct}%</span>
+  )
+  if (pct >= 60) return (
+    <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-amber-500/10 text-amber-400">{pct}%</span>
+  )
+  return (
+    <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-zinc-800 text-zinc-500">{pct}%</span>
+  )
 }
 
 export default function JobsPage() {
@@ -145,7 +158,7 @@ export default function JobsPage() {
       : { col, dir: NUM_COLS.includes(col) ? 'desc' : 'asc' })
 
   const toggleSelect = (id: string) =>
-    setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+    setSelected(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n })
 
   const generate = async () => {
     const ids = Array.from(selected)
@@ -220,7 +233,7 @@ export default function JobsPage() {
     <div className={`flex flex-col min-h-full ${drawerOpen ? 'pb-20' : ''}`}>
 
       {/* ── Sticky header ──────────────────────────────────────── */}
-      <div className="sticky top-0 z-10 bg-zinc-950 border-b border-zinc-800 px-6 pt-4 pb-3 space-y-2.5">
+      <div className="sticky top-0 z-10 bg-surface-base border-b border-zinc-800 px-6 pt-4 pb-3 space-y-2.5">
 
         {/* Row 1: title + scan */}
         <div className="flex items-center gap-3">
@@ -237,14 +250,6 @@ export default function JobsPage() {
               <button onClick={scan} className="text-sm px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 rounded transition-colors">
                 Scan
               </button>
-              <TourBubble
-                tourKey="scan"
-                title="Sync your job folder"
-                body="Scan reads your Jobs folder and imports new JD markdown files. Set the folder path in Settings first. Unchanged files are always skipped."
-                position="below"
-                align="right"
-                width={280}
-              />
             </div>
           </div>
         </div>
@@ -255,25 +260,25 @@ export default function JobsPage() {
             value={q}
             onChange={e => setQ(e.target.value)}
             placeholder="Search company, role…"
-            className="flex-1 min-w-0 bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm placeholder:text-zinc-600"
+            className="flex-1 min-w-0 h-8 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary placeholder:text-text-muted focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-colors duration-100"
           />
           <select
             value={actionFilter}
             onChange={e => setActionFilter(e.target.value)}
-            className="shrink-0 bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-sm text-zinc-300"
+            className="shrink-0 h-8 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary focus:outline-none focus:border-indigo-500 transition-colors duration-100"
           >
             <option value="">All stages</option>
             {VALID_ACTIONS.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
-          <div className="shrink-0 flex items-center gap-1.5 bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-sm">
-            <span className="text-zinc-500">Fit ≥</span>
+          <div className="shrink-0 flex items-center gap-1.5 h-8 bg-surface-card border border-zinc-800 rounded-lg px-2.5 text-sm focus-within:border-indigo-500 transition-colors duration-100">
+            <span className="text-text-muted">Fit ≥</span>
             <input
               type="number" min={0} max={100} step={10}
               value={fitMin}
               onChange={e => setFitMin(Number(e.target.value))}
               className="w-10 bg-transparent text-zinc-200 text-center"
             />
-            <span className="text-zinc-500">%</span>
+            <span className="text-text-muted">%</span>
           </div>
           <button
             onClick={() => setShowSecondary(v => !v)}
@@ -295,7 +300,7 @@ export default function JobsPage() {
             <select
               value={trackFilter}
               onChange={e => setTrackFilter(e.target.value)}
-              className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-sm text-zinc-300"
+              className="h-8 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary focus:outline-none focus:border-indigo-500 transition-colors duration-100"
             >
               <option value="">All tracks</option>
               {tracks.map(t => <option key={t} value={t}>{t}</option>)}
@@ -303,7 +308,7 @@ export default function JobsPage() {
             <select
               value={tagFilter}
               onChange={e => setTagFilter(e.target.value)}
-              className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-sm text-zinc-300"
+              className="h-8 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary focus:outline-none focus:border-indigo-500 transition-colors duration-100"
             >
               <option value="">All tags</option>
               {allTags.map(t => <option key={t} value={t}>{t}</option>)}
@@ -311,7 +316,7 @@ export default function JobsPage() {
             <select
               value={visaFilter}
               onChange={e => setVisaFilter(e.target.value as typeof visaFilter)}
-              className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-sm text-zinc-300"
+              className="h-8 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary focus:outline-none focus:border-indigo-500 transition-colors duration-100"
             >
               <option value="proceed">Visa: proceed</option>
               <option value="kill">Visa: kill</option>
@@ -352,7 +357,7 @@ export default function JobsPage() {
           <thead>
             <tr className="border-b border-zinc-800">
               <th className="pb-2 pr-3 w-6">
-                <input type="checkbox" checked={allVisibleSelected} onChange={toggleAll} className="accent-indigo-500" />
+                <AnimatedCheckbox checked={allVisibleSelected} onChange={toggleAll} label="Select all" />
               </th>
               <SortTh label="Company"  col="company"    sort={sort} onSort={onSort} />
               <SortTh label="Role"     col="role_title" sort={sort} onSort={onSort} />
@@ -371,16 +376,20 @@ export default function JobsPage() {
               return (
                 <tr
                   key={job.id}
-                  className={`border-b border-zinc-800/60 hover:bg-zinc-800/40 cursor-pointer group ${job.hidden ? 'opacity-40' : ''}`}
+                  className={`border-b border-zinc-800/60 hover:bg-surface-raised hover:-translate-y-px transition-all duration-100 cursor-pointer group ${job.id === selectedJobId ? 'border-l-2 border-indigo-500 bg-indigo-500/5' : ''} ${job.hidden ? 'opacity-40' : ''}`}
                   onClick={() => setSelectedJobId(job.id)}
                 >
                   {/* Checkbox */}
-                  <td className="py-2.5 pr-3" onClick={e => e.stopPropagation()}>
-                    <input type="checkbox" checked={selected.has(job.id)} onChange={() => toggleSelect(job.id)} className="accent-indigo-500" />
+                  <td className="py-3 pr-3" onClick={e => e.stopPropagation()}>
+                    <AnimatedCheckbox
+                      checked={selected.has(job.id)}
+                      onChange={() => toggleSelect(job.id)}
+                      label={`Select ${job.company}`}
+                    />
                   </td>
 
                   {/* Company — visa ⊘ inline */}
-                  <td className="py-2.5 pr-4">
+                  <td className="py-3 pr-4">
                     <div className="flex items-center gap-1.5">
                       {job.visa_status === 'kill' && (
                         <span className="text-red-500 text-[10px]" title="No sponsorship">⊘</span>
@@ -390,7 +399,7 @@ export default function JobsPage() {
                   </td>
 
                   {/* Role + track badge */}
-                  <td className="py-2.5 pr-4">
+                  <td className="py-3 pr-4">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-zinc-300">{job.role_title}</span>
                       {job.role_track && (
@@ -402,8 +411,8 @@ export default function JobsPage() {
                   </td>
 
                   {/* Fit% */}
-                  <td className="py-2.5 pr-4">
-                    <span className={job.fit_pct >= 60 ? 'text-green-400' : 'text-zinc-400'}>{job.fit_pct}%</span>
+                  <td className="py-3 pr-4">
+                    <FitBadge pct={job.fit_pct} />
                   </td>
 
                   {/* Action dropdown */}
@@ -411,29 +420,19 @@ export default function JobsPage() {
                     {rowError ? (
                       <span className="text-red-400 text-xs">{rowError}</span>
                     ) : (
-                      <div className="relative inline-block">
-                        <select
-                          value={currentAction}
-                          onChange={e => void handleActionChange(job.id, e.target.value)}
-                          className={`bg-zinc-800 border border-zinc-700 rounded px-1.5 py-0.5 text-xs ${ACTION_COLORS[currentAction] ?? 'text-zinc-400'}`}
-                        >
-                          {VALID_ACTIONS.map(a => <option key={a} value={a}>{a}</option>)}
-                        </select>
-                        {idx === 0 && (
-                          <TourBubble
-                            tourKey="action"
-                            title="Track your application status"
-                            body="Changing the stage here writes directly back to the markdown file in your Jobs folder — your Obsidian vault sees the update instantly."
-                            position="below"
-                            width={275}
-                          />
-                        )}
-                      </div>
+                      <select
+                        data-tour={idx === 0 ? 'action-cell' : undefined}
+                        value={currentAction}
+                        onChange={e => void handleActionChange(job.id, e.target.value)}
+                        className={`bg-zinc-800 border border-zinc-700 rounded px-1.5 py-0.5 text-xs ${ACTION_COLORS[currentAction] ?? 'text-zinc-400'}`}
+                      >
+                        {VALID_ACTIONS.map(a => <option key={a} value={a}>{a}</option>)}
+                      </select>
                     )}
                   </td>
 
                   {/* Clipped date — color-coded by staleness */}
-                  <td className={`py-2.5 pr-4 text-xs font-mono ${clipColor(clippedIso)}`}>
+                  <td className={`py-3 pr-4 text-xs font-mono ${clipColor(clippedIso)}`}>
                     {fmtDate(clippedIso)}
                   </td>
 
@@ -481,74 +480,75 @@ export default function JobsPage() {
       </div>
 
       {/* ── Modals ─────────────────────────────────────────────── */}
-      {selectedJobId && (
-        <JobDetailModal jobId={selectedJobId} onClose={() => setSelectedJobId(null)} />
-      )}
-      {reasoningJobId && (() => {
-        const j = jobs.find(x => x.id === reasoningJobId)
-        return j ? (
-          <ReasoningModal
-            jobId={reasoningJobId}
-            company={j.company}
-            roleTitle={j.role_title}
-            onClose={() => setReasoningJobId(null)}
-          />
-        ) : null
-      })()}
+      <AnimatePresence>
+        {selectedJobId && (
+          <JobDetailModal key={selectedJobId} jobId={selectedJobId} onClose={() => setSelectedJobId(null)} />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {reasoningJobId && (() => {
+          const j = jobs.find(x => x.id === reasoningJobId)
+          return j ? (
+            <ReasoningModal
+              key={reasoningJobId}
+              jobId={reasoningJobId}
+              company={j.company}
+              roleTitle={j.role_title}
+              onClose={() => setReasoningJobId(null)}
+            />
+          ) : null
+        })()}
+      </AnimatePresence>
 
       {/* ── Sticky bottom drawer — selection + generation ──────── */}
       {drawerOpen && (
-        <div className="fixed bottom-0 left-44 right-0 z-20 bg-zinc-900 border-t border-zinc-800 shadow-xl shadow-black/40">
+        <div className="fixed bottom-0 left-12 right-0 z-20 bg-surface-card border-t border-zinc-800 shadow-xl shadow-black/40 px-6 py-3">
           {!showPanel ? (
             /* Compact selection bar */
-            <div className="flex items-center gap-3 px-6 py-3">
+            <div className="flex items-center gap-3">
               <span className="text-sm text-zinc-300 font-medium">{selected.size} selected</span>
               <button onClick={() => setSelected(new Set())} className="text-xs text-zinc-500 hover:text-zinc-300">
                 Clear
               </button>
-              <div className="ml-auto relative inline-block">
-                <TourBubble
-                  tourKey="generate"
-                  title="Generate tailored resumes"
-                  body="The AI picks the best bullets, role track, and projects for each JD, then builds a DOCX. Progress streams here live. Select multiple jobs to batch-generate."
-                  position="above"
-                  align="right"
-                  width={295}
-                />
+              <div className="ml-auto">
                 <button
+                  data-tour="generate-btn"
                   onClick={() => void generate()}
                   disabled={selected.size === 0}
                   className="text-sm px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded disabled:opacity-40 transition-colors"
                 >
-                  {showPanel ? `Queue ${selected.size > 0 ? selected.size : ''} more` : `Generate ${selected.size}`}
+                  {`Generate ${selected.size}`}
                 </button>
               </div>
             </div>
           ) : (
-            /* Generation panel */
-            <div className="px-6 py-3">
-              <GenerationPanel
-                queue={generateQueue}
-                sessionId={activeSessionId}
-                minimized={panelMinimized}
-                onMinimize={() => setPanelMinimized(p => !p)}
-                onClose={() => {
-                  setShowPanel(false)
-                  setPanelMinimized(false)
-                  setGenerateQueue([])
-                  setSelected(new Set())
-                }}
-                onStageUpdate={(jobId, stage) =>
-                  setGenStatus(prev => new Map(prev).set(jobId, `⟳ ${stage}`))}
-                onDone={jobId => {
-                  setGenStatus(prev => new Map(prev).set(jobId, 'done'))
-                  reload()
-                }}
-                onError={(jobId, msg) =>
-                  setGenStatus(prev => new Map(prev).set(jobId, `✗ ${msg.slice(0, 20)}`))
-                }
-              />
-            </div>
+            /* Generation panel — AnimatePresence stays mounted so exit animation fires */
+            <AnimatePresence>
+              {showPanel && (
+                <GenerationPanel
+                  key="gen-panel"
+                  queue={generateQueue}
+                  sessionId={activeSessionId}
+                  minimized={panelMinimized}
+                  onMinimize={() => setPanelMinimized(p => !p)}
+                  onClose={() => {
+                    setShowPanel(false)
+                    setPanelMinimized(false)
+                    setGenerateQueue([])
+                    setSelected(new Set())
+                  }}
+                  onStageUpdate={(jobId, stage) =>
+                    setGenStatus(prev => new Map(prev).set(jobId, `⟳ ${stage}`))}
+                  onDone={jobId => {
+                    setGenStatus(prev => new Map(prev).set(jobId, 'done'))
+                    reload()
+                  }}
+                  onError={(jobId, msg) =>
+                    setGenStatus(prev => new Map(prev).set(jobId, `✗ ${msg.slice(0, 20)}`))
+                  }
+                />
+              )}
+            </AnimatePresence>
           )}
         </div>
       )}

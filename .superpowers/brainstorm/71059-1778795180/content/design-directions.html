@@ -1,0 +1,206 @@
+<h2>Design Direction</h2>
+<p class="subtitle">Which visual direction feels right for the redesign?</p>
+
+<div class="options" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:20px;">
+
+  <!-- Option A: Refined Dark -->
+  <div class="option" data-choice="a" onclick="toggleSelect(this)" style="cursor:pointer;border:2px solid #30363d;border-radius:12px;overflow:hidden;transition:border-color .2s,transform .15s;background:#0d1117;">
+    <div style="background:#161b22;padding:10px 12px;border-bottom:1px solid #21262d;display:flex;align-items:center;gap:8px;">
+      <div style="width:8px;height:8px;border-radius:50%;background:#ff5f56;"></div>
+      <div style="width:8px;height:8px;border-radius:50%;background:#ffbd2e;"></div>
+      <div style="width:8px;height:8px;border-radius:50%;background:#27c93f;"></div>
+      <span style="color:#6b7280;font-size:10px;margin-left:4px;font-family:monospace;">A — Refined Dark</span>
+    </div>
+    <!-- Mini app shell -->
+    <div style="display:flex;height:220px;">
+      <!-- Sidebar -->
+      <div style="width:52px;background:#0d1117;border-right:1px solid #21262d;padding:10px 6px;display:flex;flex-direction:column;gap:4px;">
+        <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#818cf8);margin-bottom:8px;display:flex;align-items:center;justify-content:center;">
+          <div style="width:14px;height:14px;border-radius:3px;background:rgba(255,255,255,.9);"></div>
+        </div>
+        <div style="width:32px;height:5px;border-radius:4px;background:#6366f1;"></div>
+        <div style="width:28px;height:5px;border-radius:4px;background:#21262d;margin-top:2px;"></div>
+        <div style="width:30px;height:5px;border-radius:4px;background:#21262d;margin-top:2px;"></div>
+        <div style="width:26px;height:5px;border-radius:4px;background:#21262d;margin-top:2px;"></div>
+      </div>
+      <!-- Main content -->
+      <div style="flex:1;padding:10px;overflow:hidden;background:#0d1117;">
+        <!-- Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div style="width:50px;height:6px;border-radius:3px;background:#e6edf3;"></div>
+          <div style="width:30px;height:20px;border-radius:6px;background:#21262d;border:1px solid #30363d;"></div>
+        </div>
+        <!-- Glass cards -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+          <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px;backdrop-filter:blur(8px);">
+            <div style="width:24px;height:4px;border-radius:2px;background:#6b7280;margin-bottom:5px;"></div>
+            <div style="width:32px;height:10px;border-radius:3px;background:#6366f1;"></div>
+          </div>
+          <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:8px;">
+            <div style="width:28px;height:4px;border-radius:2px;background:#6b7280;margin-bottom:5px;"></div>
+            <div style="width:28px;height:10px;border-radius:3px;background:#22c55e;"></div>
+          </div>
+        </div>
+        <!-- Table rows with hover state -->
+        <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;overflow:hidden;">
+          <div style="padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.05);display:flex;gap:6px;align-items:center;">
+            <div style="width:6px;height:6px;border-radius:50%;background:#6366f1;"></div>
+            <div style="width:50px;height:4px;border-radius:2px;background:#c9d1d9;"></div>
+            <div style="margin-left:auto;width:24px;height:14px;border-radius:4px;background:rgba(99,102,241,.2);border:1px solid rgba(99,102,241,.4);"></div>
+          </div>
+          <div style="padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.05);display:flex;gap:6px;align-items:center;">
+            <div style="width:6px;height:6px;border-radius:50%;background:#22c55e;"></div>
+            <div style="width:40px;height:4px;border-radius:2px;background:#8b949e;"></div>
+            <div style="margin-left:auto;width:24px;height:14px;border-radius:4px;background:#161b22;border:1px solid #30363d;"></div>
+          </div>
+          <div style="padding:5px 8px;display:flex;gap:6px;align-items:center;">
+            <div style="width:6px;height:6px;border-radius:50%;background:#f59e0b;"></div>
+            <div style="width:56px;height:4px;border-radius:2px;background:#8b949e;"></div>
+            <div style="margin-left:auto;width:24px;height:14px;border-radius:4px;background:#161b22;border:1px solid #30363d;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:10px 12px;background:#0d1117;border-top:1px solid #21262d;">
+      <div style="font-size:11px;font-weight:600;color:#e6edf3;margin-bottom:2px;">A — Refined Dark</div>
+      <div style="font-size:10px;color:#6b7280;line-height:1.4;">Glass cards · subtle depth · icon sidebar · micro-animations. Same dark palette, elevated. Linear / Vercel aesthetic.</div>
+    </div>
+  </div>
+
+  <!-- Option B: Bold Accent -->
+  <div class="option" data-choice="b" onclick="toggleSelect(this)" style="cursor:pointer;border:2px solid #30363d;border-radius:12px;overflow:hidden;transition:border-color .2s,transform .15s;background:#09090f;">
+    <div style="background:#0f0f1a;padding:10px 12px;border-bottom:1px solid #1e1e35;display:flex;align-items:center;gap:8px;">
+      <div style="width:8px;height:8px;border-radius:50%;background:#ff5f56;"></div>
+      <div style="width:8px;height:8px;border-radius:50%;background:#ffbd2e;"></div>
+      <div style="width:8px;height:8px;border-radius:50%;background:#27c93f;"></div>
+      <span style="color:#6b7280;font-size:10px;margin-left:4px;font-family:monospace;">B — Bold Accent</span>
+    </div>
+    <div style="display:flex;height:220px;">
+      <!-- Sidebar with gradient -->
+      <div style="width:52px;background:linear-gradient(180deg,#1a1040 0%,#0f0921 100%);border-right:1px solid #2d1f6e;padding:10px 6px;display:flex;flex-direction:column;gap:4px;">
+        <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#7c3aed,#4f46e5);margin-bottom:8px;box-shadow:0 0 14px rgba(124,58,237,.5);display:flex;align-items:center;justify-content:center;">
+          <div style="width:14px;height:14px;border-radius:3px;background:rgba(255,255,255,.95);"></div>
+        </div>
+        <div style="width:32px;height:5px;border-radius:4px;background:linear-gradient(90deg,#7c3aed,#4f46e5);box-shadow:0 0 8px rgba(124,58,237,.6);"></div>
+        <div style="width:28px;height:5px;border-radius:4px;background:#1e1e35;margin-top:2px;"></div>
+        <div style="width:30px;height:5px;border-radius:4px;background:#1e1e35;margin-top:2px;"></div>
+        <div style="width:26px;height:5px;border-radius:4px;background:#1e1e35;margin-top:2px;"></div>
+      </div>
+      <!-- Main -->
+      <div style="flex:1;padding:10px;background:#09090f;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div style="width:50px;height:6px;border-radius:3px;background:#e2e8f0;"></div>
+          <div style="width:54px;height:22px;border-radius:6px;background:linear-gradient(135deg,#7c3aed,#4f46e5);box-shadow:0 0 12px rgba(124,58,237,.5);display:flex;align-items:center;justify-content:center;">
+            <div style="width:30px;height:3px;border-radius:2px;background:rgba(255,255,255,.8);"></div>
+          </div>
+        </div>
+        <!-- Gradient stat cards -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+          <div style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(79,70,229,.08));border:1px solid rgba(124,58,237,.3);border-radius:8px;padding:8px;box-shadow:0 0 12px rgba(124,58,237,.1);">
+            <div style="width:24px;height:4px;border-radius:2px;background:#6b7280;margin-bottom:5px;"></div>
+            <div style="width:36px;height:10px;border-radius:3px;background:linear-gradient(90deg,#7c3aed,#4f46e5);box-shadow:0 0 8px rgba(124,58,237,.4);"></div>
+          </div>
+          <div style="background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(5,150,105,.05));border:1px solid rgba(16,185,129,.25);border-radius:8px;padding:8px;">
+            <div style="width:28px;height:4px;border-radius:2px;background:#6b7280;margin-bottom:5px;"></div>
+            <div style="width:28px;height:10px;border-radius:3px;background:linear-gradient(90deg,#10b981,#059669);box-shadow:0 0 8px rgba(16,185,129,.4);"></div>
+          </div>
+        </div>
+        <!-- Glowing row items -->
+        <div style="background:#0f0f1a;border:1px solid #1e1e35;border-radius:8px;overflow:hidden;">
+          <div style="padding:5px 8px;border-bottom:1px solid #1e1e35;display:flex;gap:6px;align-items:center;background:rgba(124,58,237,.06);">
+            <div style="width:6px;height:6px;border-radius:50%;background:#7c3aed;box-shadow:0 0 6px rgba(124,58,237,.8);"></div>
+            <div style="width:50px;height:4px;border-radius:2px;background:#c4b5fd;"></div>
+            <div style="margin-left:auto;width:36px;height:14px;border-radius:4px;background:linear-gradient(90deg,#7c3aed,#4f46e5);box-shadow:0 0 8px rgba(124,58,237,.5);"></div>
+          </div>
+          <div style="padding:5px 8px;border-bottom:1px solid #1e1e35;display:flex;gap:6px;align-items:center;">
+            <div style="width:6px;height:6px;border-radius:50%;background:#10b981;box-shadow:0 0 5px rgba(16,185,129,.6);"></div>
+            <div style="width:40px;height:4px;border-radius:2px;background:#6b7280;"></div>
+            <div style="margin-left:auto;width:36px;height:14px;border-radius:4px;background:#1e1e35;border:1px solid #2d2d50;"></div>
+          </div>
+          <div style="padding:5px 8px;display:flex;gap:6px;align-items:center;">
+            <div style="width:6px;height:6px;border-radius:50%;background:#f59e0b;box-shadow:0 0 5px rgba(245,158,11,.5);"></div>
+            <div style="width:56px;height:4px;border-radius:2px;background:#6b7280;"></div>
+            <div style="margin-left:auto;width:36px;height:14px;border-radius:4px;background:#1e1e35;border:1px solid #2d2d50;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:10px 12px;background:#09090f;border-top:1px solid #1e1e35;">
+      <div style="font-size:11px;font-weight:600;color:#e2e8f0;margin-bottom:2px;">B — Bold Accent</div>
+      <div style="font-size:10px;color:#6b7280;line-height:1.4;">Violet brand color · gradient cards · glowing status dots · animated CTAs. High personality.</div>
+    </div>
+  </div>
+
+  <!-- Option C: Minimal/Type -->
+  <div class="option" data-choice="c" onclick="toggleSelect(this)" style="cursor:pointer;border:2px solid #30363d;border-radius:12px;overflow:hidden;transition:border-color .2s,transform .15s;background:#0a0a0a;">
+    <div style="background:#111111;padding:10px 12px;border-bottom:1px solid #222222;display:flex;align-items:center;gap:8px;">
+      <div style="width:8px;height:8px;border-radius:50%;background:#ff5f56;"></div>
+      <div style="width:8px;height:8px;border-radius:50%;background:#ffbd2e;"></div>
+      <div style="width:8px;height:8px;border-radius:50%;background:#27c93f;"></div>
+      <span style="color:#555555;font-size:10px;margin-left:4px;font-family:monospace;">C — Minimal</span>
+    </div>
+    <div style="display:flex;height:220px;">
+      <!-- Thin sidebar — text only -->
+      <div style="width:52px;background:#0a0a0a;border-right:1px solid #1a1a1a;padding:14px 8px;display:flex;flex-direction:column;gap:8px;">
+        <div style="width:28px;height:4px;border-radius:2px;background:#ffffff;margin-bottom:6px;"></div>
+        <div style="width:28px;height:4px;border-radius:2px;background:#ffffff;"></div>
+        <div style="width:22px;height:4px;border-radius:2px;background:#333333;"></div>
+        <div style="width:26px;height:4px;border-radius:2px;background:#333333;"></div>
+        <div style="width:20px;height:4px;border-radius:2px;background:#333333;"></div>
+      </div>
+      <!-- Main — lots of breathing room -->
+      <div style="flex:1;padding:14px 12px;background:#0a0a0a;">
+        <!-- Large type header -->
+        <div style="margin-bottom:12px;">
+          <div style="width:60px;height:8px;border-radius:2px;background:#ffffff;margin-bottom:4px;"></div>
+          <div style="width:80px;height:4px;border-radius:2px;background:#333333;"></div>
+        </div>
+        <!-- Divider line -->
+        <div style="height:1px;background:#1a1a1a;margin-bottom:10px;"></div>
+        <!-- Sparse rows — data only -->
+        <div style="display:flex;flex-direction:column;gap:7px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:3px;height:3px;border-radius:50%;background:#22c55e;flex-shrink:0;"></div>
+            <div style="width:55px;height:4px;border-radius:2px;background:#e5e5e5;"></div>
+            <div style="margin-left:auto;width:20px;height:4px;border-radius:2px;background:#22c55e;"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:3px;height:3px;border-radius:50%;background:#333333;flex-shrink:0;"></div>
+            <div style="width:42px;height:4px;border-radius:2px;background:#555555;"></div>
+            <div style="margin-left:auto;width:20px;height:4px;border-radius:2px;background:#333333;"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:3px;height:3px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></div>
+            <div style="width:64px;height:4px;border-radius:2px;background:#555555;"></div>
+            <div style="margin-left:auto;width:20px;height:4px;border-radius:2px;background:#f59e0b;"></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:3px;height:3px;border-radius:50%;background:#333333;flex-shrink:0;"></div>
+            <div style="width:48px;height:4px;border-radius:2px;background:#555555;"></div>
+            <div style="margin-left:auto;width:20px;height:4px;border-radius:2px;background:#333333;"></div>
+          </div>
+        </div>
+        <!-- Bottom action — just text -->
+        <div style="margin-top:14px;display:flex;align-items:center;gap:6px;">
+          <div style="width:50px;height:4px;border-radius:2px;background:#444444;"></div>
+          <div style="width:1px;height:10px;background:#222222;"></div>
+          <div style="width:36px;height:4px;border-radius:2px;background:#444444;"></div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:10px 12px;background:#0a0a0a;border-top:1px solid #1a1a1a;">
+      <div style="font-size:11px;font-weight:600;color:#e5e5e5;margin-bottom:2px;">C — Minimal / Typographic</div>
+      <div style="font-size:10px;color:#555555;line-height:1.4;">No decorative chrome · pure whitespace · strict type scale · only status signals get color. Terminal-inspired clarity.</div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:16px;padding:10px 14px;background:#0d1117;border:1px solid #21262d;border-radius:8px;font-size:11px;color:#6b7280;">
+  All three keep the dark theme. They differ in how much visual personality vs. restraint. Click one to select, then continue in the terminal.
+</div>
+
+<style>
+.option:hover { transform: translateY(-2px); border-color: #6366f1 !important; }
+.option.selected { border-color: #6366f1 !important; box-shadow: 0 0 0 3px rgba(99,102,241,.25); }
+</style>

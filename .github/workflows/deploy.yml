@@ -6,7 +6,7 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  ECR_REPOSITORY: resumeanalyze
+  ECR_REPOSITORY: resumeloop
 
 # Required secrets:
 #   AWS_DEPLOY_ROLE_ARN      — IAM role ARN for OIDC
@@ -29,17 +29,17 @@ jobs:
       image_tag: ${{ github.sha }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a  # v4
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@fa648b43de3d4d023bcb3f89ed6940096949c419  # v2
 
       - name: Build and push
         env:
@@ -60,7 +60,7 @@ jobs:
 
     steps:
       - name: Join Tailscale network
-        uses: tailscale/github-action@v2
+        uses: tailscale/github-action@4e4c49acaa9818630ce0bd7a564372c17e33fb4d  # v2
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
 
@@ -81,7 +81,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key \
               "$HOMELAB_USER@$HOMELAB_HOST" \
-              "cd ~/resumeanalyze && \
+              "cd ~/resumeloop && \
                export IMAGE_TAG=$IMAGE_TAG ECR_REGISTRY=$ECR_REGISTRY && \
                aws ecr get-login-password --region us-east-1 \
                  | docker login --username AWS --password-stdin $ECR_REGISTRY && \

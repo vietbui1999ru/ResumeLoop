@@ -1,0 +1,4 @@
+{"type":"server-started","port":52317,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:52317","screen_dir":"/Users/vietquocbui/repos/ResumeAnalyze/.superpowers/brainstorm/71059-1778795180/content","state_dir":"/Users/vietquocbui/repos/ResumeAnalyze/.superpowers/brainstorm/71059-1778795180/state"}
+{"type":"screen-added","file":"/Users/vietquocbui/repos/ResumeAnalyze/.superpowers/brainstorm/71059-1778795180/content/design-directions.html"}
+{"type":"screen-added","file":"/Users/vietquocbui/repos/ResumeAnalyze/.superpowers/brainstorm/71059-1778795180/content/hybrid-ac.html"}
+{"type":"server-stopped","reason":"idle timeout"}

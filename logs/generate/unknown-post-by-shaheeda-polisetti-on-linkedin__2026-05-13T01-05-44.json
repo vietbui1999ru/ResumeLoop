@@ -1,0 +1,24 @@
+{
+  "jobId": "unknown-post-by-shaheeda-polisetti-on-linkedin",
+  "company": "Unknown",
+  "role_title": "Post by Shaheeda Polisetti on LinkedIn",
+  "started_at": "2026-05-13T01:05:44.276Z",
+  "stages": [
+    {
+      "stage": "preflight",
+      "status": "ok",
+      "data": {},
+      "ts": "2026-05-13T01:05:45.098Z"
+    },
+    {
+      "stage": "ai-reason",
+      "status": "fail",
+      "data": {
+        "message": "Error: No AI provider configured. Go to Settings → AI to add an API key."
+      },
+      "ts": "2026-05-13T01:05:45.100Z"
+    }
+  ],
+  "outcome": "failed",
+  "completed_at": "2026-05-13T01:05:45.101Z"
+}

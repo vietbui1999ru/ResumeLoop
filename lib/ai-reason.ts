@@ -73,7 +73,7 @@ export function validateResult(r: ReasoningResult): void {
   if (!r.personaTitle) throw new Error('personaTitle missing from AI response')
 
   if (r.tagline.length > 76) {
-    let t = r.tagline.slice(0, 76)
+    const t = r.tagline.slice(0, 76)
     const sp = t.lastIndexOf(' ')
     r.tagline = sp > 60 ? t.slice(0, sp) : t
   }

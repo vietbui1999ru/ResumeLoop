@@ -202,7 +202,7 @@ export async function POST(req: Request) {
 
           // Save assistant turn
           const assistantId = crypto.randomUUID()
-          const cleanBlocks = toolBlocks.map(({ _raw: _, ...rest }) => rest)
+          const cleanBlocks = toolBlocks.map(({ _raw: _r, ...rest }) => rest)
           await db.run(
             'INSERT INTO chat_messages (id, session_id, role, content, tool_calls, user_id) VALUES (?, ?, ?, ?, ?, ?)',
             [

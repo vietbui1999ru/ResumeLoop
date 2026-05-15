@@ -19,6 +19,8 @@ import { CSS } from '@dnd-kit/utilities'
 import { useJobOutput } from '@/lib/useJobOutput'
 import PdfViewer from './PdfViewer'
 import OutreachPanel from './OutreachPanel'
+import { motion } from 'framer-motion'
+import { DURATION, EASE } from '@/lib/motion'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -386,18 +388,26 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: DURATION.fast, ease: EASE }}
       onClick={onClose}
     >
-      <div
+      <motion.div
         ref={modalRef}
-        className={`relative bg-zinc-900 border border-zinc-700 rounded-lg flex flex-col mx-4 overflow-hidden ${
+        className={`relative bg-surface-card border border-zinc-800 rounded-2xl flex flex-col mx-4 overflow-hidden ${
           modalSize
             ? ''
             : `w-full ${autoModalWidth} max-h-[92vh] transition-all duration-150`
         }`}
         style={modalSize ? { width: modalSize.width, height: modalSize.height } : undefined}
+        initial={{ scale: 0.96, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.96, opacity: 0 }}
+        transition={{ duration: DURATION.base, ease: EASE }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -532,8 +542,8 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
             <path d="M2 9 L9 2 M5 9 L9 5 M8 9 L9 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
 
@@ -552,6 +562,8 @@ function JdPanel({ job, tags, output, outputLoading, onGenCoverLetter, coverLoad
 }) {
   const [editingUrl, setEditingUrl] = useState(false)
   const [urlDraft, setUrlDraft] = useState('')
+  // Guard against javascript: URLs — only allow http(s)
+  const safeApplyUrl = applyUrl?.match(/^https?:\/\//) ? applyUrl : null
 
   function startEdit() {
     setUrlDraft(applyUrl ?? '')
@@ -597,10 +609,10 @@ function JdPanel({ job, tags, output, outputLoading, onGenCoverLetter, coverLoad
               </button>
               <button onClick={() => setEditingUrl(false)} className="text-xs text-zinc-500 hover:text-zinc-300">Cancel</button>
             </span>
-          ) : applyUrl ? (
+          ) : safeApplyUrl ? (
             <span className="inline-flex items-center gap-2">
-              <a href={applyUrl} target="_blank" rel="noreferrer" className="text-xs text-indigo-400 hover:text-indigo-300 underline truncate max-w-xs">
-                {applyUrl}
+              <a href={safeApplyUrl} target="_blank" rel="noreferrer" className="text-xs text-indigo-400 hover:text-indigo-300 underline truncate max-w-xs">
+                {safeApplyUrl}
               </a>
               <button onClick={startEdit} className="text-xs text-zinc-600 hover:text-zinc-400">Edit</button>
             </span>
@@ -613,8 +625,8 @@ function JdPanel({ job, tags, output, outputLoading, onGenCoverLetter, coverLoad
       {/* Actions row */}
       <div className="px-4 py-2 border-b border-zinc-700 flex flex-wrap gap-3 items-center shrink-0">
         <a href={`file://${job.file_path}`} target="_blank" rel="noreferrer" className="text-xs text-indigo-400 hover:text-indigo-300">Open file ↗</a>
-        {applyUrl && (
-          <a href={applyUrl} target="_blank" rel="noreferrer" className="text-xs text-green-400 hover:text-green-300">Apply ↗</a>
+        {safeApplyUrl && (
+          <a href={safeApplyUrl} target="_blank" rel="noreferrer" className="text-xs text-green-400 hover:text-green-300">Apply ↗</a>
         )}
         {!outputLoading && output && (
           <>
@@ -634,7 +646,7 @@ function JdPanel({ job, tags, output, outputLoading, onGenCoverLetter, coverLoad
       {!outputLoading && output && (
         <div className="px-4 py-3 border-b border-zinc-700 shrink-0">
           <p className="text-xs text-zinc-500 uppercase tracking-wide mb-1.5">Resume Output</p>
-          {output.tagline && <p className="text-xs text-zinc-300 italic mb-1">"{output.tagline}"</p>}
+          {output.tagline && <p className="text-xs text-zinc-300 italic mb-1">&ldquo;{output.tagline}&rdquo;</p>}
           <div className="flex flex-wrap gap-x-3 text-xs text-zinc-500">
             {output.variant && <span>Track: <span className="text-zinc-400">{output.variant}</span></span>}
             {output.built_at && <span>Built: <span className="text-zinc-400">{fmtDate(output.built_at)}</span></span>}

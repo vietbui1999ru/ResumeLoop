@@ -148,7 +148,8 @@ function MiniPicker({
 
 // ── Main SetupPanel ──────────────────────────────────────────────────────────
 export function SetupPanel({ onComplete }: { onComplete: () => void }) {
-  const { beginAfterSetup } = useTourContext()
+  // Tour auto-activates on /jobs navigation via TourContext's derived activeStep
+  useTourContext()
 
   const [jobsPath, setJobsPath]   = useState('')
   const [outputPath, setOutputPath] = useState('')
@@ -206,7 +207,6 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
     setScanStatus('Scanning…')
     await fetch('/api/batch/scan', { method: 'POST' })
 
-    beginAfterSetup()
     onComplete()
   }
 
@@ -218,8 +218,8 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-600/40 mb-4">
             <span className="text-2xl">⚡</span>
           </div>
-          <h2 className="text-xl font-semibold text-white">Set up ResumeAnalyze</h2>
-          <p className="text-sm text-zinc-400 mt-1">Three things and you're scanning jobs.</p>
+          <h2 className="text-xl font-semibold text-white">Set up ResumeLoop</h2>
+          <p className="text-sm text-zinc-400 mt-1">Three things and you&apos;re scanning jobs.</p>
         </div>
 
         {/* Steps */}
@@ -284,7 +284,7 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
                 />
               )}
               {provider === 'ollama' && (
-                <p className="text-xs text-zinc-500">Ollama runs locally — no key needed. Make sure it's running on port 11434.</p>
+                <p className="text-xs text-zinc-500">Ollama runs locally — no key needed. Make sure it&apos;s running on port 11434.</p>
               )}
               {aiError && <p className="text-xs text-red-400">{aiError}</p>}
             </div>
