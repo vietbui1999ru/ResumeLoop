@@ -1,4 +1,50 @@
 {
+  "candidate_profile": {
+    "narrative": "M.S. CS student (Dec 2025, Univ. of Dayton) with a dual B.A. in Applied Math + CS from Augustana. Started with tutoring and IT help desk, moved into formal verification research (Rocq/Coq, IEEE KSE 2024 co-author), then pivoted to production systems: FastAPI platforms, Go networking, cloud infra on Proxmox/Terraform, and AI tooling with the Claude API. Currently contributing to GitLab open source and building biophysical simulation infrastructure at Carboncopies. The through-line is building real systems that work under real constraints — research-grade rigor applied to production-grade engineering.",
+    "self_assessment": {
+      "portrays_well": [
+        "Full-stack production deployments (FastAPI/React, Go, TypeScript/Next.js)",
+        "AI/LLM integration — Claude API, LangChain, agent orchestration, MCP",
+        "Cloud and homelab infrastructure — Proxmox, Terraform, Ansible, Docker, k8s",
+        "Research credibility — IEEE publication, formal verification, RL adversarial robustness",
+        "Open-source contributor (GitLab) + active maintainer velocity",
+        "iOS SwiftUI development — OutfitTracker, CalAI, SpotiSwipe"
+      ],
+      "known_gaps": [
+        "Limited enterprise Java/Spring or .NET production experience",
+        "No published iOS app on App Store yet (OutfitTracker in progress)",
+        "Homelab infra is personal scale — no hyperscaler (AWS/GCP/Azure) production on-call history",
+        "Go experience is project-level, not 2+ years professional"
+      ],
+      "not_this": [
+        "Do not pitch as a PM, TPM, or product role",
+        "Do not claim C++ or CUDA production expertise (Jetson project is academic)",
+        "Do not overstate ML research — KSE 2024 is 2nd author, Coq paper is draft not published",
+        "Do not pitch for defense/clearance roles or export-controlled positions",
+        "Do not claim AWS production on-call — homelab only"
+      ]
+    },
+    "target_posture": {
+      "primary_roles": [
+        "Software Engineer (Full-Stack)",
+        "Backend / API Engineer",
+        "GenAI / AI Engineer",
+        "iOS Engineer (new-grad track)"
+      ],
+      "secondary_roles": [
+        "SRE / DevOps Engineer",
+        "Platform Engineer",
+        "MLOps Engineer",
+        "Forward Deployed Engineer"
+      ],
+      "auth_urgency": "OPT active (authorized to work, no sponsorship needed now). STEM OPT extension available — up to 3 years total. No H-1B required yet. 'Authorized to work in the US' roles qualify.",
+      "constraints": [
+        "Remote-first preferred; open to Harrisburg PA or relocation for strong offers",
+        "No US Citizen / GC only roles",
+        "No explicit 'no sponsorship' if OPT counts as no-sponsorship (flag ambiguous cases)"
+      ]
+    }
+  },
   "_meta": {
     "version": "2.3",
     "updated": "2026-03-26",
