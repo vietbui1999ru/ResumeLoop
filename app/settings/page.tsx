@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { signOut } from 'next-auth/react'
 import { Skeleton } from '@/components/Skeleton'
-import { FONT_SIZES, type FontSize, applyFontSize } from '@/lib/font-size'
+import { FONT_SIZES, type FontSize, applyFontSize, isValidFontSize } from '@/lib/font-size'
 
 // ── AI Provider types ────────────────────────────────────────────────────────
 type Provider = 'anthropic' | 'openai' | 'google' | 'groq' | 'openrouter' | 'ollama'
@@ -292,12 +292,7 @@ function FontSizeSection() {
 
   useEffect(() => {
     const stored = localStorage.getItem('rl-font-size')
-    if (stored === 'small' || stored === 'medium' || stored === 'large') {
-      // Must re-apply class here: React hydration strips any class added by the
-      // beforeInteractive script because the server-rendered <html> has no font class.
-      applyFontSize(stored)
-      setSize(stored)
-    }
+    if (isValidFontSize(stored)) setSize(stored)
   }, [])
 
   const apply = (s: FontSize) => {
@@ -321,7 +316,7 @@ function FontSizeSection() {
         onChange={e => apply(FONT_SIZES[Number(e.target.value)])}
         className="w-full accent-indigo-500 cursor-pointer h-1.5"
       />
-      <div className="flex justify-between text-[0.625rem] text-zinc-500 select-none">
+      <div className="flex justify-between text-2xs text-zinc-500 select-none">
         <span>Small</span>
         <span>Medium</span>
         <span>Large</span>
