@@ -1,15 +1,17 @@
 'use client'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { extractAllTags } from '@/lib/tag-filter'
+import dynamic from 'next/dynamic'
 import { AnimatedCheckbox } from '@/components/AnimatedCheckbox'
-import JobDetailModal from '@/components/JobDetailModal'
-import GenerationPanel from '@/components/GenerationPanel'
 import SessionSwitcher from '@/components/SessionSwitcher'
 import { VALID_ACTIONS } from '@/lib/actions'
-import ReasoningModal from '@/components/ReasoningModal'
-import { SetupPanel } from '@/components/SetupPanel'
 import { useSession } from '@/contexts/SessionContext'
 import { AnimatePresence } from 'framer-motion'
+
+const JobDetailModal  = dynamic(() => import('@/components/JobDetailModal'),  { ssr: false })
+const GenerationPanel = dynamic(() => import('@/components/GenerationPanel'), { ssr: false })
+const ReasoningModal  = dynamic(() => import('@/components/ReasoningModal'),  { ssr: false })
+const SetupPanel      = dynamic(() => import('@/components/SetupPanel').then(m => ({ default: m.SetupPanel })), { ssr: false })
 
 const ACTION_COLORS: Record<string, string> = {
   '0-Saved':        'text-zinc-400',
@@ -62,7 +64,7 @@ function SortTh({ label, col, sort, onSort, className = '' }: {
 
 // Color clipped date by staleness — encodes the 3-day apply window
 function clipColor(iso: string | null): string {
-  if (!iso) return 'text-zinc-600'
+  if (!iso) return 'text-zinc-400'
   const days = (Date.now() - new Date(iso).getTime()) / 86_400_000
   if (days <= 3) return 'text-green-400'
   if (days <= 7) return 'text-amber-400'
@@ -392,7 +394,7 @@ export default function JobsPage() {
                   <td className="py-3 pr-4">
                     <div className="flex items-center gap-1.5">
                       {job.visa_status === 'kill' && (
-                        <span className="text-red-500 text-[10px]" title="No sponsorship">⊘</span>
+                        <span className="text-red-500 text-[0.625rem]" title="No sponsorship">⊘</span>
                       )}
                       <span className="text-zinc-200">{job.company}</span>
                     </div>
@@ -403,7 +405,7 @@ export default function JobsPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-zinc-300">{job.role_title}</span>
                       {job.role_track && (
-                        <span className="text-[10px] px-1.5 py-0.5 bg-zinc-800 border border-zinc-700/80 text-zinc-500 rounded font-mono leading-none">
+                        <span className="text-[0.625rem] px-1.5 py-0.5 bg-zinc-800 border border-zinc-700/80 text-zinc-500 rounded font-mono leading-none">
                           {job.role_track}
                         </span>
                       )}
@@ -462,7 +464,7 @@ export default function JobsPage() {
                   <td className="py-2" onClick={e => e.stopPropagation()}>
                     <button
                       onClick={() => void hideJob(job.id, job.hidden ? 0 : 1)}
-                      className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-zinc-300 text-xs px-1 transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-300 text-xs px-1 transition-opacity"
                       title={job.hidden ? 'Unhide' : 'Hide'}
                     >
                       {job.hidden ? '↺' : '✕'}
