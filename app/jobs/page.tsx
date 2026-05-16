@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { extractAllTags, parseTags } from '@/lib/tag-filter'
 import { PIPELINE_TAGS } from '@/lib/pipeline-tags'
 import dynamic from 'next/dynamic'
-import { Skeleton } from '@/components/Skeleton'
+import { JobsTableSkeleton } from '@/components/JobsTableSkeleton'
 import { AnimatedCheckbox } from '@/components/AnimatedCheckbox'
 import SessionSwitcher from '@/components/SessionSwitcher'
 import { VALID_ACTIONS } from '@/lib/actions'
@@ -153,7 +153,6 @@ export default function JobsPage() {
   }, [debouncedQ, showHidden, fitMin, trackFilter, visaFilter, actionFilter, tagFilter, fromDate])
 
   useEffect(() => {
-    reload()
     fetch('/api/settings')
       .then(r => r.ok ? r.json() : null)
       .then((d: Record<string, unknown> | null) => {
@@ -161,8 +160,12 @@ export default function JobsPage() {
       })
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Re-fetch whenever any filter changes (debouncedQ handles the search delay)
-  useEffect(() => { reload() }, [reload])
+  // Re-fetch whenever any filter changes (debouncedQ handles the search delay).
+  // Cleanup aborts any in-flight request when filters change again or on unmount.
+  useEffect(() => {
+    reload()
+    return () => { abortRef.current?.abort() }
+  }, [reload])
 
   const tracks  = useMemo(() => Array.from(new Set(jobs.map(j => j.role_track).filter(Boolean))).sort(), [jobs])
   const allTags = useMemo(() => extractAllTags(jobs), [jobs])
@@ -230,16 +233,23 @@ export default function JobsPage() {
     }
   }, [reload, setRowError])
 
+  const jobSortVal = (j: Job, col: SortCol): string | number => {
+    if (col === 'fit_pct')   return j.fit_pct
+    if (col === 'clipped_at') return j.clipped_at ?? j.file_mtime ?? ''
+    if (col === 'company')   return j.company
+    if (col === 'role_title') return j.role_title
+    return j.action ?? ''
+  }
+
   const visible = useMemo(() => {
     return [...jobs].sort((a, b) => {
-      let va: string | number = (a as unknown as Record<string, string | number>)[sort.col] ?? ''
-      let vb: string | number = (b as unknown as Record<string, string | number>)[sort.col] ?? ''
-      if (sort.col === 'fit_pct') { va = a.fit_pct; vb = b.fit_pct }
+      const va = jobSortVal(a, sort.col)
+      const vb = jobSortVal(b, sort.col)
       const cmp = typeof va === 'number' && typeof vb === 'number'
         ? va - vb : String(va).localeCompare(String(vb))
       return sort.dir === 'asc' ? cmp : -cmp
     })
-  }, [jobs, sort])
+  }, [jobs, sort]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const allVisibleSelected = visible.length > 0 && visible.every(j => selected.has(j.id))
   const toggleAll = () => setSelected(allVisibleSelected ? new Set() : new Set(visible.map(j => j.id)))
@@ -386,6 +396,7 @@ export default function JobsPage() {
 
       {/* ── Table ──────────────────────────────────────────────── */}
       <div data-tour="jobs-table" className={`px-6 pt-4 pb-6 ${jobsPathExists === false && jobs.length === 0 ? 'hidden' : ''}`}>
+        {initialLoading ? <JobsTableSkeleton /> : (
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-zinc-800">
@@ -402,29 +413,12 @@ export default function JobsPage() {
             </tr>
           </thead>
           <tbody>
-            {initialLoading ? (
-              Array.from({ length: 8 }).map((_, i) => (
-                <tr key={i} className="border-b border-zinc-800/50">
-                  <td className="py-3 pr-3"><Skeleton className="h-4 w-4" /></td>
-                  <td className="py-3 pr-4"><Skeleton className="h-4 w-28" /></td>
-                  <td className="py-3 pr-4">
-                    <div className="flex items-center gap-2">
-                      <Skeleton className="h-4 w-40" />
-                      <Skeleton className="h-4 w-16 rounded" />
-                    </div>
-                  </td>
-                  <td className="py-3 pr-4 w-14"><Skeleton className="h-5 w-12 rounded-full" /></td>
-                  <td className="py-2 pr-4 w-28"><Skeleton className="h-7 w-28 rounded" /></td>
-                  <td className="py-3 pr-4 w-20"><Skeleton className="h-4 w-10" /></td>
-                  <td className="py-3 w-20"><Skeleton className="h-4 w-8" /></td>
-                  <td className="py-3 w-6" />
-                </tr>
-              ))
-            ) : (
+            {(
               visible.map((job, idx) => {
                 const currentAction = job.action ?? '0-Saved'
                 const rowError      = rowErrors.get(job.id)
                 const clippedIso    = job.clipped_at ?? job.file_mtime
+                const jobTags       = parseTags(job)
                 return (
                   <tr
                     key={job.id}
@@ -444,7 +438,7 @@ export default function JobsPage() {
                     <td className="py-3 pr-4">
                       <div className="flex items-center gap-1.5">
                         {job.visa_status === 'kill' && (
-                          <span className="text-red-500 text-[0.625rem]" title="No sponsorship">⊘</span>
+                          <span className="text-red-500 text-2xs" title="No sponsorship">⊘</span>
                         )}
                         <span className="text-zinc-200">{job.company}</span>
                       </div>
@@ -455,13 +449,13 @@ export default function JobsPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-zinc-300">{job.role_title}</span>
                         {job.role_track && (
-                          <span className="text-[0.625rem] px-1.5 py-0.5 bg-zinc-800 border border-zinc-700/80 text-zinc-500 rounded font-mono leading-none">
+                          <span className="text-2xs px-1.5 py-0.5 bg-zinc-800 border border-zinc-700/80 text-zinc-500 rounded font-mono leading-none">
                             {job.role_track}
                           </span>
                         )}
                         <div className="flex gap-0.5 items-center">
                           {PIPELINE_TAGS.map(tag => {
-                            const active = parseTags(job).includes(tag.key)
+                            const active = jobTags.includes(tag.key)
                             return (
                               <button
                                 key={tag.key}
@@ -545,6 +539,7 @@ export default function JobsPage() {
             )}
           </tbody>
         </table>
+        )}
 
         {!initialLoading && visible.length === 0 && (
           <p className="text-zinc-500 text-sm text-center py-10">No jobs match current filters.</p>

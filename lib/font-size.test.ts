@@ -4,6 +4,7 @@ import {
   isValidFontSize,
   fontClass,
   buildFontInitScript,
+  applyFontSize,
 } from './font-size'
 
 describe('FONT_SIZES', () => {
@@ -55,5 +56,55 @@ describe('buildFontInitScript', () => {
     const script = buildFontInitScript()
     expect(script).toContain('classList.remove')
     expect(script).toContain('classList.add')
+  })
+})
+
+// Helper: minimal HTMLElement-like classList mock
+function makeRoot(initial: string[] = []) {
+  const classes = new Set<string>(initial)
+  return {
+    classList: {
+      add:    (c: string) => { classes.add(c) },
+      remove: (c: string) => { classes.delete(c) },
+      contains:(c: string) => classes.has(c),
+      get _classes() { return classes },
+    },
+  } as unknown as HTMLElement
+}
+
+describe('applyFontSize', () => {
+  it('adds the correct font class to root', () => {
+    const root = makeRoot()
+    applyFontSize('large', root)
+    expect((root.classList as unknown as { _classes: Set<string> })._classes.has('font-large')).toBe(true)
+  })
+
+  it('removes all other font classes before adding new one', () => {
+    // Start with font-small already on root
+    const root = makeRoot(['font-small', 'font-medium'])
+    applyFontSize('large', root)
+    const cls = (root.classList as unknown as { _classes: Set<string> })._classes
+    expect(cls.has('font-small')).toBe(false)
+    expect(cls.has('font-medium')).toBe(false)
+    expect(cls.has('font-large')).toBe(true)
+  })
+
+  it('applying same size twice leaves exactly one font class', () => {
+    const root = makeRoot(['font-medium'])
+    applyFontSize('medium', root)
+    applyFontSize('medium', root)
+    const cls = (root.classList as unknown as { _classes: Set<string> })._classes
+    const fontClasses = [...cls].filter(c => c.startsWith('font-'))
+    expect(fontClasses).toHaveLength(1)
+    expect(fontClasses[0]).toBe('font-medium')
+  })
+
+  it('switching size removes old and sets new', () => {
+    const root = makeRoot()
+    applyFontSize('small', root)
+    applyFontSize('large', root)
+    const cls = (root.classList as unknown as { _classes: Set<string> })._classes
+    expect(cls.has('font-small')).toBe(false)
+    expect(cls.has('font-large')).toBe(true)
   })
 })

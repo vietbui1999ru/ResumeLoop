@@ -65,7 +65,7 @@ function MiniPicker({
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[0.625rem] shrink-0 ${
+        <div className={`w-4 h-4 rounded-full flex items-center justify-center text-2xs shrink-0 ${
           configured ? 'bg-green-500 text-white' : 'bg-zinc-700 text-zinc-400'
         }`}>
           {configured ? '✓' : '○'}
@@ -252,7 +252,7 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
             <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">Step 3</p>
 
             <div className="flex items-center gap-2">
-              <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[0.625rem] shrink-0 ${
+              <div className={`w-4 h-4 rounded-full flex items-center justify-center text-2xs shrink-0 ${
                 (provider === 'ollama' || apiKey) ? 'bg-green-500 text-white' : 'bg-zinc-700 text-zinc-400'
               }`}>
                 {(provider === 'ollama' || apiKey) ? '✓' : '○'}
