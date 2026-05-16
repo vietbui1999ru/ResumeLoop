@@ -53,7 +53,7 @@ export function Sidebar() {
     <nav className="w-12 shrink-0 border-r border-zinc-800 bg-surface-card flex flex-col items-center py-3 gap-1 h-full">
       {/* Logo mark */}
       <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center mb-2 shrink-0">
-        <span className="text-[10px] font-bold text-white tracking-tight">RA</span>
+        <span className="text-[0.625rem] font-bold text-white tracking-tight">RA</span>
       </div>
 
       {/* Nav items */}
@@ -110,7 +110,7 @@ export function Sidebar() {
         {/* Unseen pages dropdown */}
         {menuOpen && hasUnseen && (
           <div className="absolute bottom-full left-full mb-1 ml-1 w-44 bg-surface-card border border-zinc-700 rounded-lg shadow-xl shadow-black/50 py-1 z-[90]">
-            <p className="px-3 py-1.5 text-[10px] font-semibold text-zinc-500 uppercase tracking-wider">
+            <p className="px-3 py-1.5 text-[0.625rem] font-semibold text-zinc-500 uppercase tracking-wider">
               Continue tour
             </p>
             {pagesWithUnseen.map(page => (
