@@ -46,7 +46,7 @@ export function OutputHistoryTable({ outputs }: { outputs: Output[] }) {
               ))}
             </tbody>
           </table>
-          {outputs.length === 0 && <p className="text-zinc-600 text-sm mt-4">No resumes built yet.</p>}
+          {outputs.length === 0 && <p className="text-zinc-400 text-sm mt-4">No resumes built yet.</p>}
         </div>
       </div>
 

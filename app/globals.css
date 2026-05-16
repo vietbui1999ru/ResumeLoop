@@ -3,6 +3,14 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    font-size: 115%; /* medium — overridden by .font-* classes */
+  }
+
+  html.font-small  { font-size: 100%; }
+  html.font-medium { font-size: 115%; }
+  html.font-large  { font-size: 130%; }
+
   body {
     line-height: 1.625; /* leading-relaxed */
   }

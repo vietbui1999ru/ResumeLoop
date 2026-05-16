@@ -1,6 +1,8 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { signOut } from 'next-auth/react'
+import { Skeleton } from '@/components/Skeleton'
+import { FONT_SIZES, type FontSize, applyFontSize } from '@/lib/font-size'
 
 // ── AI Provider types ────────────────────────────────────────────────────────
 type Provider = 'anthropic' | 'openai' | 'google' | 'groq' | 'openrouter' | 'ollama'
@@ -41,12 +43,16 @@ function AIProviderSection() {
   const [ollamaModels, setOllamaModels] = useState<string[]>([])
   const [fetchingModels, setFetchingModels] = useState(false)
   const [fetchModelsErr, setFetchModelsErr] = useState('')
+  const aiAbortRef = useRef<AbortController | null>(null)
 
   const load = useCallback(() => {
-    fetch('/api/settings/ai').then(r => r.json()).then((d: AISettings) => {
-      setAi(d)
-      setModel(d.default_models[provider] ?? '')
-    })
+    aiAbortRef.current?.abort()
+    const ctrl = new AbortController()
+    aiAbortRef.current = ctrl
+    fetch('/api/settings/ai', { signal: ctrl.signal })
+      .then(r => r.json())
+      .then((d: AISettings) => { setAi(d); setModel(d.default_models[provider] ?? '') })
+      .catch(e => { if (e.name !== 'AbortError') console.error('AI settings fetch failed', e) })
   }, [provider])
 
   useEffect(() => { load() }, [load])
@@ -100,7 +106,28 @@ function AIProviderSection() {
     setFetchingModels(false)
   }
 
-  if (!ai) return <div className="text-zinc-500 text-sm">Loading…</div>
+  if (!ai) return (
+    <div className="space-y-4">
+      <div className="border border-zinc-800 rounded-lg overflow-hidden">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-zinc-800">
+            <div className="flex-1 space-y-1.5">
+              <Skeleton className="h-4 w-44" />
+              <Skeleton className="h-3 w-60" />
+            </div>
+            <div className="flex gap-1 shrink-0">
+              <Skeleton className="h-7 w-20 rounded" />
+              <Skeleton className="h-7 w-16 rounded" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="space-y-3">
+        <Skeleton className="h-9 w-full rounded-lg" />
+        <Skeleton className="h-9 w-full rounded-lg" />
+      </div>
+    </div>
+  )
 
   return (
     <div className="space-y-4">
@@ -226,7 +253,7 @@ function AIProviderSection() {
         </div>
       </div>
 
-      <p className="text-xs text-zinc-600">
+      <p className="text-xs text-zinc-400">
         Keys are AES-256 encrypted at rest. The full key is never returned by the API after saving.
         Chat currently requires Anthropic as active provider.
       </p>
@@ -250,6 +277,57 @@ interface Settings {
   jobs_path_exists:     boolean
   output_path_exists:   boolean
   outreach_path_exists: boolean
+}
+
+// ── Font size preference ──────────────────────────────────────────────────────
+
+const FONT_SIZE_LABELS: Record<FontSize, string> = {
+  small:  'Small',
+  medium: 'Medium',
+  large:  'Large',
+}
+
+function FontSizeSection() {
+  const [size, setSize] = useState<FontSize>('medium')
+
+  useEffect(() => {
+    const stored = localStorage.getItem('rl-font-size')
+    if (stored === 'small' || stored === 'medium' || stored === 'large') {
+      // Must re-apply class here: React hydration strips any class added by the
+      // beforeInteractive script because the server-rendered <html> has no font class.
+      applyFontSize(stored)
+      setSize(stored)
+    }
+  }, [])
+
+  const apply = (s: FontSize) => {
+    setSize(s)
+    localStorage.setItem('rl-font-size', s)
+    applyFontSize(s)
+  }
+
+  return (
+    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-zinc-300">Font Size</p>
+        <span className="text-xs text-zinc-500">{FONT_SIZE_LABELS[size]}</span>
+      </div>
+      <input
+        type="range"
+        min={0}
+        max={2}
+        step={1}
+        value={FONT_SIZES.indexOf(size)}
+        onChange={e => apply(FONT_SIZES[Number(e.target.value)])}
+        className="w-full accent-indigo-500 cursor-pointer h-1.5"
+      />
+      <div className="flex justify-between text-[0.625rem] text-zinc-500 select-none">
+        <span>Small</span>
+        <span>Medium</span>
+        <span>Large</span>
+      </div>
+    </div>
+  )
 }
 
 function FolderPicker({
@@ -415,7 +493,13 @@ export default function SettingsPage() {
     setTimeout(() => setSaveStatus(''), 2000)
   }
 
-  if (!settings) return <div className="text-zinc-500 text-sm">Loading…</div>
+  if (!settings) return (
+    <div className="space-y-3">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <Skeleton key={i} className="h-10 w-full rounded-lg" />
+      ))}
+    </div>
+  )
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto p-6">
@@ -426,6 +510,11 @@ export default function SettingsPage() {
             {saving ? 'Saving…' : saveStatus}
           </span>
         )}
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="text-xs font-semibold text-zinc-500 uppercase">Appearance</h2>
+        <FontSizeSection />
       </div>
 
       <div className="space-y-3">
@@ -486,7 +575,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <p className="text-xs text-zinc-600">
+      <p className="text-xs text-zinc-400">
         Paths are stored in the database and override <code>.env.local</code> values.
         In Docker, use container-side paths (e.g. <code>/jobs</code>, <code>/output</code>).
       </p>

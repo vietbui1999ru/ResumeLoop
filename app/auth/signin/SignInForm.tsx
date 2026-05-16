@@ -58,7 +58,7 @@ export default function SignInForm({ showDemoHint }: { showDemoHint: boolean }) 
 
         <div className="flex items-center gap-3 mb-6">
           <div className="flex-1 h-px bg-zinc-800" />
-          <span className="text-xs text-zinc-600">or</span>
+          <span className="text-xs text-zinc-400">or</span>
           <div className="flex-1 h-px bg-zinc-800" />
         </div>
 
@@ -76,7 +76,7 @@ export default function SignInForm({ showDemoHint }: { showDemoHint: boolean }) 
           <div>
             <div className="flex items-center justify-between mb-1">
               <label htmlFor="password" className="text-xs text-zinc-500">Password</label>
-              <Link href="/auth/forgot-password" className="text-xs text-zinc-600 hover:text-indigo-400">
+              <Link href="/auth/forgot-password" className="text-xs text-zinc-400 hover:text-indigo-400">
                 Forgot password?
               </Link>
             </div>
@@ -104,7 +104,7 @@ export default function SignInForm({ showDemoHint }: { showDemoHint: boolean }) 
         </p>
 
         {showDemoHint && (
-          <p className="text-xs text-zinc-600 mt-4 text-center">
+          <p className="text-xs text-zinc-400 mt-4 text-center">
             Demo: <code className="text-zinc-500">demo@demo.com</code> / <code className="text-zinc-500">demo</code>
           </p>
         )}

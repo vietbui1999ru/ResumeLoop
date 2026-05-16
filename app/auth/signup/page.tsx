@@ -72,7 +72,7 @@ export default function SignUpPage() {
 
           <div>
             <label htmlFor="password" className="text-xs text-zinc-500 block mb-1">
-              Password <span className="text-zinc-600">(min 8 characters)</span>
+              Password <span className="text-zinc-400">(min 8 characters)</span>
             </label>
             <input
               id="password"

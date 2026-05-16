@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
+import { Skeleton } from '@/components/Skeleton'
 import ReactMarkdown from 'react-markdown'
 import type { Components } from 'react-markdown'
 import type { Element } from 'hast'
@@ -44,7 +45,7 @@ function BulletsPreview({ json, onJump }: { json: string; onJump?: (path: string
 
   if (!parsed) {
     return (
-      <div className="flex-1 flex items-center justify-center text-zinc-600 text-xs font-mono px-4">
+      <div className="flex-1 flex items-center justify-center text-zinc-400 text-xs font-mono px-4">
         Invalid JSON — fix syntax errors to see preview
       </div>
     )
@@ -57,7 +58,7 @@ function BulletsPreview({ json, onJump }: { json: string; onJump?: (path: string
 
   if (allEmpty) {
     return (
-      <div className="flex-1 flex items-center justify-center text-zinc-600 text-xs font-mono px-4">
+      <div className="flex-1 flex items-center justify-center text-zinc-400 text-xs font-mono px-4">
         No entries found. Expected: experience[], projects[], skills[]
       </div>
     )
@@ -67,7 +68,7 @@ function BulletsPreview({ json, onJump }: { json: string; onJump?: (path: string
     <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5 text-xs font-mono">
       {experience.length > 0 && (
         <section>
-          <p className="text-zinc-500 uppercase tracking-widest text-[10px] mb-2">Work</p>
+          <p className="text-zinc-500 uppercase tracking-widest text-[0.625rem] mb-2">Work</p>
           {experience.map((exp, ei) => (
             <div key={exp.id} className="mb-3">
               <p
@@ -77,7 +78,7 @@ function BulletsPreview({ json, onJump }: { json: string; onJump?: (path: string
               >{exp.id}</p>
               {Object.entries(exp.bullets).map(([variant, bullets]) => (
                 <div key={variant} className="mb-2 ml-2">
-                  <p className="text-zinc-600 text-[10px] mb-1">[{variant}]</p>
+                  <p className="text-zinc-400 text-[0.625rem] mb-1">[{variant}]</p>
                   {(bullets as string[]).map((b, bi) => {
                     const len = b.length
                     return (
@@ -88,7 +89,7 @@ function BulletsPreview({ json, onJump }: { json: string; onJump?: (path: string
                         title="Jump to JSON"
                       >
                         <span className="flex-1 leading-relaxed">{b}</span>
-                        <span className={`shrink-0 tabular-nums text-[10px] ${len > MAX_BULLET ? 'text-red-400 font-bold' : len > 100 ? 'text-amber-500' : 'text-zinc-600'}`}>
+                        <span className={`shrink-0 tabular-nums text-[0.625rem] ${len > MAX_BULLET ? 'text-red-400 font-bold' : len > 100 ? 'text-amber-500' : 'text-zinc-400'}`}>
                           {len}
                         </span>
                       </div>
@@ -103,7 +104,7 @@ function BulletsPreview({ json, onJump }: { json: string; onJump?: (path: string
 
       {projects.length > 0 && (
         <section>
-          <p className="text-zinc-500 uppercase tracking-widest text-[10px] mb-2">Projects</p>
+          <p className="text-zinc-500 uppercase tracking-widest text-[0.625rem] mb-2">Projects</p>
           {projects.map((proj, pi) => (
             <div key={proj.id} className="mb-3">
               <p
@@ -121,7 +122,7 @@ function BulletsPreview({ json, onJump }: { json: string; onJump?: (path: string
                     title="Jump to JSON"
                   >
                     <span className="flex-1 leading-relaxed">{b}</span>
-                    <span className={`shrink-0 tabular-nums text-[10px] ${len > MAX_BULLET ? 'text-red-400 font-bold' : len > 100 ? 'text-amber-500' : 'text-zinc-600'}`}>
+                    <span className={`shrink-0 tabular-nums text-[0.625rem] ${len > MAX_BULLET ? 'text-red-400 font-bold' : len > 100 ? 'text-amber-500' : 'text-zinc-400'}`}>
                       {len}
                     </span>
                   </div>
@@ -134,7 +135,7 @@ function BulletsPreview({ json, onJump }: { json: string; onJump?: (path: string
 
       {skills.length > 0 && (
         <section>
-          <p className="text-zinc-500 uppercase tracking-widest text-[10px] mb-2">Skills</p>
+          <p className="text-zinc-500 uppercase tracking-widest text-[0.625rem] mb-2">Skills</p>
           {(skills as string[]).map((row, si) => (
             <div
               key={si}
@@ -143,13 +144,13 @@ function BulletsPreview({ json, onJump }: { json: string; onJump?: (path: string
               title="Jump to JSON"
             >
               <span className="flex-1 leading-relaxed">{row}</span>
-              <span className="shrink-0 text-zinc-600 text-[10px]">{row.length}</span>
+              <span className="shrink-0 text-zinc-400 text-[0.625rem]">{row.length}</span>
             </div>
           ))}
         </section>
       )}
 
-      <p className="text-zinc-700 text-[10px] pt-2 border-t border-zinc-800">
+      <p className="text-zinc-500 text-[0.625rem] pt-2 border-t border-zinc-800">
         ● {MAX_BULLET} char max · red = over · amber = 100–116 · counts live-update
       </p>
     </div>
@@ -221,7 +222,7 @@ function DiffView({ current, backup, onRestore, onClose }: {
       </div>
       <pre className="overflow-auto max-h-80 text-xs font-mono p-2 leading-5">
         {collapsed.map((l, idx) => {
-          if (l.type === 'ellipsis') return <div key={idx} className="text-zinc-600 px-1 select-none">··· {l.count} unchanged {l.count === 1 ? 'line' : 'lines'} ···</div>
+          if (l.type === 'ellipsis') return <div key={idx} className="text-zinc-400 px-1 select-none">··· {l.count} unchanged {l.count === 1 ? 'line' : 'lines'} ···</div>
           const colors: Record<string, string> = { same: 'text-zinc-500', del: 'bg-red-950/60 text-red-300', add: 'bg-green-950/60 text-green-300' }
           const prefix = l.type === 'del' ? '− ' : l.type === 'add' ? '+ ' : '  '
           return <div key={idx} className={`px-1 whitespace-pre ${colors[l.type]}`}>{prefix}{l.text}</div>
@@ -278,9 +279,9 @@ function BackupPanel({ file, currentContent, onRestored }: {
   return (
     <div className="border border-zinc-800 rounded-lg bg-zinc-950 p-3 space-y-1">
       {status && <p className="text-xs text-amber-400 mb-2">{status}</p>}
-      <p className="text-xs text-zinc-600 mb-2">Click a backup to diff. Restore saves current first.</p>
-      {loading && <p className="text-xs text-zinc-600">Loading…</p>}
-      {!loading && backups.length === 0 && <p className="text-xs text-zinc-600">No backups yet.</p>}
+      <p className="text-xs text-zinc-400 mb-2">Click a backup to diff. Restore saves current first.</p>
+      {loading && <p className="text-xs text-zinc-400">Loading…</p>}
+      {!loading && backups.length === 0 && <p className="text-xs text-zinc-400">No backups yet.</p>}
       {backups.map(bak => (
         <div key={bak.name}>
           <button
@@ -321,7 +322,7 @@ interface CandidateProfile {
   }
 }
 
-function CandidateProfileCard({ json, onJump }: { json: string; onJump?: (path: string) => void }) {
+function CandidateProfileCard({ json, onEdit }: { json: string; onEdit?: () => void }) {
   let profile: CandidateProfile | null = null
   try {
     const parsed = JSON.parse(json)
@@ -333,23 +334,23 @@ function CandidateProfileCard({ json, onJump }: { json: string; onJump?: (path: 
   return (
     <div className="border border-zinc-700 rounded-lg bg-zinc-900/60 p-4 space-y-4 text-xs font-mono">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] text-zinc-500 uppercase tracking-widest">Candidate Profile</span>
+        <span className="text-[0.625rem] text-zinc-500 uppercase tracking-widest">Candidate Profile</span>
         <button
-          onClick={() => onJump?.('/candidate_profile')}
-          className="text-[10px] text-indigo-500 hover:text-indigo-300"
+          onClick={onEdit}
+          className="text-[0.625rem] text-indigo-500 hover:text-indigo-300"
         >
-          edit in JSON ↗
+          edit ↗
         </button>
       </div>
 
       {profile.narrative && (
-        <p className="text-zinc-300 leading-relaxed text-[11px]">{profile.narrative}</p>
+        <p className="text-zinc-300 leading-relaxed text-[0.6875rem]">{profile.narrative}</p>
       )}
 
       <div className="grid grid-cols-3 gap-4">
         {profile.self_assessment?.portrays_well && profile.self_assessment.portrays_well.length > 0 && (
           <div className="space-y-1">
-            <p className="text-[10px] text-green-500 uppercase tracking-widest mb-1">Portrays well</p>
+            <p className="text-[0.625rem] text-green-500 uppercase tracking-widest mb-1">Portrays well</p>
             {profile.self_assessment.portrays_well.map((s, i) => (
               <p key={i} className="text-zinc-400 leading-snug">· {s}</p>
             ))}
@@ -358,7 +359,7 @@ function CandidateProfileCard({ json, onJump }: { json: string; onJump?: (path: 
 
         {profile.self_assessment?.known_gaps && profile.self_assessment.known_gaps.length > 0 && (
           <div className="space-y-1">
-            <p className="text-[10px] text-amber-500 uppercase tracking-widest mb-1">Known gaps</p>
+            <p className="text-[0.625rem] text-amber-500 uppercase tracking-widest mb-1">Known gaps</p>
             {profile.self_assessment.known_gaps.map((s, i) => (
               <p key={i} className="text-zinc-400 leading-snug">· {s}</p>
             ))}
@@ -367,7 +368,7 @@ function CandidateProfileCard({ json, onJump }: { json: string; onJump?: (path: 
 
         {profile.self_assessment?.not_this && profile.self_assessment.not_this.length > 0 && (
           <div className="space-y-1">
-            <p className="text-[10px] text-red-500 uppercase tracking-widest mb-1">Not this</p>
+            <p className="text-[0.625rem] text-red-500 uppercase tracking-widest mb-1">Not this</p>
             {profile.self_assessment.not_this.map((s, i) => (
               <p key={i} className="text-zinc-400 leading-snug">· {s}</p>
             ))}
@@ -378,13 +379,13 @@ function CandidateProfileCard({ json, onJump }: { json: string; onJump?: (path: 
       {profile.target_posture && (
         <div className="border-t border-zinc-800 pt-3 grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <p className="text-[10px] text-indigo-400 uppercase tracking-widest mb-1">Primary roles</p>
+            <p className="text-[0.625rem] text-indigo-400 uppercase tracking-widest mb-1">Primary roles</p>
             {(profile.target_posture.primary_roles ?? []).map((r, i) => (
               <p key={i} className="text-zinc-300">· {r}</p>
             ))}
             {(profile.target_posture.secondary_roles ?? []).length > 0 && (
               <>
-                <p className="text-[10px] text-zinc-600 uppercase tracking-widest mt-2 mb-1">Secondary</p>
+                <p className="text-[0.625rem] text-zinc-400 uppercase tracking-widest mt-2 mb-1">Secondary</p>
                 {profile.target_posture.secondary_roles!.map((r, i) => (
                   <p key={i} className="text-zinc-500">· {r}</p>
                 ))}
@@ -394,13 +395,13 @@ function CandidateProfileCard({ json, onJump }: { json: string; onJump?: (path: 
           <div className="space-y-2">
             {profile.target_posture.auth_urgency && (
               <div>
-                <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">Work auth</p>
+                <p className="text-[0.625rem] text-zinc-500 uppercase tracking-widest mb-1">Work auth</p>
                 <p className="text-zinc-400 leading-snug">{profile.target_posture.auth_urgency}</p>
               </div>
             )}
             {(profile.target_posture.constraints ?? []).length > 0 && (
               <div>
-                <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">Constraints</p>
+                <p className="text-[0.625rem] text-zinc-500 uppercase tracking-widest mb-1">Constraints</p>
                 {profile.target_posture.constraints!.map((c, i) => (
                   <p key={i} className="text-zinc-400 leading-snug">· {c}</p>
                 ))}
@@ -422,6 +423,10 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
   const [saving, setSaving]       = useState(false)
   const [status, setStatus]       = useState('')
   const [showBackups, setShowBackups] = useState(false)
+
+  const [showProfileSummaryEditor, setShowProfileSummaryEditor] = useState(false)
+  const [profileSummaryDraft, setProfileSummaryDraft] = useState('')
+  const [profileSummaryError, setProfileSummaryError] = useState('')
 
   const profileEditorRef = useRef<MonacoEditorNS.IStandaloneCodeEditor | null>(null)
 
@@ -445,6 +450,30 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
     ed.revealLineInCenter(line)
     ed.focus()
   }, [sourceMap])
+
+  const openProfileSummaryEditor = useCallback(() => {
+    try {
+      const parsed = JSON.parse(draft)
+      setProfileSummaryDraft(JSON.stringify(parsed.candidate_profile ?? {}, null, 2))
+    } catch {
+      setProfileSummaryDraft('{}')
+    }
+    setProfileSummaryError('')
+    setShowProfileSummaryEditor(v => !v)
+  }, [draft])
+
+  const applyProfileSummaryEdit = useCallback(() => {
+    try {
+      const updated = JSON.parse(profileSummaryDraft)
+      const parsed  = JSON.parse(draft)
+      parsed.candidate_profile = updated
+      setDraft(JSON.stringify(parsed, null, 2))
+      setShowProfileSummaryEditor(false)
+      setProfileSummaryError('')
+    } catch {
+      setProfileSummaryError('Invalid JSON — fix before applying')
+    }
+  }, [profileSummaryDraft, draft])
 
   const loadContent = useCallback(() => {
     setLoading(true)
@@ -475,7 +504,7 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h3 className="text-sm font-semibold text-zinc-300 font-mono">master_resume_data.json</h3>
-          <span className="text-xs text-zinc-600">profile: {profile.name}</span>
+          <span className="text-xs text-zinc-400">profile: {profile.name}</span>
         </div>
         <div className="flex items-center gap-2">
           {status && <span className={`text-xs ${status.startsWith('Error') ? 'text-red-400' : 'text-green-400'}`}>{status}</span>}
@@ -503,18 +532,53 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
         />
       )}
 
-      <CandidateProfileCard json={draft} onJump={jumpToJsonPath} />
+      <CandidateProfileCard json={draft} onEdit={openProfileSummaryEditor} />
+
+      {showProfileSummaryEditor && (
+        <div className="border border-indigo-700/60 rounded-lg overflow-hidden bg-zinc-950">
+          <div className="flex items-center justify-between px-3 py-1.5 bg-zinc-800/80 border-b border-zinc-700">
+            <span className="text-[0.625rem] text-indigo-400 uppercase tracking-widest font-mono">candidate_profile</span>
+            <div className="flex items-center gap-2">
+              {profileSummaryError && <span className="text-xs text-red-400">{profileSummaryError}</span>}
+              <button
+                onClick={applyProfileSummaryEdit}
+                className="text-xs px-2 py-1 bg-indigo-600 hover:bg-indigo-500 rounded"
+              >Apply</button>
+              <button
+                onClick={() => setShowProfileSummaryEditor(false)}
+                className="text-xs text-zinc-500 hover:text-zinc-300"
+              >Cancel</button>
+            </div>
+          </div>
+          <textarea
+            value={profileSummaryDraft}
+            onChange={e => setProfileSummaryDraft(e.target.value)}
+            spellCheck={false}
+            rows={18}
+            className="w-full bg-zinc-950 text-zinc-300 text-xs font-mono p-3 resize-y focus:outline-none"
+          />
+        </div>
+      )}
 
       {/* Two-panel editor */}
       <div className="grid grid-cols-[3fr_2fr] gap-0 border border-zinc-700 rounded-lg overflow-hidden" style={{ height: 520 }}>
         {/* Monaco */}
         <div className="border-r border-zinc-700 flex flex-col min-h-0">
           <div className="px-3 py-1.5 bg-zinc-800 border-b border-zinc-700 flex items-center gap-2 shrink-0">
-            <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">Editor</span>
-            <span className="ml-auto text-[10px] text-zinc-600 font-mono">JSON</span>
+            <span className="text-[0.625rem] text-zinc-500 uppercase tracking-widest font-mono">Editor</span>
+            <span className="ml-auto text-[0.625rem] text-zinc-400 font-mono">JSON</span>
           </div>
           {loading ? (
-            <div className="flex-1 flex items-center justify-center text-zinc-600 text-xs">Loading…</div>
+            <div className="flex-1 p-4 space-y-2 overflow-hidden">
+              {Array.from({ length: 22 }).map((_, i) => (
+                <Skeleton key={i} className={`h-3 ${
+                  i % 5 === 0 ? 'w-2/3' :
+                  i % 5 === 1 ? 'w-1/2' :
+                  i % 5 === 2 ? 'w-3/4' :
+                  i % 5 === 3 ? 'w-2/5' : 'w-full'
+                }`} />
+              ))}
+            </div>
           ) : (
             <MonacoEditor
               height="100%"
@@ -525,7 +589,7 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
               onMount={onProfileEditorMount}
               options={{
                 minimap: { enabled: false },
-                fontSize: 12,
+                fontSize: 14,
                 lineNumbers: 'on',
                 scrollBeyondLastLine: false,
                 wordWrap: 'on',
@@ -539,8 +603,8 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
         {/* Bullets preview */}
         <div className="flex flex-col bg-zinc-950 min-h-0">
           <div className="relative px-3 py-1.5 bg-zinc-800 border-b border-zinc-700 flex items-center gap-2 shrink-0">
-            <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">Bullets</span>
-            <span className="ml-auto text-[10px] text-zinc-600 font-mono">live</span>
+            <span className="text-[0.625rem] text-zinc-500 uppercase tracking-widest font-mono">Bullets</span>
+            <span className="ml-auto text-[0.625rem] text-zinc-400 font-mono">live</span>
           </div>
           <BulletsPreview json={draft} onJump={jumpToJsonPath} />
         </div>
@@ -699,11 +763,21 @@ function DocEditor({ file, label }: { file: DocFileKey; label: string }) {
         {/* Monaco */}
         <div className="border-r border-zinc-700 flex flex-col min-h-0">
           <div className="px-3 py-1.5 bg-zinc-800 border-b border-zinc-700 shrink-0">
-            <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">Editor</span>
-            <span className="ml-2 text-[10px] text-zinc-600 font-mono">click preview block to jump</span>
+            <span className="text-[0.625rem] text-zinc-500 uppercase tracking-widest font-mono">Editor</span>
+            <span className="ml-2 text-[0.625rem] text-zinc-400 font-mono">click preview block to jump</span>
           </div>
           {loading ? (
-            <div className="flex-1 flex items-center justify-center text-zinc-600 text-xs">Loading…</div>
+            <div className="flex-1 p-4 space-y-2 overflow-hidden">
+              {Array.from({ length: 22 }).map((_, i) => (
+                <Skeleton key={i} className={`h-3 ${
+                  i % 6 === 0 ? 'w-full' :
+                  i % 6 === 1 ? 'w-3/4' :
+                  i % 6 === 2 ? 'w-1/2' :
+                  i % 6 === 3 ? 'w-2/3' :
+                  i % 6 === 4 ? 'w-5/6' : 'w-1/3'
+                }`} />
+              ))}
+            </div>
           ) : (
             <MonacoEditor
               height="100%"
@@ -714,7 +788,7 @@ function DocEditor({ file, label }: { file: DocFileKey; label: string }) {
               onMount={onEditorMount}
               options={{
                 minimap: { enabled: false },
-                fontSize: 12,
+                fontSize: 14,
                 lineNumbers: 'on',
                 scrollBeyondLastLine: false,
                 wordWrap: 'on',
@@ -728,7 +802,7 @@ function DocEditor({ file, label }: { file: DocFileKey; label: string }) {
         {/* Markdown preview */}
         <div className="flex flex-col bg-zinc-950 min-h-0">
           <div className="px-3 py-1.5 bg-zinc-800 border-b border-zinc-700 shrink-0">
-            <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">Preview</span>
+            <span className="text-[0.625rem] text-zinc-500 uppercase tracking-widest font-mono">Preview</span>
           </div>
           <div
             ref={previewRef}
@@ -804,21 +878,21 @@ function ProfileBar({ profiles, activeId, onSwitch, onFork, onUpload, onDelete, 
         {active && renaming !== activeId && (
           <button
             onClick={() => startRename(active)}
-            className="text-xs text-zinc-600 hover:text-zinc-400"
+            className="text-xs text-zinc-400 hover:text-zinc-400"
             title="Rename"
           >
             ✎
           </button>
         )}
         {active?.is_active === 1 && (
-          <span className="text-[10px] px-1.5 py-0.5 bg-indigo-900/60 border border-indigo-700/50 text-indigo-300 rounded font-mono">
+          <span className="text-[0.625rem] px-1.5 py-0.5 bg-indigo-900/60 border border-indigo-700/50 text-indigo-300 rounded font-mono">
             active
           </span>
         )}
         {active && active.is_active !== 1 && (
           <button
             onClick={() => onSwitch(active.id)}
-            className="text-[10px] px-2 py-0.5 bg-zinc-700 hover:bg-zinc-600 text-zinc-400 rounded"
+            className="text-[0.625rem] px-2 py-0.5 bg-zinc-700 hover:bg-zinc-600 text-zinc-400 rounded"
           >
             Set active
           </button>
@@ -1041,7 +1115,7 @@ export default function ConfigPage() {
       <div className="space-y-4">
         <div>
           <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Reference Docs</h2>
-          <p className="text-xs text-zinc-600 mt-1">Injected into every AI reasoning call. Edit to tune generation behavior.</p>
+          <p className="text-xs text-zinc-400 mt-1">Injected into every AI reasoning call. Edit to tune generation behavior.</p>
         </div>
         <div className="space-y-8">
           {DOC_FILES.map(({ file, label }) => (

@@ -114,7 +114,7 @@ function PageProgress({ step }: { step: TourStepDef }) {
           }`}
         />
       ))}
-      <span className="ml-1 text-[10px] text-zinc-500">{idx + 1} / {pageSteps.length}</span>
+      <span className="ml-1 text-[0.625rem] text-zinc-500">{idx + 1} / {pageSteps.length}</span>
     </div>
   )
 }

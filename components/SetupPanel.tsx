@@ -65,7 +65,7 @@ function MiniPicker({
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] shrink-0 ${
+        <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[0.625rem] shrink-0 ${
           configured ? 'bg-green-500 text-white' : 'bg-zinc-700 text-zinc-400'
         }`}>
           {configured ? '✓' : '○'}
@@ -252,7 +252,7 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
             <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">Step 3</p>
 
             <div className="flex items-center gap-2">
-              <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] shrink-0 ${
+              <div className={`w-4 h-4 rounded-full flex items-center justify-center text-[0.625rem] shrink-0 ${
                 (provider === 'ollama' || apiKey) ? 'bg-green-500 text-white' : 'bg-zinc-700 text-zinc-400'
               }`}>
                 {(provider === 'ollama' || apiKey) ? '✓' : '○'}
@@ -280,7 +280,7 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
                   value={apiKey}
                   onChange={e => { setApiKey(e.target.value); setAiError('') }}
                   placeholder="Paste API key…"
-                  className="w-full text-xs bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-zinc-200 font-mono placeholder:text-zinc-600"
+                  className="w-full text-xs bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-zinc-200 font-mono placeholder:text-zinc-400"
                 />
               )}
               {provider === 'ollama' && (
@@ -301,7 +301,7 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
             {saving ? (scanStatus || 'Saving…') : 'Scan now →'}
           </button>
           {!allConfigured && (
-            <p className="text-center text-xs text-zinc-600 mt-2">Complete all three steps above to continue</p>
+            <p className="text-center text-xs text-zinc-400 mt-2">Complete all three steps above to continue</p>
           )}
         </div>
       </div>
