@@ -278,6 +278,57 @@ interface Settings {
   outreach_path_exists: boolean
 }
 
+// ── Font size preference ──────────────────────────────────────────────────────
+
+const FONT_SIZES = ['small', 'medium', 'large'] as const
+type FontSize = typeof FONT_SIZES[number]
+
+const FONT_SIZE_LABELS: Record<FontSize, string> = {
+  small:  'Small',
+  medium: 'Medium',
+  large:  'Large',
+}
+
+function FontSizeSection() {
+  const [size, setSize] = useState<FontSize>('medium')
+
+  useEffect(() => {
+    const stored = localStorage.getItem('rl-font-size') as FontSize | null
+    if (stored && (FONT_SIZES as readonly string[]).includes(stored)) setSize(stored)
+  }, [])
+
+  const apply = (s: FontSize) => {
+    setSize(s)
+    localStorage.setItem('rl-font-size', s)
+    const html = document.documentElement
+    FONT_SIZES.forEach(sz => html.classList.remove('font-' + sz))
+    html.classList.add('font-' + s)
+  }
+
+  return (
+    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-zinc-300">Font Size</p>
+        <span className="text-xs text-zinc-500">{FONT_SIZE_LABELS[size]}</span>
+      </div>
+      <input
+        type="range"
+        min={0}
+        max={2}
+        step={1}
+        value={FONT_SIZES.indexOf(size)}
+        onChange={e => apply(FONT_SIZES[Number(e.target.value)])}
+        className="w-full accent-indigo-500 cursor-pointer h-1.5"
+      />
+      <div className="flex justify-between text-[0.625rem] text-zinc-500 select-none">
+        <span>Small</span>
+        <span>Medium</span>
+        <span>Large</span>
+      </div>
+    </div>
+  )
+}
+
 function FolderPicker({
   label, value, hint, onChange,
 }: {
@@ -458,6 +509,11 @@ export default function SettingsPage() {
             {saving ? 'Saving…' : saveStatus}
           </span>
         )}
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="text-xs font-semibold text-zinc-500 uppercase">Appearance</h2>
+        <FontSizeSection />
       </div>
 
       <div className="space-y-3">
