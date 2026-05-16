@@ -1,4 +1,5 @@
 'use client'
+import { useRef, useState } from 'react'
 import { Sankey, Tooltip, ResponsiveContainer, Layer, Rectangle } from 'recharts'
 
 export interface PipelineData {
@@ -19,11 +20,11 @@ const NODE_COLORS: Record<string, string> = {
   Pending:        '#71717a',
   'Resume Built': '#3b82f6',
   Other:          '#52525b',
-  Applied:        '#06b6d4',
-  Interviewed:    '#a855f7',
+  Applied:        '#fbbf24',
+  Interviewed:    '#fb923c',
   'No Response':  '#52525b',
-  Rejected:       '#ef4444',
-  Offer:          '#22c55e',
+  Rejected:       '#f87171',
+  Offer:          '#4ade80',
 }
 
 function buildSankeyData(p: PipelineData) {
@@ -100,7 +101,7 @@ function SankeyNode(props: {
         y={y + height / 2}
         textAnchor={isRight ? 'end' : 'start'}
         fill="#d4d4d8"
-        fontSize={11}
+        fontSize={13}
         dominantBaseline="middle"
       >
         {name} ({value})
@@ -114,20 +115,84 @@ function SankeyTooltip({ active, payload }: { active?: boolean; payload?: Array<
   const d = payload[0]?.payload
   if (!d) return null
   return (
-    <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: 6, padding: '6px 10px', fontSize: 12, color: '#e4e4e7' }}>
+    <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: 6, padding: '6px 10px', fontSize: 14, color: '#e4e4e7' }}>
       {d.source?.name} → {d.target?.name}
       <span style={{ marginLeft: 8, color: '#818cf8', fontFamily: 'monospace' }}>{d.value}</span>
     </div>
   )
 }
 
+type ExportFormat = 'png' | 'jpg' | 'pdf'
+
+async function exportCard(el: HTMLElement, format: ExportFormat) {
+  const html2canvas = (await import('html2canvas')).default
+  const canvas = await html2canvas(el, { backgroundColor: '#18181b', scale: 2, useCORS: true })
+
+  if (format === 'png') {
+    const a = document.createElement('a')
+    a.download = 'application-pipeline.png'
+    a.href = canvas.toDataURL('image/png')
+    a.click()
+  } else if (format === 'jpg') {
+    const a = document.createElement('a')
+    a.download = 'application-pipeline.jpg'
+    a.href = canvas.toDataURL('image/jpeg', 0.95)
+    a.click()
+  } else {
+    const { jsPDF } = await import('jspdf')
+    const w = canvas.width / 2
+    const h = canvas.height / 2
+    const pdf = new jsPDF({ orientation: w > h ? 'landscape' : 'portrait', unit: 'px', format: [w, h] })
+    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, w, h)
+    pdf.save('application-pipeline.pdf')
+  }
+}
+
 export function PipelineSankeyChart({ data }: { data: PipelineData }) {
   const sankeyData = buildSankeyData(data)
+  const cardRef    = useRef<HTMLDivElement>(null)
+  const [menuOpen, setMenuOpen]   = useState(false)
+  const [exporting, setExporting] = useState(false)
+
   if (sankeyData.links.length === 0) return null
 
+  const handleExport = async (format: ExportFormat) => {
+    if (!cardRef.current) return
+    setMenuOpen(false)
+    setExporting(true)
+    await exportCard(cardRef.current, format)
+    setExporting(false)
+  }
+
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-      <h2 className="text-sm font-medium text-zinc-300 mb-4">Application Pipeline</h2>
+    <div ref={cardRef} className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-sm font-medium text-zinc-300">Application Pipeline</h2>
+
+        <div className="relative">
+          <button
+            onClick={() => setMenuOpen(v => !v)}
+            disabled={exporting}
+            className="text-xs px-2.5 py-1 rounded border border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-500 transition-colors disabled:opacity-40"
+          >
+            {exporting ? 'Exporting…' : 'Export ▾'}
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-full mt-1 z-10 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl overflow-hidden min-w-[100px]">
+              {(['png', 'jpg', 'pdf'] as ExportFormat[]).map(fmt => (
+                <button
+                  key={fmt}
+                  onClick={() => void handleExport(fmt)}
+                  className="w-full text-left text-xs px-3 py-2 text-zinc-300 hover:bg-zinc-700 uppercase tracking-wide font-mono"
+                >
+                  {fmt}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
       <ResponsiveContainer width="100%" height={280}>
         <Sankey
           data={sankeyData}
@@ -140,8 +205,16 @@ export function PipelineSankeyChart({ data }: { data: PipelineData }) {
           <Tooltip content={<SankeyTooltip />} />
         </Sankey>
       </ResponsiveContainer>
-      <p className="text-xs text-zinc-600 mt-2">
-        Tag jobs with <code className="text-zinc-500">applied</code> · <code className="text-zinc-500">interviewed</code> · <code className="text-zinc-500">rejected</code> · <code className="text-zinc-500">offer</code> to fill downstream stages.
+
+      <p className="text-xs text-zinc-400 mt-2">
+        Tag jobs with{' '}
+        <code className="text-amber-400">applied</code>{' · '}
+        <code className="text-indigo-400">phone-screen</code>{' · '}
+        <code className="text-orange-400">interviewed</code>{' · '}
+        <code className="text-green-400">offer</code>{' · '}
+        <code className="text-red-400">rejected</code>{' · '}
+        <code className="text-zinc-500">ghosted</code>
+        {' '}to fill downstream stages.
       </p>
     </div>
   )

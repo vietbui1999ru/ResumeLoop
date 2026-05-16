@@ -6,7 +6,7 @@ import { DURATION, EASE } from '@/lib/motion'
 export function PageTransition({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="sync">
       <motion.main
         key={pathname}
         initial={{ opacity: 0 }}

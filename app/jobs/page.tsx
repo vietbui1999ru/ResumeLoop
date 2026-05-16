@@ -1,21 +1,25 @@
 'use client'
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { extractAllTags } from '@/lib/tag-filter'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { extractAllTags, parseTags } from '@/lib/tag-filter'
+import { PIPELINE_TAGS } from '@/lib/pipeline-tags'
+import dynamic from 'next/dynamic'
+import { Skeleton } from '@/components/Skeleton'
 import { AnimatedCheckbox } from '@/components/AnimatedCheckbox'
-import JobDetailModal from '@/components/JobDetailModal'
-import GenerationPanel from '@/components/GenerationPanel'
 import SessionSwitcher from '@/components/SessionSwitcher'
 import { VALID_ACTIONS } from '@/lib/actions'
-import ReasoningModal from '@/components/ReasoningModal'
-import { SetupPanel } from '@/components/SetupPanel'
 import { useSession } from '@/contexts/SessionContext'
 import { AnimatePresence } from 'framer-motion'
 
+const JobDetailModal  = dynamic(() => import('@/components/JobDetailModal'),  { ssr: false })
+const GenerationPanel = dynamic(() => import('@/components/GenerationPanel'), { ssr: false })
+const ReasoningModal  = dynamic(() => import('@/components/ReasoningModal'),  { ssr: false })
+const SetupPanel      = dynamic(() => import('@/components/SetupPanel').then(m => ({ default: m.SetupPanel })), { ssr: false })
+
 const ACTION_COLORS: Record<string, string> = {
   '0-Saved':        'text-zinc-400',
-  '1-Applied':      'text-cyan-400',
+  '1-Applied':      'text-amber-400',
   '2-Phone Screen': 'text-indigo-400',
-  '3-Interview':    'text-purple-400',
+  '3-Interview':    'text-orange-400',
   '4-Offer':        'text-green-400',
   '5-Rejected':     'text-red-400',
   '6-Ghosted':      'text-zinc-500',
@@ -62,7 +66,7 @@ function SortTh({ label, col, sort, onSort, className = '' }: {
 
 // Color clipped date by staleness — encodes the 3-day apply window
 function clipColor(iso: string | null): string {
-  if (!iso) return 'text-zinc-600'
+  if (!iso) return 'text-zinc-400'
   const days = (Date.now() - new Date(iso).getTime()) / 86_400_000
   if (days <= 3) return 'text-green-400'
   if (days <= 7) return 'text-amber-400'
@@ -116,6 +120,10 @@ export default function JobsPage() {
 
   const [sort, setSort] = useState<{ col: SortCol; dir: SortDir }>({ col: 'clipped_at', dir: 'desc' })
   const [jobsPathExists, setJobsPathExists] = useState<boolean | null>(null)
+  // True only during the initial page load — shows skeleton rows in tbody.
+  // Filter-change re-fetches keep the current rows visible (no skeleton flash).
+  const [initialLoading, setInitialLoading] = useState(true)
+  const abortRef = useRef<AbortController | null>(null)
 
   // Debounced q for search — fires reload 300ms after typing stops
   const [debouncedQ, setDebouncedQ] = useState('')
@@ -125,6 +133,10 @@ export default function JobsPage() {
   }, [q])
 
   const reload = useCallback(() => {
+    abortRef.current?.abort()
+    const ctrl = new AbortController()
+    abortRef.current = ctrl
+
     const p = new URLSearchParams()
     if (debouncedQ)              p.set('q',        debouncedQ)
     if (showHidden)              p.set('showHidden','1')
@@ -134,7 +146,10 @@ export default function JobsPage() {
     if (actionFilter)            p.set('action',   actionFilter)
     if (tagFilter)               p.set('tag',      tagFilter)
     if (fromDate)                p.set('fromDate', fromDate)
-    fetch(`/api/jobs?${p}`).then(r => r.ok ? r.json() : []).then(setJobs)
+    fetch(`/api/jobs?${p}`, { signal: ctrl.signal })
+      .then(r => r.ok ? r.json() : [])
+      .then(d => { setJobs(d); setInitialLoading(false) })
+      .catch(e => { if (e.name !== 'AbortError') setInitialLoading(false) })
   }, [debouncedQ, showHidden, fitMin, trackFilter, visaFilter, actionFilter, tagFilter, fromDate])
 
   useEffect(() => {
@@ -189,6 +204,18 @@ export default function JobsPage() {
       body: JSON.stringify({ hidden }),
     })
   }, [])
+
+  const handleTagToggle = useCallback(async (jobId: string, tagKey: string) => {
+    const job = jobs.find(j => j.id === jobId)
+    if (!job) return
+    const current = parseTags(job)
+    const next = current.includes(tagKey) ? current.filter(t => t !== tagKey) : [...current, tagKey]
+    setJobs(prev => prev.map(j => j.id === jobId ? { ...j, tags: JSON.stringify(next) } : j))
+    await fetch(`/api/jobs/${jobId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tags: next }),
+    })
+  }, [jobs])
 
   const handleActionChange = useCallback(async (jobId: string, newAction: string) => {
     setJobs(prev => prev.map(j => j.id === jobId ? { ...j, action: newAction } : j))
@@ -270,15 +297,21 @@ export default function JobsPage() {
             <option value="">All stages</option>
             {VALID_ACTIONS.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
-          <div className="shrink-0 flex items-center gap-1.5 h-8 bg-surface-card border border-zinc-800 rounded-lg px-2.5 text-sm focus-within:border-indigo-500 transition-colors duration-100">
-            <span className="text-text-muted">Fit ≥</span>
-            <input
-              type="number" min={0} max={100} step={10}
-              value={fitMin}
-              onChange={e => setFitMin(Number(e.target.value))}
-              className="w-10 bg-transparent text-zinc-200 text-center"
-            />
-            <span className="text-text-muted">%</span>
+          <div className="shrink-0 flex items-center gap-0.5 h-8 bg-surface-card border border-zinc-800 rounded-lg px-2 transition-colors duration-100">
+            <span className="text-text-muted text-xs mr-1">Fit</span>
+            {([0, 60, 70, 80, 90] as const).map(val => (
+              <button
+                key={val}
+                onClick={() => setFitMin(val)}
+                className={`px-1.5 py-0.5 rounded text-xs transition-colors ${
+                  fitMin === val
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
+                }`}
+              >
+                {val === 0 ? 'Any' : `${val}%`}
+              </button>
+            ))}
           </div>
           <button
             onClick={() => setShowSecondary(v => !v)}
@@ -369,112 +402,151 @@ export default function JobsPage() {
             </tr>
           </thead>
           <tbody>
-            {visible.map((job, idx) => {
-              const currentAction = job.action ?? '0-Saved'
-              const rowError      = rowErrors.get(job.id)
-              const clippedIso    = job.clipped_at ?? job.file_mtime
-              return (
-                <tr
-                  key={job.id}
-                  className={`border-b border-zinc-800/60 hover:bg-surface-raised hover:-translate-y-px transition-all duration-100 cursor-pointer group ${job.id === selectedJobId ? 'border-l-2 border-indigo-500 bg-indigo-500/5' : ''} ${job.hidden ? 'opacity-40' : ''}`}
-                  onClick={() => setSelectedJobId(job.id)}
-                >
-                  {/* Checkbox */}
-                  <td className="py-3 pr-3" onClick={e => e.stopPropagation()}>
-                    <AnimatedCheckbox
-                      checked={selected.has(job.id)}
-                      onChange={() => toggleSelect(job.id)}
-                      label={`Select ${job.company}`}
-                    />
-                  </td>
-
-                  {/* Company — visa ⊘ inline */}
+            {initialLoading ? (
+              Array.from({ length: 8 }).map((_, i) => (
+                <tr key={i} className="border-b border-zinc-800/50">
+                  <td className="py-3 pr-3"><Skeleton className="h-4 w-4" /></td>
+                  <td className="py-3 pr-4"><Skeleton className="h-4 w-28" /></td>
                   <td className="py-3 pr-4">
-                    <div className="flex items-center gap-1.5">
-                      {job.visa_status === 'kill' && (
-                        <span className="text-red-500 text-[10px]" title="No sponsorship">⊘</span>
-                      )}
-                      <span className="text-zinc-200">{job.company}</span>
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-4 w-40" />
+                      <Skeleton className="h-4 w-16 rounded" />
                     </div>
                   </td>
-
-                  {/* Role + track badge */}
-                  <td className="py-3 pr-4">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-zinc-300">{job.role_title}</span>
-                      {job.role_track && (
-                        <span className="text-[10px] px-1.5 py-0.5 bg-zinc-800 border border-zinc-700/80 text-zinc-500 rounded font-mono leading-none">
-                          {job.role_track}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-
-                  {/* Fit% */}
-                  <td className="py-3 pr-4">
-                    <FitBadge pct={job.fit_pct} />
-                  </td>
-
-                  {/* Action dropdown */}
-                  <td className="py-2 pr-4" onClick={e => e.stopPropagation()}>
-                    {rowError ? (
-                      <span className="text-red-400 text-xs">{rowError}</span>
-                    ) : (
-                      <select
-                        data-tour={idx === 0 ? 'action-cell' : undefined}
-                        value={currentAction}
-                        onChange={e => void handleActionChange(job.id, e.target.value)}
-                        className={`bg-zinc-800 border border-zinc-700 rounded px-1.5 py-0.5 text-xs ${ACTION_COLORS[currentAction] ?? 'text-zinc-400'}`}
-                      >
-                        {VALID_ACTIONS.map(a => <option key={a} value={a}>{a}</option>)}
-                      </select>
-                    )}
-                  </td>
-
-                  {/* Clipped date — color-coded by staleness */}
-                  <td className={`py-3 pr-4 text-xs font-mono ${clipColor(clippedIso)}`}>
-                    {fmtDate(clippedIso)}
-                  </td>
-
-                  {/* Resume status */}
-                  <td className="py-2 pr-4">
-                    {genStatus.has(job.id) ? (
-                      <span className="text-zinc-400 text-xs">
-                        {genStatus.get(job.id)}
-                        {genStatus.get(job.id) === 'done' && (
-                          <button
-                            onClick={e => { e.stopPropagation(); setReasoningJobId(job.id) }}
-                            className="ml-1 text-yellow-400 hover:text-yellow-300"
-                          >★</button>
-                        )}
-                      </span>
-                    ) : job.has_reasoning ? (
-                      <button
-                        onClick={e => { e.stopPropagation(); setReasoningJobId(job.id) }}
-                        className="text-yellow-400 hover:text-yellow-300 text-xs whitespace-nowrap"
-                      >★ Why?</button>
-                    ) : job.has_output ? (
-                      <span className="text-zinc-500 text-xs">doc</span>
-                    ) : null}
-                  </td>
-
-                  {/* Hide */}
-                  <td className="py-2" onClick={e => e.stopPropagation()}>
-                    <button
-                      onClick={() => void hideJob(job.id, job.hidden ? 0 : 1)}
-                      className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-zinc-300 text-xs px-1 transition-opacity"
-                      title={job.hidden ? 'Unhide' : 'Hide'}
-                    >
-                      {job.hidden ? '↺' : '✕'}
-                    </button>
-                  </td>
+                  <td className="py-3 pr-4 w-14"><Skeleton className="h-5 w-12 rounded-full" /></td>
+                  <td className="py-2 pr-4 w-28"><Skeleton className="h-7 w-28 rounded" /></td>
+                  <td className="py-3 pr-4 w-20"><Skeleton className="h-4 w-10" /></td>
+                  <td className="py-3 w-20"><Skeleton className="h-4 w-8" /></td>
+                  <td className="py-3 w-6" />
                 </tr>
-              )
-            })}
+              ))
+            ) : (
+              visible.map((job, idx) => {
+                const currentAction = job.action ?? '0-Saved'
+                const rowError      = rowErrors.get(job.id)
+                const clippedIso    = job.clipped_at ?? job.file_mtime
+                return (
+                  <tr
+                    key={job.id}
+                    className={`border-b border-zinc-800/60 hover:bg-surface-raised hover:-translate-y-px transition-all duration-100 cursor-pointer group ${job.id === selectedJobId ? 'border-l-2 border-indigo-500 bg-indigo-500/5' : ''} ${job.hidden ? 'opacity-40' : ''}`}
+                    onClick={() => setSelectedJobId(job.id)}
+                  >
+                    {/* Checkbox */}
+                    <td className="py-3 pr-3" onClick={e => e.stopPropagation()}>
+                      <AnimatedCheckbox
+                        checked={selected.has(job.id)}
+                        onChange={() => toggleSelect(job.id)}
+                        label={`Select ${job.company}`}
+                      />
+                    </td>
+
+                    {/* Company — visa ⊘ inline */}
+                    <td className="py-3 pr-4">
+                      <div className="flex items-center gap-1.5">
+                        {job.visa_status === 'kill' && (
+                          <span className="text-red-500 text-[0.625rem]" title="No sponsorship">⊘</span>
+                        )}
+                        <span className="text-zinc-200">{job.company}</span>
+                      </div>
+                    </td>
+
+                    {/* Role + track badge + pipeline tag dots */}
+                    <td className="py-3 pr-4">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-zinc-300">{job.role_title}</span>
+                        {job.role_track && (
+                          <span className="text-[0.625rem] px-1.5 py-0.5 bg-zinc-800 border border-zinc-700/80 text-zinc-500 rounded font-mono leading-none">
+                            {job.role_track}
+                          </span>
+                        )}
+                        <div className="flex gap-0.5 items-center">
+                          {PIPELINE_TAGS.map(tag => {
+                            const active = parseTags(job).includes(tag.key)
+                            return (
+                              <button
+                                key={tag.key}
+                                title={tag.label}
+                                onClick={e => { e.stopPropagation(); void handleTagToggle(job.id, tag.key) }}
+                                className={`w-2.5 h-2.5 rounded-full transition-all hover:scale-125 cursor-pointer ${
+                                  active ? tag.dot : 'bg-zinc-600 opacity-25 hover:opacity-70'
+                                }`}
+                              />
+                            )
+                          })}
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Fit% */}
+                    <td className="py-3 pr-4">
+                      <FitBadge pct={job.fit_pct} />
+                    </td>
+
+                    {/* Action dropdown */}
+                    <td className="py-2 pr-4" onClick={e => e.stopPropagation()}>
+                      {rowError ? (
+                        <span className="text-red-400 text-xs">{rowError}</span>
+                      ) : (
+                        <select
+                          data-tour={idx === 0 ? 'action-cell' : undefined}
+                          value={currentAction}
+                          onChange={e => void handleActionChange(job.id, e.target.value)}
+                          className={`bg-zinc-800 border border-zinc-700 rounded px-1.5 py-0.5 text-xs ${ACTION_COLORS[currentAction] ?? 'text-zinc-400'}`}
+                        >
+                          {VALID_ACTIONS.map(a => <option key={a} value={a}>{a}</option>)}
+                        </select>
+                      )}
+                    </td>
+
+                    {/* Clipped date — color-coded by staleness */}
+                    <td className={`py-3 pr-4 text-xs font-mono ${clipColor(clippedIso)}`}>
+                      {fmtDate(clippedIso)}
+                    </td>
+
+                    {/* Resume status */}
+                    <td className="py-2 pr-4">
+                      {genStatus.has(job.id) ? (
+                        <span className="text-zinc-400 text-xs">
+                          {genStatus.get(job.id)}
+                          {genStatus.get(job.id) === 'done' && (
+                            <button
+                              onClick={e => { e.stopPropagation(); setReasoningJobId(job.id) }}
+                              className="ml-1 text-yellow-400 hover:text-yellow-300"
+                            >★</button>
+                          )}
+                        </span>
+                      ) : job.has_reasoning ? (
+                        <button
+                          onClick={e => { e.stopPropagation(); setReasoningJobId(job.id) }}
+                          className="text-yellow-400 hover:text-yellow-300 text-xs whitespace-nowrap"
+                        >★ Why?</button>
+                      ) : job.has_output ? (
+                        <span className="text-zinc-500 text-xs">doc</span>
+                      ) : null}
+                    </td>
+
+                    {/* Hide */}
+                    <td className="py-2" onClick={e => e.stopPropagation()}>
+                      <button
+                        onClick={() => void hideJob(job.id, job.hidden ? 0 : 1)}
+                        className={`opacity-20 group-hover:opacity-100 text-sm leading-none px-1 rounded transition-all duration-150 ${
+                          job.hidden
+                            ? 'text-zinc-400 hover:text-green-400'
+                            : 'text-zinc-400 hover:text-red-400'
+                        }`}
+                        title={job.hidden ? 'Unhide' : 'Hide'}
+                      >
+                        {job.hidden ? '↺' : '×'}
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })
+            )}
           </tbody>
         </table>
 
-        {visible.length === 0 && (
+        {!initialLoading && visible.length === 0 && (
           <p className="text-zinc-500 text-sm text-center py-10">No jobs match current filters.</p>
         )}
       </div>
@@ -482,7 +554,14 @@ export default function JobsPage() {
       {/* ── Modals ─────────────────────────────────────────────── */}
       <AnimatePresence>
         {selectedJobId && (
-          <JobDetailModal key={selectedJobId} jobId={selectedJobId} onClose={() => setSelectedJobId(null)} />
+          <JobDetailModal
+            key={selectedJobId}
+            jobId={selectedJobId}
+            onClose={() => setSelectedJobId(null)}
+            onTagsChange={(tags) => {
+              setJobs(prev => prev.map(j => j.id === selectedJobId ? { ...j, tags: JSON.stringify(tags) } : j))
+            }}
+          />
         )}
       </AnimatePresence>
       <AnimatePresence>

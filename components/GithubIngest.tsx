@@ -102,7 +102,7 @@ export default function GithubIngest() {
             <p className="text-xs text-zinc-500">Bullets (edit before adding):</p>
             {bullets.map((b, i) => (
               <div key={i} className="flex items-start gap-2">
-                <span className="text-zinc-600 text-xs mt-2 w-3 flex-shrink-0">•</span>
+                <span className="text-zinc-400 text-xs mt-2 w-3 flex-shrink-0">•</span>
                 <div className="flex-1">
                   <textarea
                     value={b}
