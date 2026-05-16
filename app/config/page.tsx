@@ -304,6 +304,115 @@ function BackupPanel({ file, currentContent, onRestored }: {
   )
 }
 
+// ── Candidate profile summary card ───────────────────────────────────────────
+
+interface CandidateProfile {
+  narrative?: string
+  self_assessment?: {
+    portrays_well?: string[]
+    known_gaps?: string[]
+    not_this?: string[]
+  }
+  target_posture?: {
+    primary_roles?: string[]
+    secondary_roles?: string[]
+    auth_urgency?: string
+    constraints?: string[]
+  }
+}
+
+function CandidateProfileCard({ json, onJump }: { json: string; onJump?: (path: string) => void }) {
+  let profile: CandidateProfile | null = null
+  try {
+    const parsed = JSON.parse(json)
+    profile = parsed.candidate_profile ?? null
+  } catch { /* ignore */ }
+
+  if (!profile) return null
+
+  return (
+    <div className="border border-zinc-700 rounded-lg bg-zinc-900/60 p-4 space-y-4 text-xs font-mono">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-zinc-500 uppercase tracking-widest">Candidate Profile</span>
+        <button
+          onClick={() => onJump?.('/candidate_profile')}
+          className="text-[10px] text-indigo-500 hover:text-indigo-300"
+        >
+          edit in JSON ↗
+        </button>
+      </div>
+
+      {profile.narrative && (
+        <p className="text-zinc-300 leading-relaxed text-[11px]">{profile.narrative}</p>
+      )}
+
+      <div className="grid grid-cols-3 gap-4">
+        {profile.self_assessment?.portrays_well && profile.self_assessment.portrays_well.length > 0 && (
+          <div className="space-y-1">
+            <p className="text-[10px] text-green-500 uppercase tracking-widest mb-1">Portrays well</p>
+            {profile.self_assessment.portrays_well.map((s, i) => (
+              <p key={i} className="text-zinc-400 leading-snug">· {s}</p>
+            ))}
+          </div>
+        )}
+
+        {profile.self_assessment?.known_gaps && profile.self_assessment.known_gaps.length > 0 && (
+          <div className="space-y-1">
+            <p className="text-[10px] text-amber-500 uppercase tracking-widest mb-1">Known gaps</p>
+            {profile.self_assessment.known_gaps.map((s, i) => (
+              <p key={i} className="text-zinc-400 leading-snug">· {s}</p>
+            ))}
+          </div>
+        )}
+
+        {profile.self_assessment?.not_this && profile.self_assessment.not_this.length > 0 && (
+          <div className="space-y-1">
+            <p className="text-[10px] text-red-500 uppercase tracking-widest mb-1">Not this</p>
+            {profile.self_assessment.not_this.map((s, i) => (
+              <p key={i} className="text-zinc-400 leading-snug">· {s}</p>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {profile.target_posture && (
+        <div className="border-t border-zinc-800 pt-3 grid grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <p className="text-[10px] text-indigo-400 uppercase tracking-widest mb-1">Primary roles</p>
+            {(profile.target_posture.primary_roles ?? []).map((r, i) => (
+              <p key={i} className="text-zinc-300">· {r}</p>
+            ))}
+            {(profile.target_posture.secondary_roles ?? []).length > 0 && (
+              <>
+                <p className="text-[10px] text-zinc-600 uppercase tracking-widest mt-2 mb-1">Secondary</p>
+                {profile.target_posture.secondary_roles!.map((r, i) => (
+                  <p key={i} className="text-zinc-500">· {r}</p>
+                ))}
+              </>
+            )}
+          </div>
+          <div className="space-y-2">
+            {profile.target_posture.auth_urgency && (
+              <div>
+                <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">Work auth</p>
+                <p className="text-zinc-400 leading-snug">{profile.target_posture.auth_urgency}</p>
+              </div>
+            )}
+            {(profile.target_posture.constraints ?? []).length > 0 && (
+              <div>
+                <p className="text-[10px] text-zinc-500 uppercase tracking-widest mb-1">Constraints</p>
+                {profile.target_posture.constraints!.map((c, i) => (
+                  <p key={i} className="text-zinc-400 leading-snug">· {c}</p>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Two-panel Monaco editor (JSON + bullets preview) ─────────────────────────
 
 function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => void }) {
@@ -393,6 +502,8 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
           onRestored={() => { loadContent(); setShowBackups(false) }}
         />
       )}
+
+      <CandidateProfileCard json={draft} onJump={jumpToJsonPath} />
 
       {/* Two-panel editor */}
       <div className="grid grid-cols-[3fr_2fr] gap-0 border border-zinc-700 rounded-lg overflow-hidden" style={{ height: 520 }}>
