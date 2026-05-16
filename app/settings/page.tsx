@@ -1,6 +1,7 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { signOut } from 'next-auth/react'
+import { Skeleton } from '@/components/Skeleton'
 
 // ── AI Provider types ────────────────────────────────────────────────────────
 type Provider = 'anthropic' | 'openai' | 'google' | 'groq' | 'openrouter' | 'ollama'
@@ -41,12 +42,16 @@ function AIProviderSection() {
   const [ollamaModels, setOllamaModels] = useState<string[]>([])
   const [fetchingModels, setFetchingModels] = useState(false)
   const [fetchModelsErr, setFetchModelsErr] = useState('')
+  const aiAbortRef = useRef<AbortController | null>(null)
 
   const load = useCallback(() => {
-    fetch('/api/settings/ai').then(r => r.json()).then((d: AISettings) => {
-      setAi(d)
-      setModel(d.default_models[provider] ?? '')
-    })
+    aiAbortRef.current?.abort()
+    const ctrl = new AbortController()
+    aiAbortRef.current = ctrl
+    fetch('/api/settings/ai', { signal: ctrl.signal })
+      .then(r => r.json())
+      .then((d: AISettings) => { setAi(d); setModel(d.default_models[provider] ?? '') })
+      .catch(e => { if (e.name !== 'AbortError') console.error('AI settings fetch failed', e) })
   }, [provider])
 
   useEffect(() => { load() }, [load])
@@ -100,7 +105,28 @@ function AIProviderSection() {
     setFetchingModels(false)
   }
 
-  if (!ai) return <div className="text-zinc-500 text-sm">Loading…</div>
+  if (!ai) return (
+    <div className="space-y-4">
+      <div className="border border-zinc-800 rounded-lg overflow-hidden">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-zinc-800">
+            <div className="flex-1 space-y-1.5">
+              <Skeleton className="h-4 w-44" />
+              <Skeleton className="h-3 w-60" />
+            </div>
+            <div className="flex gap-1 shrink-0">
+              <Skeleton className="h-7 w-20 rounded" />
+              <Skeleton className="h-7 w-16 rounded" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="space-y-3">
+        <Skeleton className="h-9 w-full rounded-lg" />
+        <Skeleton className="h-9 w-full rounded-lg" />
+      </div>
+    </div>
+  )
 
   return (
     <div className="space-y-4">
@@ -226,7 +252,7 @@ function AIProviderSection() {
         </div>
       </div>
 
-      <p className="text-xs text-zinc-600">
+      <p className="text-xs text-zinc-400">
         Keys are AES-256 encrypted at rest. The full key is never returned by the API after saving.
         Chat currently requires Anthropic as active provider.
       </p>
@@ -415,7 +441,13 @@ export default function SettingsPage() {
     setTimeout(() => setSaveStatus(''), 2000)
   }
 
-  if (!settings) return <div className="text-zinc-500 text-sm">Loading…</div>
+  if (!settings) return (
+    <div className="space-y-3">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <Skeleton key={i} className="h-10 w-full rounded-lg" />
+      ))}
+    </div>
+  )
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto p-6">
@@ -486,7 +518,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <p className="text-xs text-zinc-600">
+      <p className="text-xs text-zinc-400">
         Paths are stored in the database and override <code>.env.local</code> values.
         In Docker, use container-side paths (e.g. <code>/jobs</code>, <code>/output</code>).
       </p>
