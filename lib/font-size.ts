@@ -1,0 +1,35 @@
+export const FONT_SIZES = ['small', 'medium', 'large'] as const
+export type FontSize = typeof FONT_SIZES[number]
+
+export function isValidFontSize(s: string | null): s is FontSize {
+  return s !== null && (FONT_SIZES as readonly string[]).includes(s)
+}
+
+export function fontClass(s: FontSize): string {
+  return `font-${s}`
+}
+
+/** Script injected before-interactive to avoid FOUC on reload. */
+export function buildFontInitScript(): string {
+  const valid = FONT_SIZES.map(s => `'${s}'`).join(',')
+  const classes = FONT_SIZES.map(s => `'${fontClass(s)}'`).join(',')
+  return (
+    `try{` +
+    `var f=localStorage.getItem('rl-font-size');` +
+    `if([${valid}].indexOf(f)!==-1){` +
+    `var h=document.documentElement;` +
+    `[${classes}].forEach(function(c){h.classList.remove(c)});` +
+    `h.classList.add('font-'+f)` +
+    `}` +
+    `}catch(e){}`
+  )
+}
+
+/**
+ * Applies the given font size to the root HTML element.
+ * Safe to call during component mount — removes all other font-* classes first.
+ */
+export function applyFontSize(size: FontSize, root: HTMLElement = document.documentElement): void {
+  FONT_SIZES.forEach(s => root.classList.remove(fontClass(s)))
+  root.classList.add(fontClass(size))
+}

@@ -26,7 +26,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const userId = session.user.id
 
   const { id } = await params
-  const body = await req.json() as { hidden?: number; apply_url?: string | null }
+  const body = await req.json() as { hidden?: number; apply_url?: string | null; tags?: string[] }
   const db = await getAdapter()
 
   if ('hidden' in body) {
@@ -39,6 +39,11 @@ export async function PATCH(req: Request, { params }: Ctx) {
   if ('apply_url' in body) {
     const url = body.apply_url?.trim() || null
     await db.run('UPDATE jd_jobs SET apply_url = ? WHERE id = ? AND user_id = ?', [url, id, userId])
+  }
+
+  if ('tags' in body && Array.isArray(body.tags)) {
+    await db.run('UPDATE jd_jobs SET tags = ? WHERE id = ? AND user_id = ?',
+      [JSON.stringify(body.tags), id, userId])
   }
 
   return NextResponse.json({ ok: true })

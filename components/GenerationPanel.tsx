@@ -256,8 +256,8 @@ export default function GenerationPanel({
                   className="flex-1 min-w-0 text-left flex items-center gap-2 text-xs"
                 >
                   <span className="shrink-0">{statusLine}</span>
-                  <span className="text-zinc-600 font-mono truncate">{jobId.slice(0, 8)}</span>
-                  <span className="text-zinc-600 ml-auto shrink-0">{isCollapsed ? '▼' : '▲'}</span>
+                  <span className="text-zinc-400 font-mono truncate">{jobId.slice(0, 8)}</span>
+                  <span className="text-zinc-400 ml-auto shrink-0">{isCollapsed ? '▼' : '▲'}</span>
                 </button>
 
                 {canAbort && (

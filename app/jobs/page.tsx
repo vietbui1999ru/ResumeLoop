@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import { extractAllTags } from '@/lib/tag-filter'
+import { extractAllTags, parseTags } from '@/lib/tag-filter'
+import { PIPELINE_TAGS } from '@/lib/pipeline-tags'
 import dynamic from 'next/dynamic'
 import { Skeleton } from '@/components/Skeleton'
 import { AnimatedCheckbox } from '@/components/AnimatedCheckbox'
@@ -16,9 +17,9 @@ const SetupPanel      = dynamic(() => import('@/components/SetupPanel').then(m =
 
 const ACTION_COLORS: Record<string, string> = {
   '0-Saved':        'text-zinc-400',
-  '1-Applied':      'text-cyan-400',
+  '1-Applied':      'text-amber-400',
   '2-Phone Screen': 'text-indigo-400',
-  '3-Interview':    'text-purple-400',
+  '3-Interview':    'text-orange-400',
   '4-Offer':        'text-green-400',
   '5-Rejected':     'text-red-400',
   '6-Ghosted':      'text-zinc-500',
@@ -204,6 +205,18 @@ export default function JobsPage() {
     })
   }, [])
 
+  const handleTagToggle = useCallback(async (jobId: string, tagKey: string) => {
+    const job = jobs.find(j => j.id === jobId)
+    if (!job) return
+    const current = parseTags(job)
+    const next = current.includes(tagKey) ? current.filter(t => t !== tagKey) : [...current, tagKey]
+    setJobs(prev => prev.map(j => j.id === jobId ? { ...j, tags: JSON.stringify(next) } : j))
+    await fetch(`/api/jobs/${jobId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tags: next }),
+    })
+  }, [jobs])
+
   const handleActionChange = useCallback(async (jobId: string, newAction: string) => {
     setJobs(prev => prev.map(j => j.id === jobId ? { ...j, action: newAction } : j))
     const res = await fetch(`/api/jobs/${jobId}/action`, {
@@ -284,15 +297,21 @@ export default function JobsPage() {
             <option value="">All stages</option>
             {VALID_ACTIONS.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
-          <div className="shrink-0 flex items-center gap-1.5 h-8 bg-surface-card border border-zinc-800 rounded-lg px-2.5 text-sm focus-within:border-indigo-500 transition-colors duration-100">
-            <span className="text-text-muted">Fit ≥</span>
-            <input
-              type="number" min={0} max={100} step={10}
-              value={fitMin}
-              onChange={e => setFitMin(Number(e.target.value))}
-              className="w-10 bg-transparent text-zinc-200 text-center"
-            />
-            <span className="text-text-muted">%</span>
+          <div className="shrink-0 flex items-center gap-0.5 h-8 bg-surface-card border border-zinc-800 rounded-lg px-2 transition-colors duration-100">
+            <span className="text-text-muted text-xs mr-1">Fit</span>
+            {([0, 60, 70, 80, 90] as const).map(val => (
+              <button
+                key={val}
+                onClick={() => setFitMin(val)}
+                className={`px-1.5 py-0.5 rounded text-xs transition-colors ${
+                  fitMin === val
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
+                }`}
+              >
+                {val === 0 ? 'Any' : `${val}%`}
+              </button>
+            ))}
           </div>
           <button
             onClick={() => setShowSecondary(v => !v)}
@@ -431,7 +450,7 @@ export default function JobsPage() {
                       </div>
                     </td>
 
-                    {/* Role + track badge */}
+                    {/* Role + track badge + pipeline tag dots */}
                     <td className="py-3 pr-4">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-zinc-300">{job.role_title}</span>
@@ -440,6 +459,21 @@ export default function JobsPage() {
                             {job.role_track}
                           </span>
                         )}
+                        <div className="flex gap-0.5 items-center">
+                          {PIPELINE_TAGS.map(tag => {
+                            const active = parseTags(job).includes(tag.key)
+                            return (
+                              <button
+                                key={tag.key}
+                                title={tag.label}
+                                onClick={e => { e.stopPropagation(); void handleTagToggle(job.id, tag.key) }}
+                                className={`w-2.5 h-2.5 rounded-full transition-all hover:scale-125 cursor-pointer ${
+                                  active ? tag.dot : 'bg-zinc-600 opacity-25 hover:opacity-70'
+                                }`}
+                              />
+                            )
+                          })}
+                        </div>
                       </div>
                     </td>
 
@@ -495,10 +529,14 @@ export default function JobsPage() {
                     <td className="py-2" onClick={e => e.stopPropagation()}>
                       <button
                         onClick={() => void hideJob(job.id, job.hidden ? 0 : 1)}
-                        className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-300 text-xs px-1 transition-opacity"
+                        className={`opacity-20 group-hover:opacity-100 text-sm leading-none px-1 rounded transition-all duration-150 ${
+                          job.hidden
+                            ? 'text-zinc-400 hover:text-green-400'
+                            : 'text-zinc-400 hover:text-red-400'
+                        }`}
                         title={job.hidden ? 'Unhide' : 'Hide'}
                       >
-                        {job.hidden ? '↺' : '✕'}
+                        {job.hidden ? '↺' : '×'}
                       </button>
                     </td>
                   </tr>
@@ -516,7 +554,14 @@ export default function JobsPage() {
       {/* ── Modals ─────────────────────────────────────────────── */}
       <AnimatePresence>
         {selectedJobId && (
-          <JobDetailModal key={selectedJobId} jobId={selectedJobId} onClose={() => setSelectedJobId(null)} />
+          <JobDetailModal
+            key={selectedJobId}
+            jobId={selectedJobId}
+            onClose={() => setSelectedJobId(null)}
+            onTagsChange={(tags) => {
+              setJobs(prev => prev.map(j => j.id === selectedJobId ? { ...j, tags: JSON.stringify(tags) } : j))
+            }}
+          />
         )}
       </AnimatePresence>
       <AnimatePresence>

@@ -170,7 +170,7 @@ export default function ChatPage() {
               }`}
             >
               <p className="text-zinc-300 truncate">{s.name}</p>
-              <p className="text-zinc-600">{fmtDate(s.created_at)}</p>
+              <p className="text-zinc-400">{fmtDate(s.created_at)}</p>
             </button>
           ))}
         </div>

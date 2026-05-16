@@ -17,6 +17,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useJobOutput } from '@/lib/useJobOutput'
+import { PIPELINE_TAGS, PIPELINE_TAG_KEYS } from '@/lib/pipeline-tags'
 import PdfViewer from './PdfViewer'
 import OutreachPanel from './OutreachPanel'
 import { motion } from 'framer-motion'
@@ -45,6 +46,7 @@ interface JobDetail {
 interface Props {
   jobId: string
   onClose: () => void
+  onTagsChange?: (tags: string[]) => void
 }
 
 const fmtDate = (iso: string | null) => {
@@ -78,7 +80,7 @@ function SortablePanel({ id, children, flexGrow }: { id: PanelId; children: Reac
         className="flex items-center justify-center h-5 cursor-grab active:cursor-grabbing bg-zinc-800/50 border-b border-zinc-700 shrink-0 select-none"
         title="Drag to reorder"
       >
-        <span className="text-zinc-600 text-xs">⠿</span>
+        <span className="text-zinc-400 text-xs">⠿</span>
       </div>
       {children}
     </div>
@@ -130,10 +132,11 @@ function ResizeDivider({ leftId, rightId, onResize }: {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export default function JobDetailModal({ jobId, onClose }: Props) {
+export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) {
   const [job, setJob] = useState<JobDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [localTags, setLocalTags] = useState<string[]>([])
   const { output, loading: outputLoading } = useJobOutput(jobId)
 
   // Apply URL state (editable, persisted via PATCH)
@@ -184,7 +187,11 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
   useEffect(() => {
     fetch(`/api/jobs/${jobId}`)
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then((j: JobDetail) => { setJob(j); setApplyUrl(j.apply_url) })
+      .then((j: JobDetail) => {
+        setJob(j)
+        setApplyUrl(j.apply_url)
+        try { setLocalTags(JSON.parse(j.tags || '[]')) } catch { setLocalTags([]) }
+      })
       .catch(() => setError('Failed to load job'))
       .finally(() => setLoading(false))
   }, [jobId])
@@ -366,6 +373,16 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
     }
   }
 
+  async function handleTagToggle(key: string) {
+    const next = localTags.includes(key) ? localTags.filter(t => t !== key) : [...localTags, key]
+    setLocalTags(next)
+    onTagsChange?.(next)
+    await fetch(`/api/jobs/${jobId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tags: next }),
+    })
+  }
+
   const tags: string[] = (() => { try { return JSON.parse(job?.tags || '[]') } catch { return [] } })()
   const visiblePanels = panelOrder.filter(id => openPanels.has(id))
   visiblePanelsRef.current = visiblePanels  // keep ref in sync for resize handler
@@ -471,6 +488,8 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
                         <JdPanel
                           job={job}
                           tags={tags}
+                          localTags={localTags}
+                          onTagToggle={handleTagToggle}
                           output={output}
                           outputLoading={outputLoading}
                           onGenCoverLetter={generateCoverLetter}
@@ -538,7 +557,7 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
           onPointerDown={e => startModalResize(e, 'se')}
           title="Drag to resize"
         >
-          <svg width="10" height="10" viewBox="0 0 10 10" className="text-zinc-600 group-hover:text-indigo-400 transition-colors">
+          <svg width="10" height="10" viewBox="0 0 10 10" className="text-zinc-400 group-hover:text-indigo-400 transition-colors">
             <path d="M2 9 L9 2 M5 9 L9 5 M8 9 L9 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
         </div>
@@ -549,9 +568,11 @@ export default function JobDetailModal({ jobId, onClose }: Props) {
 
 // ── JD Panel ──────────────────────────────────────────────────────────────────
 
-function JdPanel({ job, tags, output, outputLoading, onGenCoverLetter, coverLoading, applyUrl, onSaveApplyUrl, applyUrlSaving }: {
+function JdPanel({ job, tags, localTags, onTagToggle, output, outputLoading, onGenCoverLetter, coverLoading, applyUrl, onSaveApplyUrl, applyUrlSaving }: {
   job: JobDetail
   tags: string[]
+  localTags: string[]
+  onTagToggle: (key: string) => void
   output: ReturnType<typeof useJobOutput>['output']
   outputLoading: boolean
   onGenCoverLetter: () => void
@@ -586,11 +607,31 @@ function JdPanel({ job, tags, output, outputLoading, onGenCoverLetter, coverLoad
         <Field label="Clipped" value={fmtDate(job.file_mtime)} />
         <Field label="Scanned" value={fmtDate(job.scanned_at)} />
         <div className="col-span-2">
-          <span className="text-zinc-500">Tags </span>
-          {tags.length
-            ? tags.map(t => <span key={t} className="inline-block mr-1 px-1.5 py-0.5 bg-zinc-800 rounded text-xs text-zinc-300">{t}</span>)
-            : <span className="text-zinc-500">—</span>}
+          <p className="text-zinc-500 text-xs mb-1">Stage</p>
+          <div className="flex gap-1.5 flex-wrap">
+            {PIPELINE_TAGS.map(tag => {
+              const active = localTags.includes(tag.key)
+              return (
+                <button
+                  key={tag.key}
+                  onClick={() => onTagToggle(tag.key)}
+                  className={`px-2 py-0.5 rounded text-xs border transition-all font-medium ${
+                    active ? tag.pill : 'bg-zinc-800/50 text-zinc-500 border-zinc-700 hover:text-zinc-300 hover:border-zinc-500'
+                  }`}
+                >
+                  {tag.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
+        {tags.filter(t => !PIPELINE_TAG_KEYS.includes(t as never)).length > 0 && (
+          <div className="col-span-2">
+            <span className="text-zinc-500">Tags </span>
+            {tags.filter(t => !PIPELINE_TAG_KEYS.includes(t as never))
+              .map(t => <span key={t} className="inline-block mr-1 px-1.5 py-0.5 bg-zinc-800 rounded text-xs text-zinc-300">{t}</span>)}
+          </div>
+        )}
         {/* Apply link */}
         <div className="col-span-2">
           <span className="text-zinc-500 text-xs">Apply </span>
@@ -614,7 +655,7 @@ function JdPanel({ job, tags, output, outputLoading, onGenCoverLetter, coverLoad
               <a href={safeApplyUrl} target="_blank" rel="noreferrer" className="text-xs text-indigo-400 hover:text-indigo-300 underline truncate max-w-xs">
                 {safeApplyUrl}
               </a>
-              <button onClick={startEdit} className="text-xs text-zinc-600 hover:text-zinc-400">Edit</button>
+              <button onClick={startEdit} className="text-xs text-zinc-400 hover:text-zinc-400">Edit</button>
             </span>
           ) : (
             <button onClick={startEdit} className="text-xs text-zinc-500 hover:text-zinc-300 underline">+ Add apply link</button>

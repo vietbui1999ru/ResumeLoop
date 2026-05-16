@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { signOut } from 'next-auth/react'
 import { Skeleton } from '@/components/Skeleton'
+import { FONT_SIZES, type FontSize, applyFontSize } from '@/lib/font-size'
 
 // ── AI Provider types ────────────────────────────────────────────────────────
 type Provider = 'anthropic' | 'openai' | 'google' | 'groq' | 'openrouter' | 'ollama'
@@ -280,9 +281,6 @@ interface Settings {
 
 // ── Font size preference ──────────────────────────────────────────────────────
 
-const FONT_SIZES = ['small', 'medium', 'large'] as const
-type FontSize = typeof FONT_SIZES[number]
-
 const FONT_SIZE_LABELS: Record<FontSize, string> = {
   small:  'Small',
   medium: 'Medium',
@@ -293,16 +291,19 @@ function FontSizeSection() {
   const [size, setSize] = useState<FontSize>('medium')
 
   useEffect(() => {
-    const stored = localStorage.getItem('rl-font-size') as FontSize | null
-    if (stored && (FONT_SIZES as readonly string[]).includes(stored)) setSize(stored)
+    const stored = localStorage.getItem('rl-font-size')
+    if (stored === 'small' || stored === 'medium' || stored === 'large') {
+      // Must re-apply class here: React hydration strips any class added by the
+      // beforeInteractive script because the server-rendered <html> has no font class.
+      applyFontSize(stored)
+      setSize(stored)
+    }
   }, [])
 
   const apply = (s: FontSize) => {
     setSize(s)
     localStorage.setItem('rl-font-size', s)
-    const html = document.documentElement
-    FONT_SIZES.forEach(sz => html.classList.remove('font-' + sz))
-    html.classList.add('font-' + s)
+    applyFontSize(s)
   }
 
   return (
