@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
+import { Skeleton } from '@/components/Skeleton'
 import ReactMarkdown from 'react-markdown'
 import type { Components } from 'react-markdown'
 import type { Element } from 'hast'
@@ -568,7 +569,16 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
             <span className="ml-auto text-[0.625rem] text-zinc-400 font-mono">JSON</span>
           </div>
           {loading ? (
-            <div className="flex-1 flex items-center justify-center text-zinc-400 text-xs">Loading…</div>
+            <div className="flex-1 p-4 space-y-2 overflow-hidden">
+              {Array.from({ length: 22 }).map((_, i) => (
+                <Skeleton key={i} className={`h-3 ${
+                  i % 5 === 0 ? 'w-2/3' :
+                  i % 5 === 1 ? 'w-1/2' :
+                  i % 5 === 2 ? 'w-3/4' :
+                  i % 5 === 3 ? 'w-2/5' : 'w-full'
+                }`} />
+              ))}
+            </div>
           ) : (
             <MonacoEditor
               height="100%"
@@ -757,7 +767,17 @@ function DocEditor({ file, label }: { file: DocFileKey; label: string }) {
             <span className="ml-2 text-[0.625rem] text-zinc-400 font-mono">click preview block to jump</span>
           </div>
           {loading ? (
-            <div className="flex-1 flex items-center justify-center text-zinc-400 text-xs">Loading…</div>
+            <div className="flex-1 p-4 space-y-2 overflow-hidden">
+              {Array.from({ length: 22 }).map((_, i) => (
+                <Skeleton key={i} className={`h-3 ${
+                  i % 6 === 0 ? 'w-full' :
+                  i % 6 === 1 ? 'w-3/4' :
+                  i % 6 === 2 ? 'w-1/2' :
+                  i % 6 === 3 ? 'w-2/3' :
+                  i % 6 === 4 ? 'w-5/6' : 'w-1/3'
+                }`} />
+              ))}
+            </div>
           ) : (
             <MonacoEditor
               height="100%"
