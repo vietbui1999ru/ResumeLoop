@@ -91,6 +91,14 @@ function FitBadge({ pct }: { pct: number }) {
   )
 }
 
+function jobSortVal(j: Job, col: SortCol): string | number {
+  if (col === 'fit_pct')    return j.fit_pct
+  if (col === 'clipped_at') return j.clipped_at ?? j.file_mtime ?? ''
+  if (col === 'company')    return j.company
+  if (col === 'role_title') return j.role_title
+  return j.action ?? ''
+}
+
 export default function JobsPage() {
   const { activeSessionId } = useSession()
   const [jobs, setJobs]         = useState<Job[]>([])
@@ -153,12 +161,15 @@ export default function JobsPage() {
   }, [debouncedQ, showHidden, fitMin, trackFilter, visaFilter, actionFilter, tagFilter, fromDate])
 
   useEffect(() => {
-    fetch('/api/settings')
+    const ctrl = new AbortController()
+    fetch('/api/settings', { signal: ctrl.signal })
       .then(r => r.ok ? r.json() : null)
       .then((d: Record<string, unknown> | null) => {
         setJobsPathExists(d ? Boolean(d.jobs_path_exists) : true)
       })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+      .catch(e => { if (e.name !== 'AbortError') console.error(e) })
+    return () => ctrl.abort()
+  }, [])
 
   // Re-fetch whenever any filter changes (debouncedQ handles the search delay).
   // Cleanup aborts any in-flight request when filters change again or on unmount.
@@ -233,14 +244,6 @@ export default function JobsPage() {
     }
   }, [reload, setRowError])
 
-  const jobSortVal = (j: Job, col: SortCol): string | number => {
-    if (col === 'fit_pct')   return j.fit_pct
-    if (col === 'clipped_at') return j.clipped_at ?? j.file_mtime ?? ''
-    if (col === 'company')   return j.company
-    if (col === 'role_title') return j.role_title
-    return j.action ?? ''
-  }
-
   const visible = useMemo(() => {
     return [...jobs].sort((a, b) => {
       const va = jobSortVal(a, sort.col)
@@ -249,7 +252,7 @@ export default function JobsPage() {
         ? va - vb : String(va).localeCompare(String(vb))
       return sort.dir === 'asc' ? cmp : -cmp
     })
-  }, [jobs, sort]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [jobs, sort])
 
   const allVisibleSelected = visible.length > 0 && visible.every(j => selected.has(j.id))
   const toggleAll = () => setSelected(allVisibleSelected ? new Set() : new Set(visible.map(j => j.id)))

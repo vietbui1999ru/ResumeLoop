@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { signOut } from 'next-auth/react'
 import { Skeleton } from '@/components/Skeleton'
-import { FONT_SIZES, type FontSize, applyFontSize, isValidFontSize } from '@/lib/font-size'
+import { FONT_SIZES, type FontSize, applyFontSize, isValidFontSize, FONT_SIZE_KEY, FONT_SIZE_LABELS } from '@/lib/font-size'
 
 // ── AI Provider types ────────────────────────────────────────────────────────
 type Provider = 'anthropic' | 'openai' | 'google' | 'groq' | 'openrouter' | 'ollama'
@@ -281,23 +281,17 @@ interface Settings {
 
 // ── Font size preference ──────────────────────────────────────────────────────
 
-const FONT_SIZE_LABELS: Record<FontSize, string> = {
-  small:  'Small',
-  medium: 'Medium',
-  large:  'Large',
-}
-
 function FontSizeSection() {
   const [size, setSize] = useState<FontSize>('medium')
 
   useEffect(() => {
-    const stored = localStorage.getItem('rl-font-size')
+    const stored = localStorage.getItem(FONT_SIZE_KEY)
     if (isValidFontSize(stored)) setSize(stored)
   }, [])
 
   const apply = (s: FontSize) => {
     setSize(s)
-    localStorage.setItem('rl-font-size', s)
+    localStorage.setItem(FONT_SIZE_KEY, s)
     applyFontSize(s)
   }
 

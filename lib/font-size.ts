@@ -1,6 +1,14 @@
 export const FONT_SIZES = ['small', 'medium', 'large'] as const
 export type FontSize = typeof FONT_SIZES[number]
 
+export const FONT_SIZE_KEY = 'rl-font-size'
+
+export const FONT_SIZE_LABELS: Record<FontSize, string> = {
+  small:  'Small',
+  medium: 'Medium',
+  large:  'Large',
+}
+
 export function isValidFontSize(s: string | null): s is FontSize {
   return s !== null && (FONT_SIZES as readonly string[]).includes(s)
 }
@@ -15,7 +23,7 @@ export function buildFontInitScript(): string {
   const classes = FONT_SIZES.map(s => `'${fontClass(s)}'`).join(',')
   return (
     `try{` +
-    `var f=localStorage.getItem('rl-font-size');` +
+    `var f=localStorage.getItem('${FONT_SIZE_KEY}');` +
     `if([${valid}].indexOf(f)!==-1){` +
     `var h=document.documentElement;` +
     `[${classes}].forEach(function(c){h.classList.remove(c)});` +

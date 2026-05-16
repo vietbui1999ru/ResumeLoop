@@ -59,7 +59,7 @@ describe('buildFontInitScript', () => {
   })
 })
 
-// Helper: minimal HTMLElement-like classList mock
+// Avoids jsdom dependency — applyFontSize only needs classList, not a full DOM.
 function makeRoot(initial: string[] = []) {
   const classes = new Set<string>(initial)
   return {
