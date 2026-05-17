@@ -4,8 +4,8 @@
   "requiresCompatibilities": [
     "FARGATE"
   ],
-  "cpu": "256",
-  "memory": "512",
+  "cpu": "512",
+  "memory": "1024",
   "executionRoleArn": "arn:aws:iam::985526967036:role/ECSTaskResumeLoop",
   "taskRoleArn": "arn:aws:iam::985526967036:role/ECSTaskResumeLoop",
   "runtimePlatform": {
@@ -23,6 +23,16 @@
         }
       ],
       "essential": true,
+      "environment": [
+        {
+          "name": "AUTH_TRUST_HOST",
+          "value": "true"
+        },
+        {
+          "name": "AUTH_URL",
+          "value": "https://fh7gi2vfe2.execute-api.us-east-1.amazonaws.com"
+        }
+      ],
       "secrets": [
         {
           "name": "APP_MODE",
