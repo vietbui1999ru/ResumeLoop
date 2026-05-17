@@ -67,18 +67,13 @@ jobs:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Download current task definition
-        run: |
-          aws ecs describe-task-definition \
-            --task-definition "$ECS_SERVICE" \
-            --query taskDefinition \
-            --output json > /tmp/task-def.json
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
       - name: Render new task definition with updated image
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@6853cfae8c3a7d978fbf68b5a55453395541dfbb  # v1
         with:
-          task-definition: /tmp/task-def.json
+          task-definition: infra/ecs-task-def.json
           container-name: resumeloop
           image: ${{ needs.build-push.outputs.ecr_registry }}/resumeloop:${{ needs.build-push.outputs.image_tag }}
 
