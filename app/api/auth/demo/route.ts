@@ -25,7 +25,8 @@ export async function POST() {
       [id, email, hash],
     )
     await seedDemoUser(id)
-  } catch {
+  } catch (e) {
+    console.error('[demo] Failed to create demo session:', e)
     return NextResponse.json({ error: 'Failed to create demo session' }, { status: 500 })
   }
 
