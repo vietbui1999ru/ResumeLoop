@@ -226,7 +226,9 @@ const NEON_SOFT_DELETE_MIGRATION = `
 `
 
 // ── Neon adapter (cloud mode) ─────────────────────────────────────────────────
-type NeonSqlFn = (sql: string, params?: unknown[]) => Promise<unknown[]>
+interface NeonQueryFn {
+  query(sql: string, params?: unknown[]): Promise<unknown[]>
+}
 
 // Convert SQLite-style `?` placeholders to Postgres-style `$1`, `$2`, ...
 // Skips `?` inside single-quoted string literals.
@@ -262,29 +264,29 @@ function translatePlaceholders(sql: string): string {
 }
 
 class NeonAdapter implements DbAdapter {
-  private sql: NeonSqlFn
+  private neonSql: NeonQueryFn
   private initialized = false
 
   constructor(connectionString: string) {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { neon } = require('@neondatabase/serverless') as typeof import('@neondatabase/serverless')
-    // Function-call (parameterized) form: sql('SELECT ... WHERE x = $1', [val])
-    this.sql = neon(connectionString) as unknown as NeonSqlFn
+    // Use .query() — neon() no longer supports plain function-call form
+    this.neonSql = neon(connectionString) as unknown as NeonQueryFn
   }
 
   async query<T>(sql: string, params: unknown[] = []): Promise<T[]> {
-    const rows = await this.sql(translatePlaceholders(sql), params)
+    const rows = await this.neonSql.query(translatePlaceholders(sql), params)
     return rows as T[]
   }
   async queryOne<T>(sql: string, params: unknown[] = []): Promise<T | undefined> {
-    const rows = await this.sql(translatePlaceholders(sql), params)
+    const rows = await this.neonSql.query(translatePlaceholders(sql), params)
     return (rows[0] as T) ?? undefined
   }
   async run(sql: string, params: unknown[] = []): Promise<void> {
-    await this.sql(translatePlaceholders(sql), params)
+    await this.neonSql.query(translatePlaceholders(sql), params)
   }
   async exec(sql: string): Promise<void> {
-    await this.sql(sql)
+    await this.neonSql.query(sql)
   }
   async initialize(): Promise<void> {
     if (this.initialized) return
