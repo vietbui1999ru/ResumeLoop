@@ -286,7 +286,12 @@ class NeonAdapter implements DbAdapter {
     await this.neonSql.query(translatePlaceholders(sql), params)
   }
   async exec(sql: string): Promise<void> {
-    await this.neonSql.query(sql)
+    // .query() is a prepared statement — rejects multiple commands.
+    // Split on ';' and run each statement individually.
+    const stmts = sql.split(';').map(s => s.trim()).filter(Boolean)
+    for (const stmt of stmts) {
+      await this.neonSql.query(stmt)
+    }
   }
   async initialize(): Promise<void> {
     if (this.initialized) return
