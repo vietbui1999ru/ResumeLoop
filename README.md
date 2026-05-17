@@ -22,7 +22,7 @@ cp .env.example .env.local   # set NEXTAUTH_SECRET, ENCRYPTION_KEY
 npm run dev                  # http://localhost:3000
 ```
 
-Login with demo account: `demo@demo.com` / `demo`
+Click **Try Demo** on the sign-in page to explore with pre-loaded sample data — no account needed.
 
 ### Docker
 
@@ -69,3 +69,21 @@ Persists `resume.db` and file outputs as bind-mounts. See [`docs/deploy.md`](doc
 | `lib/db-adapter.ts` | `DbAdapter` interface + `SqliteAdapter` + `NeonAdapter` |
 | `lib/jd-parser.ts` | Parses JD frontmatter, extracts company/role/tags/visa/clip date |
 | `CLAUDE.md` | Candidate profile, hard constraints, role-track table |
+
+## By the numbers
+
+| Metric | Count |
+|---|---|
+| TypeScript files | 153 |
+| Lines of code (TS/TSX) | ~16,000 |
+| API routes | 47 |
+| React components | 22 |
+| Lib modules | 39 |
+| Database tables | 14 |
+| Test files | 23 |
+| Tests | 202 |
+| Test assertions | 332 |
+| npm dependencies | 51 (34 prod + 17 dev) |
+| Job descriptions in corpus | 609 |
+| Git commits | 176 |
+| Project age | ~3 weeks |
