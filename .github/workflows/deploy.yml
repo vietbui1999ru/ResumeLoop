@@ -7,14 +7,14 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: resumeloop
+  ECS_CLUSTER: resumeloop
+  ECS_SERVICE: resumeloop
+  API_GW_ID: fh7gi2vfe2
+  PROXY_INTEGRATION: 4bao5ug   # ANY /{proxy+}
+  ROOT_INTEGRATION: k3p1e6c    # ANY /
 
 # Required secrets:
-#   AWS_DEPLOY_ROLE_ARN      — IAM role ARN for OIDC
-#   TAILSCALE_AUTHKEY        — Tailscale ephemeral auth key
-#   HOMELAB_SSH_KEY          — private key (PEM) for homelab deploy user
-#   HOMELAB_SSH_HOST_KEY     — known_hosts entry for homelab host
-#   HOMELAB_USER             — SSH username on homelab
-#   HOMELAB_HOST             — homelab hostname or Tailscale IP
+#   AWS_DEPLOY_ROLE_ARN  — IAM role ARN for OIDC (needs ECR + ECS + EC2 + APIGatewayV2 perms)
 
 jobs:
   build-push:
@@ -52,43 +52,96 @@ jobs:
                      "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
           docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
 
-  deploy-homelab:
-    name: Deploy to homelab
+  deploy-ecs:
+    name: Deploy to ECS Fargate
     runs-on: ubuntu-latest
     needs: build-push
-    permissions: {}
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
-      - name: Join Tailscale network
-        uses: tailscale/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8  # v4.1.2
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@d979d5b3a71173a29b74b5b88418bfda9437d885  # v6.1.1
         with:
-          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Add homelab SSH key and known hosts
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.HOMELAB_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          printf '%s\n' "${{ secrets.HOMELAB_SSH_HOST_KEY }}" >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-
-      - name: Deploy
+      - name: Register new task definition revision
+        id: task-def
         env:
           ECR_REGISTRY: ${{ needs.build-push.outputs.ecr_registry }}
           IMAGE_TAG: ${{ needs.build-push.outputs.image_tag }}
-          HOMELAB_USER: ${{ secrets.HOMELAB_USER }}
-          HOMELAB_HOST: ${{ secrets.HOMELAB_HOST }}
         run: |
-          ssh -i ~/.ssh/deploy_key \
-              "$HOMELAB_USER@$HOMELAB_HOST" \
-              "cd ~/resumeloop && \
-               export IMAGE_TAG=$IMAGE_TAG ECR_REGISTRY=$ECR_REGISTRY && \
-               aws ecr get-login-password --region us-east-1 \
-                 | docker login --username AWS --password-stdin $ECR_REGISTRY && \
-               docker compose -f docker-compose.prod.yml --env-file .env.prod pull app && \
-               docker compose -f docker-compose.prod.yml --env-file .env.prod up -d && \
-               for i in \$(seq 1 12); do \
-                 curl -sf http://localhost:3010/api/health | grep '\"ok\":true' && break; \
-                 [ \$i -eq 12 ] && echo 'Health check failed after 60s' && exit 1; \
-                 sleep 5; \
-               done"
+          NEW_IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          TASK_DEF=$(aws ecs describe-task-definition \
+            --task-definition "$ECS_SERVICE" \
+            --query taskDefinition --output json | \
+            jq 'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,
+                    .placementConstraints,.compatibilities,.registeredAt,.registeredBy)' | \
+            jq --arg img "$NEW_IMAGE" '.containerDefinitions[0].image = $img')
+          NEW_ARN=$(echo "$TASK_DEF" | aws ecs register-task-definition \
+            --cli-input-json /dev/stdin \
+            --query 'taskDefinition.taskDefinitionArn' --output text)
+          echo "task_def_arn=$NEW_ARN" >> "$GITHUB_OUTPUT"
+          echo "Registered: $NEW_ARN"
+
+      - name: Update ECS service
+        env:
+          TASK_DEF_ARN: ${{ steps.task-def.outputs.task_def_arn }}
+        run: |
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
+            --task-definition "$TASK_DEF_ARN" \
+            --query 'service.deployments[0].status' --output text
+
+      - name: Wait for service stability
+        run: |
+          echo "Waiting for ECS service to stabilise..."
+          aws ecs wait services-stable \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE"
+
+      - name: Update API Gateway integrations with new task IP
+        run: |
+          TASK_ARN=$(aws ecs list-tasks \
+            --cluster "$ECS_CLUSTER" \
+            --query 'taskArns[0]' --output text)
+          ENI_ID=$(aws ecs describe-tasks \
+            --cluster "$ECS_CLUSTER" \
+            --tasks "$TASK_ARN" \
+            --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' \
+            --output text)
+          PUBLIC_IP=$(aws ec2 describe-network-interfaces \
+            --network-interface-ids "$ENI_ID" \
+            --query 'NetworkInterfaces[0].Association.PublicIp' --output text)
+          echo "New task IP: $PUBLIC_IP"
+
+          aws apigatewayv2 update-integration \
+            --api-id "$API_GW_ID" \
+            --integration-id "$PROXY_INTEGRATION" \
+            --integration-uri "http://$PUBLIC_IP:3000/{proxy}" \
+            --query 'IntegrationUri' --output text
+
+          aws apigatewayv2 update-integration \
+            --api-id "$API_GW_ID" \
+            --integration-id "$ROOT_INTEGRATION" \
+            --integration-uri "http://$PUBLIC_IP:3000" \
+            --query 'IntegrationUri' --output text
+
+      - name: Verify deployment via API Gateway
+        run: |
+          for i in $(seq 1 12); do
+            STATUS=$(curl -sf \
+              "https://$API_GW_ID.execute-api.$AWS_REGION.amazonaws.com/api/health" | \
+              python3 -c "import sys,json; print(json.load(sys.stdin)['status'])" 2>/dev/null \
+              || echo "error")
+            if [ "$STATUS" = "ok" ]; then
+              echo "Health check passed on attempt $i"
+              exit 0
+            fi
+            echo "Attempt $i: $STATUS — retrying in 10s..."
+            sleep 10
+          done
+          echo "Health check failed after 120s" && exit 1
