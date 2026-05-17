@@ -61,6 +61,30 @@
         {
           "name": "AWS_REGION",
           "valueFrom": "arn:aws:secretsmanager:us-east-1:985526967036:secret:resumeloop/prod/AWS_REGION-biy1bk"
+        },
+        {
+          "name": "UPSTASH_REDIS_REST_URL",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:985526967036:secret:resumeloop/prod/UPSTASH_REDIS_REST_URL-RgFFWH"
+        },
+        {
+          "name": "GOOGLE_CLIENT_ID",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:985526967036:secret:resumeloop/prod/GOOGLE_CLIENT_ID-nMFwmR"
+        },
+        {
+          "name": "GOOGLE_CLIENT_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:985526967036:secret:resumeloop/prod/GOOGLE_CLIENT_SECRET-p58JXt"
+        },
+        {
+          "name": "UPSTASH_REDIS_REST_TOKEN",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:985526967036:secret:resumeloop/prod/UPSTASH_REDIS_REST_TOKEN-Ii909X"
+        },
+        {
+          "name": "GITHUB_CLIENT_ID",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:985526967036:secret:resumeloop/prod/GITHUB_CLIENT_ID-I3BGkP"
+        },
+        {
+          "name": "GITHUB_CLIENT_SECRET",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:985526967036:secret:resumeloop/prod/GITHUB_CLIENT_SECRET-8bpKSi"
         }
       ],
       "logConfiguration": {
