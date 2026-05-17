@@ -10,6 +10,7 @@ export default function SignUpPage() {
   const [password, setPassword] = useState('')
   const [error,    setError]    = useState('')
   const [loading,  setLoading]  = useState(false)
+  const [demoLoading, setDemoLoading] = useState(false)
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
@@ -29,13 +30,7 @@ export default function SignUpPage() {
       return
     }
 
-    // Auto sign-in after successful registration
-    const result = await signIn('credentials', {
-      email,
-      password,
-      redirect: false,
-    })
-
+    const result = await signIn('credentials', { email, password, redirect: false })
     setLoading(false)
     if (result?.error) {
       setError('Account created but sign-in failed — please sign in manually')
@@ -45,12 +40,46 @@ export default function SignUpPage() {
     router.refresh()
   }
 
+  const tryDemo = async () => {
+    setDemoLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/api/auth/demo', { method: 'POST' })
+      if (!res.ok) { setError('Demo unavailable — try again'); setDemoLoading(false); return }
+      const { email: demoEmail, password: demoPassword } = await res.json() as { email: string; password: string }
+      const result = await signIn('credentials', { email: demoEmail, password: demoPassword, redirect: false })
+      if (result?.error) { setError('Demo sign-in failed'); setDemoLoading(false); return }
+      router.push('/')
+      router.refresh()
+    } catch {
+      setError('Demo unavailable — try again')
+      setDemoLoading(false)
+    }
+  }
+
+  const anyLoading = loading || demoLoading
+
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8">
           <h1 className="text-xl font-semibold text-zinc-100">Create account</h1>
           <p className="text-sm text-zinc-500 mt-1">ResumeAnalyze</p>
+        </div>
+
+        {/* Try Demo */}
+        <button
+          onClick={tryDemo}
+          disabled={anyLoading}
+          className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-indigo-950 hover:bg-indigo-900 disabled:opacity-40 rounded text-sm font-medium text-indigo-300 transition-colors border border-indigo-700 mb-6"
+        >
+          {demoLoading ? 'Loading demo…' : '✦ Try Demo — no account needed'}
+        </button>
+
+        <div className="flex items-center gap-3 mb-6">
+          <div className="flex-1 h-px bg-zinc-800" />
+          <span className="text-xs text-zinc-400">or create account</span>
+          <div className="flex-1 h-px bg-zinc-800" />
         </div>
 
         <form onSubmit={submit} className="space-y-4">
@@ -87,13 +116,11 @@ export default function SignUpPage() {
             />
           </div>
 
-          {error && (
-            <p className="text-xs text-red-400">{error}</p>
-          )}
+          {error && <p className="text-xs text-red-400">{error}</p>}
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={anyLoading}
             className="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 rounded text-sm font-medium transition-colors"
           >
             {loading ? 'Creating account…' : 'Create account'}
