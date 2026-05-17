@@ -38,6 +38,9 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
   if ('apply_url' in body) {
     const url = body.apply_url?.trim() || null
+    if (url && !/^https?:\/\//i.test(url)) {
+      return NextResponse.json({ error: 'apply_url must start with http:// or https://' }, { status: 400 })
+    }
     await db.run('UPDATE jd_jobs SET apply_url = ? WHERE id = ? AND user_id = ?', [url, id, userId])
   }
 

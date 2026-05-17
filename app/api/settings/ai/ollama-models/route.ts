@@ -41,7 +41,8 @@ interface OllamaTagsResponse {
 }
 
 export async function GET(req: Request) {
-  await auth() // require session
+  const session = await auth()
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const url       = new URL(req.url)
   const rawBase   = url.searchParams.get('base_url') ?? 'http://localhost:11434/v1'

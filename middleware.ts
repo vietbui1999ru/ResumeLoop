@@ -31,6 +31,7 @@ function isPublicPath(pathname: string): boolean {
     pathname.startsWith('/auth/') ||
     pathname.startsWith('/api/auth/') ||
     pathname === '/api/health' ||
+    pathname === '/api/metrics/prometheus' ||
     pathname === '/favicon.ico' ||
     pathname.startsWith('/_next/')
   )

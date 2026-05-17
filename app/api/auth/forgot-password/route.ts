@@ -19,6 +19,11 @@ export async function POST(req: Request) {
   const email = body.email?.trim().toLowerCase() ?? ''
   if (!EMAIL_RE.test(email)) return NextResponse.json({ error: 'Invalid email' }, { status: 400 })
 
+  const rlEmail = await checkRateLimitAsync(`auth:forgot:email:${email}`, 3, 3_600_000)
+  if (!rlEmail.success) {
+    return NextResponse.json({ ok: true }) // silent — don't reveal whether email exists
+  }
+
   const db  = await getAdapter()
   const row = await db.queryOne<{ id: string }>(
     `SELECT id FROM users WHERE email = ?`, [email],

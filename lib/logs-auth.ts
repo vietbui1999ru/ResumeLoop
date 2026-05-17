@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'crypto'
 import { auth } from '@/lib/auth'
 
 export async function checkLogsAuth(req: Request): Promise<boolean> {
@@ -7,5 +8,8 @@ export async function checkLogsAuth(req: Request): Promise<boolean> {
   const apiKey = process.env.LOGS_API_KEY
   if (!apiKey) return false
 
-  return req.headers.get('authorization') === `Bearer ${apiKey}`
+  const provided = req.headers.get('authorization') ?? ''
+  const expected = `Bearer ${apiKey}`
+  if (provided.length !== expected.length) return false
+  return timingSafeEqual(Buffer.from(provided), Buffer.from(expected))
 }

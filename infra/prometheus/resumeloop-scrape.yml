@@ -1,0 +1,34 @@
+# Drop this into your Prometheus scrape_configs.
+#
+# Prerequisites:
+#   1. Set METRICS_TOKEN env var on the ECS task (any random string, keep it secret)
+#   2. Add the same token to your homelab Prometheus config (see bearer_token below)
+#
+# ECS task env var:
+#   METRICS_TOKEN=<generate with: openssl rand -hex 32>
+#
+# To add to your existing prometheus.yml:
+#   scrape_configs:
+#     ... (existing jobs)
+#     - <<include contents below>>
+
+- job_name: resumeloop
+  scheme: https
+  metrics_path: /api/metrics/prometheus
+  scrape_interval: 60s
+  scrape_timeout: 15s
+
+  authorization:
+    type: Bearer
+    credentials: REPLACE_WITH_YOUR_METRICS_TOKEN
+
+  static_configs:
+    - targets:
+        - fh7gi2vfe2.execute-api.us-east-1.amazonaws.com
+      labels:
+        env: production
+        app: resumeloop
+
+  # API Gateway adds latency — relax TLS verification only if needed
+  tls_config:
+    insecure_skip_verify: false

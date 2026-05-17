@@ -59,14 +59,18 @@ export async function checkRateLimitAsync(
   limit = 10,
   windowMs = 60_000,
 ): Promise<RateLimitResult> {
-  if (isCloud()) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const limiter = await getUpstashLimiter() as any
-    const res = await limiter.limit(key)
-    return {
-      success:   res.success,
-      remaining: res.remaining,
-      reset:     res.reset,
+  if (isCloud() && process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const limiter = await getUpstashLimiter() as any
+      const res = await limiter.limit(key)
+      return {
+        success:   res.success,
+        remaining: res.remaining,
+        reset:     res.reset,
+      }
+    } catch {
+      // Upstash unavailable — fall through to in-process limiter
     }
   }
   return localCheck(key, limit, windowMs)

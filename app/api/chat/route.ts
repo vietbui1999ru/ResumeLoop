@@ -162,8 +162,17 @@ export async function POST(req: Request) {
   const { sessionId, message } = (await req.json()) as { sessionId: string; message: string }
   if (!sessionId || !message)
     return NextResponse.json({ error: 'sessionId and message required' }, { status: 400 })
+  if (message.length > 10_000)
+    return NextResponse.json({ error: 'message too long (max 10 000 chars)' }, { status: 400 })
 
   const db = await getAdapter()
+
+  const sess = await db.queryOne<{ id: string }>(
+    'SELECT id FROM resume_sessions WHERE id = ? AND user_id = ?',
+    [sessionId, userId],
+  )
+  if (!sess) return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+
   const msgId = crypto.randomUUID()
   await db.run(
     'INSERT INTO chat_messages (id, session_id, role, content, user_id) VALUES (?, ?, ?, ?, ?)',
@@ -180,8 +189,8 @@ export async function POST(req: Request) {
         let client: Anthropic
         try {
           client = await getAnthropicClient(userId)
-        } catch (e) {
-          send({ type: 'error', message: String(e) })
+        } catch {
+          send({ type: 'error', message: 'Failed to initialize AI client' })
           controller.close()
           return
         }
@@ -232,8 +241,8 @@ export async function POST(req: Request) {
         }
 
         send({ type: 'done' })
-      } catch (e) {
-        send({ type: 'error', message: String(e) })
+      } catch {
+        send({ type: 'error', message: 'Internal error' })
       } finally {
         controller.close()
       }

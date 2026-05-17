@@ -23,11 +23,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   callbacks: {
     ...authConfig.callbacks,
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
       if (account?.type !== 'oauth') return true
 
       const email = user.email?.toLowerCase()
       if (!email) return false
+
+      // Reject OAuth accounts where the provider explicitly marks email as unverified.
+      // GitHub always provides verified emails; Google exposes email_verified.
+      const emailVerified = (profile as Record<string, unknown> | undefined)?.email_verified
+      if (emailVerified === false) return false
 
       const db = await getAdapter()
 
@@ -67,14 +72,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   providers: [
-    GitHub({
-      clientId:     process.env.GITHUB_CLIENT_ID     ?? '',
-      clientSecret: process.env.GITHUB_CLIENT_SECRET ?? '',
-    }),
-    Google({
-      clientId:     process.env.GOOGLE_CLIENT_ID     ?? '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
-    }),
+    ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET
+      ? [GitHub({ clientId: process.env.GITHUB_CLIENT_ID, clientSecret: process.env.GITHUB_CLIENT_SECRET })]
+      : []),
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? [Google({ clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET })]
+      : []),
     Credentials({
       credentials: {
         email:    { label: 'Email',    type: 'email' },

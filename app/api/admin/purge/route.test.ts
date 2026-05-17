@@ -65,12 +65,14 @@ describe('POST /api/admin/purge', () => {
     expect(res.status).toBe(200)
     expect(body).toEqual({ purged: 1 })
 
-    const deletedTables = mockRun.mock.calls.map(([sql]: [string]) => sql)
-    // users row must be deleted last
-    const usersIdx = deletedTables.findIndex(s => s.includes('DELETE FROM users'))
-    const lastIdx = deletedTables.length - 1
-    expect(usersIdx).toBe(lastIdx)
-    // all run calls used the expired user's id
+    const allCalls = mockRun.mock.calls.map(([sql]: [string]) => sql)
+    // transaction wraps each user's deletes
+    expect(allCalls[0]).toBe('BEGIN')
+    expect(allCalls[allCalls.length - 1]).toBe('COMMIT')
+    // users row must be deleted last among DELETE statements
+    const deleteCalls = allCalls.filter((s: string) => s.trim().startsWith('DELETE'))
+    expect(deleteCalls[deleteCalls.length - 1]).toMatch(/DELETE FROM users/)
+    // all non-transaction calls used the expired user's id or the scoped key
     expect(mockRun).toHaveBeenCalledWith(expect.any(String), ['expired-user'])
   })
 })

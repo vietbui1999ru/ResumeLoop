@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { getOutreachItem, updateOutreachItem, deleteOutreachItem } from '@/lib/outreach'
-import type { OutreachItem } from '@/lib/outreach'
+import type { OutreachItem, OutreachStatus } from '@/lib/outreach'
 
 type Params = { params: Promise<{ id: string; itemId: string }> }
+
+const VALID_STATUSES: OutreachStatus[] = ['not_contacted', 'drafted', 'sent', 'replied']
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export async function PATCH(req: Request, { params }: Params) {
   const session = await auth()
@@ -11,9 +14,16 @@ export async function PATCH(req: Request, { params }: Params) {
   const userId = session.user.id
   const { id: jobId, itemId } = await params
 
-  const patch: Partial<Pick<OutreachItem, 'role' | 'role_custom' | 'notes' | 'email' | 'status' | 'linkedin_draft' | 'email_draft' | 'ai_card'>> = await req.json()
+  const body: Partial<Pick<OutreachItem, 'role' | 'role_custom' | 'notes' | 'email' | 'status' | 'linkedin_draft' | 'email_draft'>> = await req.json()
 
-  const updated = await updateOutreachItem(itemId, jobId, userId, patch)
+  if ('status' in body && body.status !== undefined && !VALID_STATUSES.includes(body.status)) {
+    return NextResponse.json({ error: `status must be one of: ${VALID_STATUSES.join(', ')}` }, { status: 400 })
+  }
+  if ('email' in body && body.email && !EMAIL_RE.test(body.email)) {
+    return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
+  }
+
+  const updated = await updateOutreachItem(itemId, jobId, userId, body)
   if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json(updated)
 }

@@ -8,7 +8,7 @@ import { getSetting } from './settings'
 import { PATHS } from './paths'
 import { GenerationLogger } from './generation-logger'
 import { ensureDefaultSession, getSession } from './sessions'
-import { saveOutput, isS3Key } from './storage'
+import { saveOutput } from './storage'
 import { isCloud } from './app-mode'
 
 export interface SSEEvent {
@@ -197,8 +197,7 @@ export async function* runPipeline(jobId: string, sessionId = 'default', userId 
     // Clean up per-job build dir — files are already moved to output dir or S3
     try { fs.rmSync(jobBuildDir, { recursive: true, force: true }) } catch { /* non-fatal */ }
 
-    const displayPath = isS3Key(finalDocxPath) ? finalDocxPath : finalDocxPath
-    yield emit({ stage: 'finalize', status: 'ok', data: { path: displayPath } })
+    yield emit({ stage: 'finalize', status: 'ok', data: { path: finalDocxPath } })
     yield emit({ stage: 'done', status: 'ok', data: { outputId } })
   } catch (e) {
     yield emit(errEvent('finalize', String(e)))
