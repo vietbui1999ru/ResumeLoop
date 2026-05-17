@@ -2,10 +2,10 @@ import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import GitHub from 'next-auth/providers/github'
 import Google from 'next-auth/providers/google'
-import bcrypt from 'bcryptjs'
 import { randomUUID } from 'crypto'
 import { getAdapter } from './db-adapter'
 import { authConfig } from './auth.config'
+import { validateCredentials, type UserRow } from './auth-credentials'
 
 declare module 'next-auth' {
   interface Session {
@@ -18,9 +18,6 @@ declare module 'next-auth' {
   }
 }
 
-// Pre-computed once at startup — ensures bcrypt.compare() takes the same time
-// whether or not a user exists, preventing email enumeration via timing.
-const DUMMY_HASH = bcrypt.hashSync('__timing_guard__', 10)
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -89,16 +86,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!email || !password) return null
 
         const db = await getAdapter()
-        const row = await db.queryOne<{ id: string; email: string; password: string; is_demo: number }>(
-          `SELECT id, email, password, is_demo FROM users WHERE email = ?`,
+        const row = await db.queryOne<UserRow>(
+          `SELECT id, email, password, is_demo, email_verified, deleted_at FROM users WHERE email = ?`,
           [email],
         )
 
-        // Always run bcrypt.compare to prevent timing-based email enumeration
-        const ok = await bcrypt.compare(password, row?.password ?? DUMMY_HASH)
-        if (!row || !ok) return null
-
-        return { id: row.id, email: row.email, isDemo: row.is_demo === 1 }
+        return validateCredentials(email, password, row)
       },
     }),
   ],

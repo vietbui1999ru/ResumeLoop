@@ -25,17 +25,20 @@ vi.mock('./paths', () => ({
 }))
 vi.mock('fs', async () => {
   const actual = await vi.importActual<typeof import('fs')>('fs')
-  return {
+  const mocked = {
     ...actual,
-    existsSync: vi.fn(),
-    mkdirSync: vi.fn(),
+    existsSync:   vi.fn(),
+    mkdirSync:    vi.fn(),
     writeFileSync: vi.fn(),
     copyFileSync: vi.fn(),
     realpathSync: vi.fn(),
     readFileSync: vi.fn(),
-    renameSync: vi.fn(),
-    rmSync: vi.fn(),
+    renameSync:   vi.fn(),
+    rmSync:       vi.fn(),
   }
+  // CJS interop: set `default` explicitly so `import fs from 'fs'` in tested
+  // modules gets the mocked object, not the real CJS default.
+  return { ...mocked, default: mocked }
 })
 vi.mock('child_process', () => ({
   spawn: vi.fn().mockReturnValue({
@@ -48,10 +51,21 @@ vi.mock('child_process', () => ({
 
 import { getAdapter } from './db-adapter'
 import { getSession, ensureDefaultSession } from './sessions'
+import { saveOutput } from './storage'
+import { isCloud } from './app-mode'
+import { reasonForJob } from './ai-reason'
+import { spawn } from 'child_process'
+import * as fs from 'fs'
 
 const mockedGetAdapter = vi.mocked(getAdapter)
 const mockedGetSession = vi.mocked(getSession)
 const mockedEnsureDefaultSession = vi.mocked(ensureDefaultSession)
+const mockedReasonForJob = vi.mocked(reasonForJob)
+const mockedSpawn = vi.mocked(spawn)
+const mockedIsCloud = vi.mocked(isCloud)
+const mockedSaveOutput = vi.mocked(saveOutput)
+// fs is a CJS module — cast existsSync to access vi.fn() methods
+const mockedExistsSync = fs.existsSync as unknown as ReturnType<typeof vi.fn>
 
 async function collect(gen: AsyncGenerator<SSEEvent>): Promise<SSEEvent[]> {
   const events: SSEEvent[] = []
@@ -100,5 +114,67 @@ describe('runPipeline', () => {
     const errorEvent = events.find(e => e.status === 'fail')
     expect(errorEvent).toBeDefined()
     expect(errorEvent!.status).toBe('fail')
+  })
+
+  it('uploads DOCX to S3 under outputs/<userId>/<jobId>/ in cloud mode', async () => {
+    const fakeJob = {
+      id: 'job-cloud',
+      company: 'Acme',
+      role_title: 'Engineer',
+      file_path: '/jobs/acme.md',
+      raw_content: 'JD content',
+    }
+
+    // spawn always succeeds (build + validate + pdf all return code 0)
+    mockedSpawn.mockReturnValue({
+      stdout: { on: vi.fn() },
+      stderr: { on: vi.fn() },
+      on: vi.fn().mockImplementation((event: string, cb: (code: number) => void) => {
+        if (event === 'close') cb(0)
+      }),
+      kill: vi.fn(),
+    } as any)
+
+    mockedExistsSync.mockReturnValue(true)
+    mockedIsCloud.mockReturnValue(true)
+    mockedSaveOutput.mockResolvedValue('s3:outputs/user-123/job-cloud/acme_engineer_VietBui.docx')
+
+    mockedGetAdapter.mockResolvedValue({
+      queryOne: vi.fn()
+        .mockResolvedValueOnce(fakeJob)  // job lookup
+        .mockResolvedValueOnce(null),    // active profile lookup
+      run: vi.fn(),
+      query: vi.fn(),
+    } as any)
+    mockedEnsureDefaultSession.mockResolvedValue(undefined)
+    const masterData = JSON.stringify({
+      experience: [
+        { id: 'gitlab',       bullets: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] },
+        { id: 'carboncopies', bullets: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] },
+        { id: 'udayton',      bullets: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] },
+      ],
+      projects: [
+        { id: 'CalAI',         bullets: ['Built X', 'Built Y', 'Built Z'] },
+        { id: 'MRR Dashboard', bullets: ['Built X', 'Built Y', 'Built Z'] },
+        { id: 'HomeBoard',     bullets: ['Built X', 'Built Y', 'Built Z'] },
+      ],
+      skills: ['TypeScript · React · Node.js'],
+    })
+    mockedGetSession.mockResolvedValue({ id: 'sess-1', data: masterData } as any)
+    mockedReasonForJob.mockResolvedValue({
+      track: 'genai', workVariant: 'genai',
+      workIds: ['gitlab', 'carboncopies', 'udayton'],
+      projects: ['CalAI', 'MRR Dashboard', 'HomeBoard'],
+      personaTitle: 'Software Engineer',
+      tagline: 'Software Engineer building AI tools',
+      skillsRows: ['TypeScript · React'],
+      reasoning: 'good fit',
+    } as any)
+
+    await collect(runPipeline('job-cloud', 'sess-1', 'user-123'))
+
+    // The first saveOutput call must use the userId-scoped key
+    const firstCall = mockedSaveOutput.mock.calls[0]
+    expect(firstCall[1]).toMatch(/^outputs\/user-123\/job-cloud\//)
   })
 })

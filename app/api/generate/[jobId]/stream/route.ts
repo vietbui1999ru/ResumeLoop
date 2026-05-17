@@ -4,6 +4,8 @@ import { auth } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
+const inFlight = new Map<string, Set<string>>() // userId → Set of jobIds
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ jobId: string }> }
@@ -14,6 +16,13 @@ export async function GET(
 
   const { jobId } = await params
   const sessionId = new URL(request.url).searchParams.get('sessionId') ?? 'default'
+
+  const userJobs = inFlight.get(userId) ?? new Set<string>()
+  if (userJobs.size >= 3) {
+    return new Response('Too many concurrent generations', { status: 429 })
+  }
+  userJobs.add(jobId)
+  inFlight.set(userId, userJobs)
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -31,6 +40,7 @@ export async function GET(
           stage: 'error', status: 'fail', data: { message: safe }
         }))
       } finally {
+        inFlight.get(userId)?.delete(jobId)
         controller.close()
       }
     },

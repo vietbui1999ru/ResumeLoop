@@ -6,6 +6,7 @@ import { loadFeedbackContext } from '@/lib/prompt-context'
 import { getAnthropicClient } from '@/lib/ai-client'
 import { getProviderConfig } from '@/lib/user-settings'
 import { auth } from '@/lib/auth'
+import { checkRateLimitBucket } from '@/lib/rate-limit'
 
 const BASE_SYSTEM_PROMPT = `You are a resume profile editor for Quoc-Viet Bui.
 
@@ -153,6 +154,10 @@ export async function POST(req: Request) {
   const authSession = await auth()
   if (!authSession?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const userId = authSession.user.id
+
+  if (!checkRateLimitBucket(`chat:${userId}`, 20, 20)) {
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
+  }
 
   const { sessionId, message } = (await req.json()) as { sessionId: string; message: string }
   if (!sessionId || !message)

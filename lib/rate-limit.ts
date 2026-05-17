@@ -107,3 +107,38 @@ export function extractIp(req: Request): string {
 export function _resetForTesting() {
   _store.clear()
 }
+
+// ── Token bucket: per-user API rate limiting ──────────────────────────────────
+
+interface Bucket { tokens: number; lastRefill: number }
+const _buckets = new Map<string, Bucket>()
+
+/**
+ * Token bucket rate limiter. Returns true if request is allowed.
+ * key:          e.g. `chat:${userId}` or `generate:${userId}`
+ * maxTokens:    bucket capacity (burst ceiling)
+ * refillPerMin: tokens added per minute (continuous)
+ */
+export function checkRateLimitBucket(
+  key: string,
+  maxTokens: number,
+  refillPerMin: number,
+): boolean {
+  const now = Date.now()
+  const b = _buckets.get(key) ?? { tokens: maxTokens, lastRefill: now }
+  const elapsed = (now - b.lastRefill) / 60_000
+  b.tokens = Math.min(maxTokens, b.tokens + elapsed * refillPerMin)
+  b.lastRefill = now
+  if (b.tokens < 1) {
+    _buckets.set(key, b)
+    return false
+  }
+  b.tokens -= 1
+  _buckets.set(key, b)
+  return true
+}
+
+/** Clear bucket store. Only for use in tests. */
+export function _resetBucketsForTesting() {
+  _buckets.clear()
+}

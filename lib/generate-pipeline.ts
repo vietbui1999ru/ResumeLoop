@@ -143,11 +143,11 @@ export async function* runPipeline(jobId: string, sessionId = 'default', userId 
     let finalPdfPath: string | null = null
 
     if (isCloud()) {
-      // Upload to S3 — s3Key format: outputs/<jobId>/<filename>
-      finalDocxPath = await saveOutput(docxPath, `outputs/${jobId}/${docxName}`)
+      // Upload to S3 — s3Key format: outputs/<userId>/<jobId>/<filename>
+      finalDocxPath = await saveOutput(docxPath, `outputs/${userId}/${jobId}/${docxName}`)
       if (pdfPath) {
         try {
-          finalPdfPath = await saveOutput(pdfPath, `outputs/${jobId}/${pdfName}`)
+          finalPdfPath = await saveOutput(pdfPath, `outputs/${userId}/${jobId}/${pdfName}`)
         } catch { /* non-fatal */ }
       }
     } else {

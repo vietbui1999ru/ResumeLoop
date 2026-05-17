@@ -10,23 +10,24 @@ import {
   Settings2,
   UserCircle,
   HelpCircle,
+  Heart,
 } from 'lucide-react'
 import { useTourContext } from '@/contexts/TourContext'
 
 const NAV = [
-  { href: '/jobs',     label: 'Jobs',      Icon: Briefcase },
-  { href: '/',         label: 'Dashboard', Icon: LayoutDashboard },
-  { href: '/chat',     label: 'Chat',      Icon: MessageSquare },
-  { href: '/config',   label: 'Config',    Icon: FileText },
-  { href: '/settings', label: 'Settings',  Icon: Settings2 },
+  { href: '/jobs', label: 'Jobs', Icon: Briefcase },
+  { href: '/', label: 'Dashboard', Icon: LayoutDashboard },
+  { href: '/chat', label: 'Chat', Icon: MessageSquare },
+  { href: '/config', label: 'Config', Icon: FileText },
+  { href: '/settings', label: 'Settings', Icon: Settings2 },
 ]
 
 const PAGE_LABELS: Record<string, string> = {
-  '/':         'Dashboard',
-  '/jobs':     'Jobs',
+  '/': 'Dashboard',
+  '/jobs': 'Jobs',
   '/settings': 'Settings',
-  '/chat':     'Chat',
-  '/config':   'Config',
+  '/chat': 'Chat',
+  '/config': 'Config',
 }
 
 export function Sidebar() {
@@ -66,11 +67,10 @@ export function Sidebar() {
             title={label}
             aria-label={label}
             aria-current={active ? 'page' : undefined}
-            className={`relative w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-100 ${
-              active
-                ? 'bg-surface-raised text-indigo-400'
-                : 'text-text-muted hover:text-text-secondary hover:bg-surface-raised'
-            }`}
+            className={`relative w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-100 ${active
+              ? 'bg-surface-raised text-indigo-400'
+              : 'text-text-muted hover:text-text-secondary hover:bg-surface-raised'
+              }`}
           >
             {active && (
               <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-indigo-500 rounded-r-full -ml-px" />
@@ -82,6 +82,18 @@ export function Sidebar() {
 
       {/* Spacer */}
       <div className="flex-1" />
+
+      {/* Donation link — replace DONATION_URL when Ko-fi/etc. is set up */}
+      <a
+        href="https://ko-fi.com/memeconnoisseur"
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Support this project ($5)"
+        aria-label="Support this project"
+        className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-pink-400 hover:bg-surface-raised transition-colors duration-100"
+      >
+        <Heart size={16} strokeWidth={1.75} />
+      </a>
 
       {/* Tour help button + beacon + dropdown */}
       <div className="relative" ref={menuRef}>

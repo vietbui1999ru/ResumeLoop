@@ -8,6 +8,7 @@ export const authConfig: NextAuthConfig = {
   pages: {
     signIn: '/auth/signin',
   },
+  trustHost: true,
   session: { strategy: 'jwt', maxAge: 15 * 60 },
   callbacks: {
     jwt({ token, user }) {

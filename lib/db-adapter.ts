@@ -54,7 +54,7 @@ const NEON_SCHEMA = `
     outreach_brief TEXT,
     hidden         INTEGER NOT NULL DEFAULT 0,
     apply_url      TEXT,
-    user_id        TEXT NOT NULL DEFAULT 'default',
+    user_id        TEXT NOT NULL,
     scanned_at     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -70,7 +70,7 @@ const NEON_SCHEMA = `
     reasoning     TEXT,
     cover_letter  TEXT,
     session_id    TEXT,
-    user_id       TEXT NOT NULL DEFAULT 'default',
+    user_id       TEXT NOT NULL,
     built_at      TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -80,7 +80,7 @@ const NEON_SCHEMA = `
     visa_kill_count  INTEGER,
     role_track_dist  TEXT,
     fit_dist         TEXT,
-    user_id          TEXT NOT NULL DEFAULT 'default'
+    user_id          TEXT NOT NULL
   );
 
   CREATE TABLE IF NOT EXISTS app_settings (
@@ -94,7 +94,7 @@ const NEON_SCHEMA = `
     role       TEXT NOT NULL,
     content    TEXT,
     tool_calls TEXT,
-    user_id    TEXT NOT NULL DEFAULT 'default',
+    user_id    TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   );
   CREATE INDEX IF NOT EXISTS idx_chat_session ON chat_messages(session_id, created_at);
@@ -103,7 +103,7 @@ const NEON_SCHEMA = `
     id         TEXT PRIMARY KEY,
     name       TEXT NOT NULL,
     data       TEXT NOT NULL DEFAULT '{}',
-    user_id    TEXT NOT NULL DEFAULT 'default',
+    user_id    TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   );
@@ -136,6 +136,7 @@ const NEON_SCHEMA = `
     email_verified      INTEGER NOT NULL DEFAULT 0,
     password_changed_at TIMESTAMPTZ,
     is_demo             INTEGER NOT NULL DEFAULT 0,
+    deleted_at          TIMESTAMPTZ,
     created_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -208,6 +209,20 @@ const NEON_USER_ID_MIGRATIONS = `
   ALTER TABLE jd_metrics      ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'default';
   ALTER TABLE chat_messages   ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'default';
   ALTER TABLE resume_sessions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT 'default';
+`
+
+// Drop the temporary 'default' fallback once all rows are user-owned.
+const NEON_DROP_USER_ID_DEFAULTS = `
+  ALTER TABLE jd_jobs         ALTER COLUMN user_id DROP DEFAULT;
+  ALTER TABLE jd_outputs      ALTER COLUMN user_id DROP DEFAULT;
+  ALTER TABLE jd_metrics      ALTER COLUMN user_id DROP DEFAULT;
+  ALTER TABLE chat_messages   ALTER COLUMN user_id DROP DEFAULT;
+  ALTER TABLE resume_sessions ALTER COLUMN user_id DROP DEFAULT;
+`
+
+// Soft-delete support on the users table.
+const NEON_SOFT_DELETE_MIGRATION = `
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 `
 
 // ── Neon adapter (cloud mode) ─────────────────────────────────────────────────
@@ -296,6 +311,8 @@ class NeonAdapter implements DbAdapter {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS password_changed_at TIMESTAMPTZ;
       ALTER TABLE users ALTER COLUMN password SET DEFAULT '';
     `)
+    await runSchema(NEON_DROP_USER_ID_DEFAULTS)
+    await runSchema(NEON_SOFT_DELETE_MIGRATION)
     if (!isCloud()) await runSchema(NEON_DEMO_SEED)
     this.initialized = true
   }

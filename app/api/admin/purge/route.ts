@@ -1,0 +1,39 @@
+import { NextResponse } from 'next/server'
+import { getAdapter } from '@/lib/db-adapter'
+import { isCloud } from '@/lib/app-mode'
+
+export async function POST(req: Request) {
+  const secret = req.headers.get('x-purge-secret')
+  if (!secret || secret !== process.env.PURGE_SECRET) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+  if (!isCloud()) {
+    return NextResponse.json({ error: 'Only available in cloud mode' }, { status: 403 })
+  }
+
+  const db = await getAdapter()
+  const users = await db.query<{ id: string }>(
+    `SELECT id FROM users WHERE deleted_at IS NOT NULL AND deleted_at < NOW() - INTERVAL '15 days'`,
+  )
+
+  for (const user of users) {
+    // Delete in dependency order — children before parent
+    await db.run(`DELETE FROM outreach_items            WHERE user_id = ?`, [user.id])
+    await db.run(`DELETE FROM chat_messages             WHERE user_id = ?`, [user.id])
+    await db.run(`DELETE FROM jd_outputs                WHERE user_id = ?`, [user.id])
+    await db.run(`DELETE FROM jd_metrics                WHERE user_id = ?`, [user.id])
+    await db.run(`DELETE FROM jd_jobs                   WHERE user_id = ?`, [user.id])
+    await db.run(`DELETE FROM resume_sessions           WHERE user_id = ?`, [user.id])
+    await db.run(`DELETE FROM resume_profiles           WHERE user_id = ?`, [user.id])
+    await db.run(`DELETE FROM user_settings             WHERE user_id = ?`, [user.id])
+    await db.run(`DELETE FROM ai_usage_log              WHERE user_id = ?`, [user.id])
+    await db.run(`DELETE FROM password_reset_tokens     WHERE user_id = ?`, [user.id])
+    await db.run(`DELETE FROM email_verification_tokens WHERE user_id = ?`, [user.id])
+    await db.run(`DELETE FROM oauth_accounts            WHERE user_id = ?`, [user.id])
+    await db.run(`DELETE FROM app_settings              WHERE key LIKE ?`, [`active_ai_provider:${user.id}`])
+    await db.run(`DELETE FROM users                     WHERE id      = ?`, [user.id])
+    // TODO: add S3 file cleanup here (list + delete objects under outputs/<userId>/)
+  }
+
+  return NextResponse.json({ purged: users.length })
+}

@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { checkRateLimit, extractIp, _resetForTesting } from './rate-limit'
+import { checkRateLimit, extractIp, _resetForTesting, checkRateLimitBucket, _resetBucketsForTesting } from './rate-limit'
 
 beforeEach(() => {
   _resetForTesting()
+  _resetBucketsForTesting()
 })
 
 describe('checkRateLimit', () => {
@@ -32,6 +33,36 @@ describe('checkRateLimit', () => {
     vi.advanceTimersByTime(60_001)
     expect(checkRateLimit('1.2.3.4')).toBe(true)
     vi.useRealTimers()
+  })
+})
+
+describe('checkRateLimitBucket', () => {
+  it('allows the first request', () => {
+    expect(checkRateLimitBucket('chat:user-1', 20, 20)).toBe(true)
+  })
+
+  it('blocks when bucket is exhausted', () => {
+    for (let i = 0; i < 20; i++) checkRateLimitBucket('chat:user-1', 20, 20)
+    expect(checkRateLimitBucket('chat:user-1', 20, 20)).toBe(false)
+  })
+
+  it('isolates per key — exhausted key does not affect another', () => {
+    for (let i = 0; i < 20; i++) checkRateLimitBucket('chat:user-1', 20, 20)
+    expect(checkRateLimitBucket('chat:user-2', 20, 20)).toBe(true)
+  })
+
+  it('refills tokens after time passes', () => {
+    vi.useFakeTimers()
+    for (let i = 0; i < 20; i++) checkRateLimitBucket('chat:user-1', 20, 20)
+    expect(checkRateLimitBucket('chat:user-1', 20, 20)).toBe(false)
+    vi.advanceTimersByTime(60_001) // 1 full minute — refills all 20 tokens
+    expect(checkRateLimitBucket('chat:user-1', 20, 20)).toBe(true)
+    vi.useRealTimers()
+  })
+
+  it('respects custom maxTokens cap', () => {
+    for (let i = 0; i < 5; i++) checkRateLimitBucket('generate:user-1', 5, 5)
+    expect(checkRateLimitBucket('generate:user-1', 5, 5)).toBe(false)
   })
 })
 

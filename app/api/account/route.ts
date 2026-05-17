@@ -1,17 +1,18 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { deleteAccount, changePassword } from '@/lib/account'
+import { changePassword } from '@/lib/account'
 import { getAdapter } from '@/lib/db-adapter'
 import bcrypt from 'bcryptjs'
 
-// DELETE /api/account — delete account + all data
+// DELETE /api/account — soft-delete; hard purge runs via admin/purge after 15-day grace
 export async function DELETE() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   if (session.user.isDemo) return NextResponse.json({ error: 'Demo account cannot be deleted' }, { status: 403 })
 
-  await deleteAccount(session.user.id)
-  return NextResponse.json({ ok: true })
+  const db = await getAdapter()
+  await db.run(`UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?`, [session.user.id])
+  return NextResponse.json({ ok: true, message: 'Account scheduled for deletion in 15 days' })
 }
 
 // PATCH /api/account — change password

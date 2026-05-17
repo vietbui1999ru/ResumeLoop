@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { getAdapter } from '@/lib/db-adapter'
+import { checkRateLimitBucket } from '@/lib/rate-limit'
 
 export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const userId = session.user.id
+
+  if (!checkRateLimitBucket(`generate:${userId}`, 20, 20)) {
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
+  }
 
   const { jobIds }: { jobIds: string[] } = await req.json()
   if (!Array.isArray(jobIds) || jobIds.length === 0) {
