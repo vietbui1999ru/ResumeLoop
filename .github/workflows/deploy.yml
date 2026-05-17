@@ -67,41 +67,28 @@ jobs:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Register new task definition revision
-        id: task-def
-        env:
-          ECR_REGISTRY: ${{ needs.build-push.outputs.ecr_registry }}
-          IMAGE_TAG: ${{ needs.build-push.outputs.image_tag }}
+      - name: Download current task definition
         run: |
-          NEW_IMAGE="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          TASK_DEF=$(aws ecs describe-task-definition \
+          aws ecs describe-task-definition \
             --task-definition "$ECS_SERVICE" \
-            --query taskDefinition --output json | \
-            jq 'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,
-                    .placementConstraints,.compatibilities,.registeredAt,.registeredBy)' | \
-            jq --arg img "$NEW_IMAGE" '.containerDefinitions[0].image = $img')
-          NEW_ARN=$(echo "$TASK_DEF" | aws ecs register-task-definition \
-            --cli-input-json /dev/stdin \
-            --query 'taskDefinition.taskDefinitionArn' --output text)
-          echo "task_def_arn=$NEW_ARN" >> "$GITHUB_OUTPUT"
-          echo "Registered: $NEW_ARN"
+            --query taskDefinition \
+            --output json > /tmp/task-def.json
 
-      - name: Update ECS service
-        env:
-          TASK_DEF_ARN: ${{ steps.task-def.outputs.task_def_arn }}
-        run: |
-          aws ecs update-service \
-            --cluster "$ECS_CLUSTER" \
-            --service "$ECS_SERVICE" \
-            --task-definition "$TASK_DEF_ARN" \
-            --query 'service.deployments[0].status' --output text
+      - name: Render new task definition with updated image
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@6853cfae8c3a7d978fbf68b5a55453395541dfbb  # v1
+        with:
+          task-definition: /tmp/task-def.json
+          container-name: resumeloop
+          image: ${{ needs.build-push.outputs.ecr_registry }}/resumeloop:${{ needs.build-push.outputs.image_tag }}
 
-      - name: Wait for service stability
-        run: |
-          echo "Waiting for ECS service to stabilise..."
-          aws ecs wait services-stable \
-            --cluster "$ECS_CLUSTER" \
-            --services "$ECS_SERVICE"
+      - name: Deploy to ECS service and wait for stability
+        uses: aws-actions/amazon-ecs-deploy-task-definition@a310a830f5c14e583e35d84e4e1ec7dd177c3c9c  # v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
 
       - name: Update API Gateway integrations with new task IP
         run: |
