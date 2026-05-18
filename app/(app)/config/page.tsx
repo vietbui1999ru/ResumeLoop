@@ -289,6 +289,7 @@ function CandidateProfileEditor({
   const [aiLoading,    setAiLoading]    = useState(false)
   const [aiError,      setAiError]      = useState('')
   const [aiPreview,    setAiPreview]    = useState<CandidateProfile | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
 
   const buildFromForm = (): CandidateProfile => ({
     narrative,
@@ -305,23 +306,48 @@ function CandidateProfileEditor({
     },
   })
 
+  // Populate form fields from a CandidateProfile — used when AI result is applied to form
+  const populateForm = (p: CandidateProfile) => {
+    setNarrative(p.narrative ?? '')
+    setPortraysWell(toLines(p.self_assessment?.portrays_well))
+    setKnownGaps(toLines(p.self_assessment?.known_gaps))
+    setNotThis(toLines(p.self_assessment?.not_this))
+    setPrimaryRoles(toLines(p.target_posture?.primary_roles))
+    setSecondaryRoles(toLines(p.target_posture?.secondary_roles))
+    setAuthUrgency(p.target_posture?.auth_urgency ?? '')
+    setConstraints(toLines(p.target_posture?.constraints))
+  }
+
   const generate = async () => {
     if (!aiPrompt.trim()) return
+    abortRef.current?.abort()
+    const ac = new AbortController()
+    abortRef.current = ac
     setAiLoading(true); setAiError(''); setAiPreview(null)
     try {
       const res = await fetch('/api/profile/candidate-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ description: aiPrompt }),
+        signal: ac.signal,
       })
       const data = await res.json()
       if (!res.ok) { setAiError(data.error ?? 'Generation failed'); return }
-      setAiPreview(data.candidate_profile as CandidateProfile)
+      const profile = data.candidate_profile as CandidateProfile
+      setAiPreview(profile)
+      // AI generates INTO form — switching to Form mode shows the result ready to tweak
+      populateForm(profile)
     } catch (e) {
-      setAiError(String(e))
+      if ((e as Error).name === 'AbortError') return
+      setAiError('Generation failed — try again')
     } finally {
       setAiLoading(false)
     }
+  }
+
+  const cancelGenerate = () => {
+    abortRef.current?.abort()
+    setAiLoading(false)
   }
 
   const applyAiPreview = () => {
@@ -415,12 +441,15 @@ function CandidateProfileEditor({
               className="text-xs px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded disabled:opacity-40">
               {aiLoading ? 'Generating…' : 'Generate'}
             </button>
+            {aiLoading && (
+              <button onClick={cancelGenerate} className="text-xs px-2 py-1.5 text-zinc-500 hover:text-zinc-300">Cancel</button>
+            )}
             {aiError && <span className="text-xs text-red-400">{aiError}</span>}
           </div>
 
           {aiPreview && (
             <div className="border border-zinc-700 rounded p-3 space-y-2">
-              <p className="text-2xs text-zinc-400 uppercase tracking-widest">Preview</p>
+              <p className="text-2xs text-zinc-400 uppercase tracking-widest">Preview — switch to Form to tweak before applying</p>
               {aiPreview.narrative && <p className="text-xs text-zinc-300 leading-relaxed">{aiPreview.narrative}</p>}
               <div className="grid grid-cols-3 gap-3 text-2xs">
                 <div>
@@ -436,8 +465,17 @@ function CandidateProfileEditor({
                   {(aiPreview.self_assessment?.not_this ?? []).map((s, i) => <p key={i} className="text-zinc-400">· {s}</p>)}
                 </div>
               </div>
-              {aiPreview.target_posture?.primary_roles && (
-                <p className="text-2xs text-zinc-500">Roles: {aiPreview.target_posture.primary_roles.join(', ')}</p>
+              {(aiPreview.target_posture?.primary_roles?.length ?? 0) > 0 && (
+                <p className="text-2xs text-zinc-500">Primary: {aiPreview.target_posture!.primary_roles!.join(', ')}</p>
+              )}
+              {(aiPreview.target_posture?.secondary_roles?.length ?? 0) > 0 && (
+                <p className="text-2xs text-zinc-500">Secondary: {aiPreview.target_posture!.secondary_roles!.join(', ')}</p>
+              )}
+              {aiPreview.target_posture?.auth_urgency && (
+                <p className="text-2xs text-zinc-500">Auth: {aiPreview.target_posture.auth_urgency}</p>
+              )}
+              {(aiPreview.target_posture?.constraints?.length ?? 0) > 0 && (
+                <p className="text-2xs text-zinc-500">Constraints: {aiPreview.target_posture!.constraints!.join(', ')}</p>
               )}
               <button onClick={applyAiPreview}
                 className="text-xs px-3 py-1.5 bg-green-700 hover:bg-green-600 rounded text-white">

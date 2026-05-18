@@ -32,6 +32,7 @@ export async function GET(req: Request) {
   try {
     const res = await fetch(`${baseOrigin}/api/tags`, {
       signal: AbortSignal.timeout(5000),
+      redirect: 'error',  // never follow redirects — prevents SSRF via 302 to IMDS
     })
     if (!res.ok) {
       return NextResponse.json(

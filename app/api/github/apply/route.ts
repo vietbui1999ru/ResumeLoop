@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { getSession, updateSessionData } from '@/lib/sessions'
 import { getAdapter } from '@/lib/db-adapter'
+import { checkRateLimitBucket } from '@/lib/rate-limit'
 
 interface ProjectInput {
   id: string
@@ -24,6 +25,10 @@ export async function POST(req: Request) {
   const authSession = await auth()
   if (!authSession?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const userId = authSession.user.id
+
+  if (!checkRateLimitBucket(`github-apply:${userId}`, 20, 20)) {
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
+  }
 
   const { project, sessionId = 'default' } = await req.json() as { project?: ProjectInput; sessionId?: string }
   if (!project?.id || !project.bullets?.length) {

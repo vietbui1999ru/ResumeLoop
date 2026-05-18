@@ -7,7 +7,7 @@ import {
   type Provider,
 } from '@/lib/user-settings'
 import { buildModel } from '@/lib/ai-client'
-import { checkRateLimit, extractIp } from '@/lib/rate-limit'
+import { checkRateLimit } from '@/lib/rate-limit'
 import { validateOllamaUrl } from '@/lib/ollama-url'
 
 // ── Input limits ──────────────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ export async function POST(req: Request) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const USER_ID = session.user.id
 
-  if (!checkRateLimit(`settings:${extractIp(req)}`)) {
+  if (!checkRateLimit(`settings:${USER_ID}`)) {
     return NextResponse.json({ error: 'Too many requests — wait a minute' }, { status: 429 })
   }
 

@@ -12,6 +12,9 @@ const BLOCKED_HOSTS = new Set([
   'metadata.internal',
 ])
 
+// Ollama's default port. Only this port (or no explicit port) is allowed.
+const ALLOWED_PORT = '11434'
+
 export function validateOllamaUrl(raw: string): string | null {
   if (!raw || raw.length > 200) return null
   let u: URL
@@ -29,9 +32,15 @@ export function validateOllamaUrl(raw: string): string | null {
   if (host.includes('169.254.') || host.includes('100.100.')) return null
 
   // Allow only loopback + RFC-1918 private ranges
-  if (host === 'localhost')                                    return raw
-  if (/^127\./.test(host))                                    return raw  // 127.0.0.0/8
-  if (/^::1$/.test(host))                                     return raw  // IPv6 loopback
+  const isLoopback = host === 'localhost' || /^127\./.test(host) || /^::1$/.test(host)
+
+  if (!isLoopback) {
+    // Non-loopback must specify port 11434 explicitly — prevents VPC port scanning.
+    // WHATWG URL normalizes default-scheme ports (80, 443) to ''; require explicit 11434.
+    if (u.port !== ALLOWED_PORT) return null
+  }
+
+  if (isLoopback)                                             return raw
   if (/^192\.168\./.test(host))                               return raw  // 192.168.0.0/16
   if (/^10\./.test(host))                                     return raw  // 10.0.0.0/8
   if (/^172\.(1[6-9]|2[0-9]|3[01])\./.test(host))           return raw  // 172.16.0.0/12

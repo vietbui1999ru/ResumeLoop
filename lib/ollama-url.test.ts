@@ -84,4 +84,29 @@ describe('validateOllamaUrl — SSRF guard', () => {
   it('rejects URLs over 200 chars', () => {
     expect(validateOllamaUrl('http://localhost/' + 'a'.repeat(200))).toBeNull()
   })
+
+  // ── Port restriction ──────────────────────────────────────────────────────
+  it('allows port 11434', () => {
+    expect(validateOllamaUrl('http://localhost:11434/v1')).toBeTruthy()
+  })
+
+  it('allows no explicit port for loopback (loopback has no VPC scanning risk)', () => {
+    expect(validateOllamaUrl('http://localhost/v1')).toBeTruthy()
+  })
+
+  it('rejects non-loopback with no port — implicit port 80 is not Ollama', () => {
+    expect(validateOllamaUrl('http://192.168.1.5/v1')).toBeNull()
+  })
+
+  it('rejects non-Ollama port 8080 — prevents VPC port scanning', () => {
+    expect(validateOllamaUrl('http://10.0.0.5:8080')).toBeNull()
+  })
+
+  it('rejects port 80', () => {
+    expect(validateOllamaUrl('http://192.168.1.5:80')).toBeNull()
+  })
+
+  it('rejects port 6379 (Redis)', () => {
+    expect(validateOllamaUrl('http://10.0.0.1:6379')).toBeNull()
+  })
 })
