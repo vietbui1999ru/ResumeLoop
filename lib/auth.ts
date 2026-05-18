@@ -6,6 +6,7 @@ import { randomUUID } from 'crypto'
 import { getAdapter } from './db-adapter'
 import { authConfig } from './auth.config'
 import { validateCredentials, type UserRow } from './auth-credentials'
+import { checkRateLimitAsync } from './rate-limit'
 import { seedDemoUser } from './demo-seed'
 
 declare module 'next-auth' {
@@ -87,10 +88,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email:    { label: 'Email',    type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         const email    = (credentials?.email    as string | undefined)?.trim().toLowerCase()
         const password = (credentials?.password as string | undefined) ?? ''
         if (!email || !password) return null
+
+        // Rate limit: 10 attempts/min per IP, 20/hr per email address
+        const ip = (req as Request).headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+        const [rlIp, rlEmail] = await Promise.all([
+          checkRateLimitAsync(`auth:login:ip:${ip}`,    10,    60_000),
+          checkRateLimitAsync(`auth:login:email:${email}`, 20, 3_600_000),
+        ])
+        if (!rlIp.success || !rlEmail.success) return null
 
         const db = await getAdapter()
         const row = await db.queryOne<UserRow>(

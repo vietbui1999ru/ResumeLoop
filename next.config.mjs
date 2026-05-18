@@ -24,6 +24,23 @@ const nextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
           },
+          {
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              // Next.js requires unsafe-inline for hydration scripts; unsafe-eval for dev HMR
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https:",
+              // LLM API calls are server-side; connect-src covers browser fetch to /api/*
+              "connect-src 'self'",
+              "font-src 'self' data:",
+              "frame-ancestors 'none'",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+            ].join("; "),
+          },
         ],
       },
     ];

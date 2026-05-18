@@ -6,6 +6,23 @@ import type { NextAuthRequest } from 'next-auth'
 // Use Edge-safe config only — no DB, no native modules
 const { auth } = NextAuth(authConfig)
 
+// Edge-safe in-process IP rate limiter — 300 requests/min per IP across all API routes.
+// Provides DoS protection. In multi-instance deployments this is per-instance;
+// for stricter global limits use Upstash (configured in checkRateLimitAsync).
+const _apiStore = new Map<string, { count: number; resetAt: number }>()
+
+function checkApiRateLimit(ip: string): boolean {
+  const now   = Date.now()
+  const entry = _apiStore.get(ip)
+  if (!entry || now > entry.resetAt) {
+    _apiStore.set(ip, { count: 1, resetAt: now + 60_000 })
+    return true
+  }
+  if (entry.count >= 300) return false
+  entry.count++
+  return true
+}
+
 function buildSafeOrigins(): Set<string> {
   const origins = new Set<string>()
   for (const envKey of ['NEXTAUTH_URL', 'AUTH_URL', 'NEXT_PUBLIC_BASE_URL']) {
@@ -51,6 +68,14 @@ function isMobile(ua: string | null): boolean {
 
 export default auth((req: NextAuthRequest) => {
   const { pathname } = req.nextUrl
+
+  // Global IP rate limit for all API routes
+  if (pathname.startsWith('/api/')) {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+    if (!checkApiRateLimit(ip)) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    }
+  }
 
   // Block mobile — desktop-only until mobile layout is implemented
   if (pathname !== '/not-supported' && !pathname.startsWith('/api/') && !pathname.startsWith('/_next/')) {

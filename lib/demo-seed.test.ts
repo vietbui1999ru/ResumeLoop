@@ -18,7 +18,7 @@ function makeMockDb() {
   }
 }
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks() })
 
 describe('getOrCreateDemoUserForIp', () => {
   it('returns existing creds without inserting when active demo exists for ip_hash', async () => {
