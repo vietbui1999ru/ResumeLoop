@@ -19,13 +19,21 @@ COPY . .
 RUN npm run build
 
 # ── Stage 2: runtime ──────────────────────────────────────────────────────────
-FROM node:22-alpine AS runner
+# node:22-slim (Debian) — needed for libreoffice-writer apt package.
+# Alpine libreoffice is ~500 MB with poor font support; slim + libreoffice-writer is ~200 MB.
+FROM node:22-slim AS runner
 
 WORKDIR /app
 ENV NODE_ENV=production PORT=3000
 
-# Install system Chromium for Puppeteer (harness PDF generation)
-RUN apk add --no-cache chromium
+# LibreOffice headless for faithful DOCX → PDF conversion.
+# Chromium is kept as the puppeteer fallback when libreoffice is unavailable (shouldn't happen
+# in this image, but to-pdf.js gracefully degrades to mammoth+puppeteer if it does).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libreoffice-writer \
+    chromium \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
