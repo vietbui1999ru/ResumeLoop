@@ -81,11 +81,12 @@ export default function GenerationPanel({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queue])
 
-  // Auto-close panel when all jobs are done
+  // Auto-close panel only when all jobs succeeded — keep open on any failure
   useEffect(() => {
     if (queue.length === 0) return
-    const allDone = queue.every(id => progress.get(id)?.done)
-    if (!allDone) return
+    const allDone   = queue.every(id => progress.get(id)?.done)
+    const anyFailed = queue.some(id => progress.get(id)?.failed)
+    if (!allDone || anyFailed) return
     const timer = setTimeout(() => onCloseRef.current(), 3000)
     return () => clearTimeout(timer)
   }, [progress, queue])
@@ -170,11 +171,15 @@ export default function GenerationPanel({
   const stageSummary = (ev: SSEEvent): string => {
     if (ev.data.tagline)    return `tagline: "${String(ev.data.tagline)}"`
     if (ev.data.script)     return String(ev.data.script)
-    if (ev.data.violations) return (ev.data.violations as string[]).join(', ')
-    if (ev.data.fixed)      return (ev.data.fixed as string[]).join(', ')
+    if (ev.data.violations) return (ev.data.violations as string[]).join('\n')
+    if (ev.data.fixed)      return (ev.data.fixed as string[]).join('\n')
     if (ev.data.message)    return String(ev.data.message)
     return ''
   }
+
+  const sanitizeError = (msg: string) =>
+    msg.replace(/\/api\/[a-zA-Z0-9\-_/[\]?=&]+/g, '[endpoint]')
+       .replace(/https?:\/\/[^\s)]+/g, '[url]')
 
   const toggleCollapsed = (jobId: string) =>
     setCollapsedJobs(prev => {
@@ -283,13 +288,29 @@ export default function GenerationPanel({
               {/* Stage log — hidden when collapsed */}
               {!isCollapsed && jp?.stages && jp.stages.length > 0 && (
                 <div className="mt-2 space-y-0.5 border-t border-zinc-800 pt-2">
-                  {jp.stages.map(ev => (
-                    <div key={`${ev.stage}-${ev.status}`} className="flex gap-2 text-xs items-start">
-                      <StageDot status={ev.status} />
-                      <span className="text-zinc-400 w-24 shrink-0">{ev.stage}</span>
-                      <span className="text-zinc-500 truncate max-w-xs">{stageSummary(ev)}</span>
-                    </div>
-                  ))}
+                  {jp.stages.map(ev => {
+                    const summary = stageSummary(ev)
+                    const isFail  = ev.status === 'fail'
+                    return (
+                      <div key={`${ev.stage}-${ev.status}`} className="flex gap-2 text-xs items-start">
+                        <StageDot status={ev.status} />
+                        <span className="text-zinc-400 w-24 shrink-0">{ev.stage}</span>
+                        {isFail ? (
+                          <div className="flex-1 relative group min-w-0">
+                            <pre className="text-red-400 text-xs whitespace-pre-wrap break-words select-all">
+                              {sanitizeError(summary)}
+                            </pre>
+                            <button
+                              onClick={() => void navigator.clipboard.writeText(sanitizeError(summary))}
+                              className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity text-xs text-zinc-500 hover:text-zinc-300 bg-zinc-900 px-1 rounded"
+                            >copy</button>
+                          </div>
+                        ) : (
+                          <span className="text-zinc-500 truncate max-w-xs">{summary}</span>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               )}
 

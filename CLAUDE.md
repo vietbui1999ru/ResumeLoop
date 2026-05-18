@@ -43,7 +43,7 @@ ls batch-build/*.docx
 | Bullet | ≤116 chars with spaces |
 | Project header (`name \| short_stack  GitHub  date`) | ≤116 chars |
 | Project stack in header | `short_stack` field only (3-4 techs, ≤40 chars) |
-| Para count for 1-page fit (default) | 44 (3-job×5b + 3-proj×3b) |
+| Para count for 1-page fit (default) | 38–48 (target 44: 3-job×5b + 3-proj×3b) |
 | Skills rows | 5 rows, plain strings `'Tech · Tech · ...'` |
 
 **Tagline format** — value-oriented, not generic:

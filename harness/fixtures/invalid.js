@@ -16,10 +16,6 @@ build({
       bullets: [
         // VIOLATION 2: bullet 117c (limit: 116)
         T('Built LLM-powered doc processing pipeline using LangChain + OpenAI API, cutting manual review time by seventy percent'),
-        T('Automated CI/CD with GitHub Actions + Docker, reducing deploy time from 45 min to 8 min'),
-        T('Designed PostgreSQL schema for multi-tenant SaaS product, onboarding 12 enterprise customers'),
-        T('Shipped React dashboard with real-time WebSocket updates, increasing user engagement 28%'),
-        T('Wrote integration test suite (pytest + Testcontainers) covering 87% of API surface'),
       ],
     },
     {
@@ -30,10 +26,6 @@ build({
       dates: 'Aug 2022 – Dec 2023',
       bullets: [
         T('Published ML research on adversarial robustness of RL agents at IEEE KSE 2024 as 2nd author'),
-        T('Built PyTorch DQN agent solving custom maze environments, achieving 94% success rate'),
-        T('Implemented data preprocessing pipeline in Python + NumPy, reducing training noise 31%'),
-        T('Mentored 40+ undergraduates in Data Structures, improving pass rate 18% over two semesters'),
-        T('Contributed 8 merged PRs to open-source ML framework, adding gradient-checkpointing'),
       ],
     },
     {
@@ -43,9 +35,8 @@ build({
       location: 'Chicago, IL',
       dates: 'May 2022 – Aug 2022',
       bullets: [
+        // VIOLATION 3: only 1 bullet per job — avgWork=1, paraCount=34 < minPara=37
         T('Migrated legacy Python 2 ETL pipeline to Python 3 + Airflow DAGs, eliminating 4 manual cron jobs'),
-        T('Containerized 3 backend services with Docker Compose, enabling reproducible local dev for 8-person team'),
-        // VIOLATION 3: internship has only 2 bullets (causes para count violation)
       ],
     },
   ],
@@ -89,11 +80,10 @@ build({
     },
   ],
 
-  // VIOLATION 4: only 4 skills rows (need 5)
+  // VIOLATION 4: only 3 skills rows (need 4–6)
   skills: [
     'Languages: Python · Go · TypeScript · Ruby · Bash · SQL · Rust',
     'Backend: FastAPI · PostgreSQL · Redis · REST · gRPC · Docker · Kubernetes',
     'Systems: Linux · goroutines · channels · multithreaded design · IEEE 802.3',
-    'DevOps: GitHub Actions · GitLab CI/CD · Terraform · Ansible · Prometheus · Grafana',
   ],
 });

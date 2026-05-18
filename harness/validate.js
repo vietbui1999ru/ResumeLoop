@@ -71,6 +71,7 @@ while ((pm = projBulletRe.exec(projectSection)) !== null) {
 // ── 3. PARA COUNT ─────────────────────────────────────────────────────────────
 // Formula from buildv2.js:
 //   3 header + 3 edu + (1 + N_jobs*(1+avg_work_b)) + (1 + N_proj*(1+avg_proj_b)) + (1+5)
+// Fixed overhead = 3 header + 3 edu + 1 work-section-header + 1 proj-section-header + 1+5 skills = 14
 const workIdCount = (workSection.match(/\bid:\s*['"][^'"]+['"]/g) || []).length;
 const projIdCount = (projectSection.match(/\bid:\s*['"][^'"]+['"]/g) || []).length;
 
@@ -82,9 +83,22 @@ const paraCount = 3 + 3
   + (1 + projIdCount * (1 + avgProj))
   + (1 + 5);
 
-if (paraCount !== 44) {
+// Dynamic page-fit range: bullet counts per entry can vary by profile depth.
+//   Work entry: 3–6 bullets  (typical: 5)
+//   Project entry: 2–4 bullets (typical: 3)
+// Fixed overhead: 14 paras (header/edu/section-headers/skills)
+// Section minimum is always 1 (section header exists even with 0 entries of that type).
+const FIXED = 14;
+const workMin = workIdCount > 0 ? 1 + workIdCount * (1 + 3) : 1;  // 3 bullets min
+const workMax = workIdCount > 0 ? 1 + workIdCount * (1 + 6) : 1;  // 6 bullets max
+const projMin = projIdCount > 0 ? 1 + projIdCount * (1 + 2) : 1;  // 2 bullets min
+const projMax = projIdCount > 0 ? 1 + projIdCount * (1 + 4) : 1;  // 4 bullets max
+const minPara = Math.max(30, FIXED + workMin + projMin);
+const maxPara = Math.min(54, FIXED + workMax + projMax);
+
+if (paraCount < minPara || paraCount > maxPara) {
   violations.push(
-    `FAIL para count: ${paraCount} (target 44) — ${workIdCount} jobs x ~${avgWork}b + ${projIdCount} proj x ~${avgProj}b`
+    `FAIL para count: ${paraCount} (must be ${minPara}–${maxPara} for ${workIdCount} jobs x ~${avgWork}b + ${projIdCount} proj x ~${avgProj}b)`
   );
 }
 
@@ -94,8 +108,8 @@ if (!skillsMatch) {
   violations.push('FAIL skills: skills array not found');
 } else {
   const skillItems = skillsMatch[1].match(/['"][^'"]+['"]/g) || [];
-  if (skillItems.length !== 5) {
-    violations.push(`FAIL skills: ${skillItems.length} rows (need exactly 5)`);
+  if (skillItems.length < 4 || skillItems.length > 6) {
+    violations.push(`FAIL skills: ${skillItems.length} rows (need 4–6)`);
   }
 }
 

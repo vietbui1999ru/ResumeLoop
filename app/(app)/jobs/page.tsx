@@ -127,6 +127,8 @@ export default function JobsPage() {
   // Generation
   const [selected, setSelected]           = useState<Set<string>>(new Set())
   const [genStatus, setGenStatus]         = useState<Map<string, string>>(new Map())
+  const [genErrors, setGenErrors]         = useState<Map<string, string>>(new Map())
+  const [errorDetail, setErrorDetail]     = useState<string | null>(null)
   const [showPanel, setShowPanel]         = useState(false)
   const [panelMinimized, setPanelMinimized] = useState(false)
   const [generateQueue, setGenerateQueue] = useState<string[]>([])
@@ -630,23 +632,32 @@ export default function JobsPage() {
 
                     {/* Resume status */}
                     <td className="py-2 pr-4">
-                      {genStatus.has(job.id) ? (
-                        <span className="text-zinc-400 text-xs">
-                          {genStatus.get(job.id)}
-                          {genStatus.get(job.id) === 'done' && (
+                      {genStatus.has(job.id) ? (() => {
+                        const st = genStatus.get(job.id)!
+                        if (st === 'done') return (
+                          <span className="text-xs flex items-center gap-1">
+                            <span className="text-green-400">✓</span>
                             <button
                               onClick={e => { e.stopPropagation(); setReasoningJobId(job.id) }}
-                              className="ml-1 text-yellow-400 hover:text-yellow-300"
+                              className="text-yellow-400 hover:text-yellow-300"
                             >★</button>
-                          )}
-                        </span>
-                      ) : job.has_reasoning ? (
+                          </span>
+                        )
+                        if (st === 'failed') return (
+                          <button
+                            onClick={e => { e.stopPropagation(); setErrorDetail(genErrors.get(job.id) ?? 'Unknown error') }}
+                            className="text-red-400 hover:text-red-300 text-xs"
+                            title="Click to view error"
+                          >✗ failed</button>
+                        )
+                        return <span className="text-zinc-400 text-xs">{st}</span>
+                      })() : job.has_reasoning ? (
                         <button
                           onClick={e => { e.stopPropagation(); setReasoningJobId(job.id) }}
                           className="text-yellow-400 hover:text-yellow-300 text-xs whitespace-nowrap"
                         >★ Why?</button>
                       ) : job.has_output ? (
-                        <span className="text-zinc-500 text-xs">doc</span>
+                        <span className="text-green-400 text-xs">✓</span>
                       ) : null}
                     </td>
 
@@ -758,9 +769,13 @@ export default function JobsPage() {
                     setGenStatus(prev => new Map(prev).set(jobId, 'done'))
                     reload()
                   }}
-                  onError={(jobId, msg) =>
-                    setGenStatus(prev => new Map(prev).set(jobId, `✗ ${msg.slice(0, 20)}`))
-                  }
+                  onError={(jobId, msg) => {
+                    const sanitized = msg
+                      .replace(/\/api\/[a-zA-Z0-9\-_/[\]?=&]+/g, '[endpoint]')
+                      .replace(/https?:\/\/[^\s)]+/g, '[url]')
+                    setGenStatus(prev => new Map(prev).set(jobId, 'failed'))
+                    setGenErrors(prev => new Map(prev).set(jobId, sanitized))
+                  }}
                 />
               )}
             </AnimatePresence>
@@ -774,6 +789,36 @@ export default function JobsPage() {
           onClose={() => setShowPasteModal(false)}
           onAdded={() => reload()}
         />
+      )}
+
+      {/* Error detail overlay — shown when user clicks ✗ failed in the job row */}
+      {errorDetail && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center pb-6 px-4"
+          onClick={() => setErrorDetail(null)}
+        >
+          <div
+            className="bg-zinc-900 border border-red-800 rounded-lg p-4 w-full max-w-2xl shadow-2xl shadow-black/60"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-red-400 text-sm font-semibold">Generation Error</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => void navigator.clipboard.writeText(errorDetail)}
+                  className="text-xs text-zinc-400 hover:text-zinc-200 px-2 py-0.5 border border-zinc-700 hover:border-zinc-500 rounded"
+                >Copy</button>
+                <button
+                  onClick={() => setErrorDetail(null)}
+                  className="text-zinc-500 hover:text-zinc-300 text-sm leading-none"
+                >✕</button>
+              </div>
+            </div>
+            <pre className="text-red-300 text-xs whitespace-pre-wrap break-words select-all overflow-auto max-h-64 font-mono">
+              {errorDetail}
+            </pre>
+          </div>
+        </div>
       )}
     </div>
   )

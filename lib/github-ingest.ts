@@ -85,8 +85,8 @@ const SUMMARIZE_SCHEMA = jsonSchema<ProjectEntry>({
     bullets: {
       type: 'array',
       items: { type: 'string', maxLength: 116 },
-      minItems: 3,
-      maxItems: 5,
+      minItems: 2,
+      maxItems: 6,
       description: 'Achievement bullets: "Built A doing B using C, which produced D". Each must include ≥1 tech + ≥1 result. ≤116 chars each.',
     },
   },
