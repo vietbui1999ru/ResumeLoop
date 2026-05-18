@@ -2,8 +2,11 @@ import { NextResponse } from 'next/server'
 import { runPipeline } from '@/lib/generate-pipeline'
 import { auth } from '@/lib/auth'
 import { getActiveProvider } from '@/lib/user-settings'
+import { getAdapter } from '@/lib/db-adapter'
 
 export const dynamic = 'force-dynamic'
+
+const DEMO_GENERATE_LIMIT = 10
 
 const inFlight = new Map<string, Set<string>>() // userId → Set of jobIds
 
@@ -24,6 +27,20 @@ export async function GET(
       { error: 'No AI provider configured. Add an API key in Settings → AI Provider before generating.' },
       { status: 400 }
     )
+  }
+
+  if (session.user.isDemo) {
+    const db  = await getAdapter()
+    const row = await db.queryOne<{ n: number }>(
+      `SELECT COUNT(*) as n FROM jd_outputs WHERE user_id = ?`,
+      [userId],
+    )
+    if ((row?.n ?? 0) >= DEMO_GENERATE_LIMIT) {
+      return NextResponse.json(
+        { error: `Demo accounts are limited to ${DEMO_GENERATE_LIMIT} generations. Sign up for unlimited access.` },
+        { status: 429 },
+      )
+    }
   }
 
   const userJobs = inFlight.get(userId) ?? new Set<string>()
