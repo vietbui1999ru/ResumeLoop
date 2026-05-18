@@ -35,7 +35,13 @@ export async function GET(req: Request) {
   if (visa === 'kill')          { conditions.push("j.visa_status = 'kill'") }
   if (action)                   { conditions.push('j.action = ?');                            params.push(action) }
   if (tag)                      { conditions.push("','||COALESCE(j.tags,'')||',' LIKE ?");    params.push(`%,${tag},%`) }
-  if (fromDate)                 { conditions.push("COALESCE(j.clipped_at, j.scanned_at) >= ?"); params.push(fromDate) }
+
+  // clipped_at is TEXT, scanned_at is TIMESTAMPTZ — Postgres rejects mixed COALESCE without cast.
+  const dateExpr = isCloud()
+    ? 'COALESCE(j.clipped_at::timestamptz, j.scanned_at)'
+    : 'COALESCE(j.clipped_at, j.scanned_at)'
+
+  if (fromDate) { conditions.push(`${dateExpr} >= ?`); params.push(fromDate) }
 
   const where = conditions.join(' AND ')
   const db    = await getAdapter()
@@ -50,7 +56,7 @@ export async function GET(req: Request) {
         JOIN jd_jobs_fts ON jd_jobs_fts.rowid = j.rowid
         WHERE ${where}
           AND jd_jobs_fts MATCH ?
-        ORDER BY COALESCE(j.clipped_at, j.scanned_at) DESC
+        ORDER BY ${dateExpr} DESC
       `, [...params, q.split(/\s+/).map(t => `"${t.replace(/"/g, '')}"`).join(' ')])
     } else {
       // Neon/Postgres: ILIKE fallback
@@ -59,14 +65,14 @@ export async function GET(req: Request) {
       jobs = await db.query(`
         SELECT ${BASE_COLS} FROM jd_jobs j
         WHERE ${conditions.join(' AND ')}
-        ORDER BY COALESCE(j.clipped_at, j.scanned_at) DESC
+        ORDER BY ${dateExpr} DESC
       `, params)
     }
   } else {
     jobs = await db.query(`
       SELECT ${BASE_COLS} FROM jd_jobs j
       WHERE ${where}
-      ORDER BY COALESCE(j.clipped_at, j.scanned_at) DESC
+      ORDER BY ${dateExpr} DESC
     `, params)
   }
 
