@@ -369,6 +369,7 @@ export default function JobsPage() {
               </span>
             )}
             <button
+              data-tour="paste-jd-btn"
               onClick={() => setShowPasteModal(true)}
               className="text-sm px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded transition-colors text-zinc-300"
               title="Paste a job posting (.md format)"

@@ -134,7 +134,7 @@ export default function AccountPage() {
       <h1 className="text-lg font-semibold text-zinc-100">Account</h1>
 
       {/* Personal info */}
-      <section>
+      <section data-tour="account-personal-info">
         <h2 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-4">Personal info</h2>
         {contactLoading ? (
           <p className="text-xs text-zinc-500">Loading…</p>

@@ -14,85 +14,91 @@ export interface TourStepDef {
 }
 
 export const TOUR_STEPS: TourStepDef[] = [
-  // Dashboard
+  // ── 1. ACCOUNT — fill in identity before anything else ───────────────────────
   {
-    id: 'dash-overview', page: '/', target: null,
-    title: 'Dashboard',
-    body: 'Your analytics hub. Track applications, see fit scores across roles, and review generated resumes.',
+    id: 'account-profile', page: '/account', target: 'account-personal-info',
+    title: 'Start here — your resume identity',
+    body: 'Fill in your name, contact, LinkedIn, and work auth. These fields appear in every generated resume. Takes 2 minutes.',
+  },
+
+  // ── 2. SETTINGS — configure before operating ─────────────────────────────────
+  {
+    id: 'settings-ai', page: '/settings', target: 'ai-settings',
+    title: 'Connect your AI provider',
+    body: 'Add an API key — Anthropic Claude recommended. Required for resume generation and the Chat assistant.',
   },
   {
-    id: 'dash-role-chart', page: '/', target: 'dashboard-role-chart',
-    title: 'Pipeline flow',
-    body: 'Sankey chart shows how jobs move through your pipeline stages — Saved → Applied → Interview → Offer. Spot where drop-off happens.',
+    id: 'settings-folder', page: '/settings', target: 'jobs-folder',
+    title: 'Point to your jobs folder',
+    body: 'Choose the folder where your .md job descriptions live. ResumeLoop scans here to import new listings.',
   },
   {
-    id: 'dash-outputs', page: '/', target: 'dashboard-outputs',
-    title: 'Resume history',
-    body: 'Every generated resume appears here. Click to view or download as DOCX.',
+    id: 'settings-clipper-guide', page: '/settings', target: 'clipper-guide-btn',
+    title: 'Clip jobs from the web',
+    body: 'Set up Obsidian Web Clipper to save job postings as .md files in one click. Optional but speeds up importing.',
   },
-  // Jobs
+
+  // ── 3. JOBS — import, select, generate ───────────────────────────────────────
   {
-    id: 'jobs-intro', page: '/jobs', target: null,
-    title: 'Jobs — your pipeline',
-    body: 'All job descriptions in your configured folder appear here. Scan to import new ones, then select and generate.',
+    id: 'jobs-paste', page: '/jobs', target: 'paste-jd-btn',
+    title: 'Paste a job description',
+    body: 'Copy any job posting and paste it here in markdown format — no folder setup needed. Perfect for one-off applications.',
   },
   {
     id: 'jobs-scan', page: '/jobs', target: 'scan-btn',
-    title: 'Scan for new jobs',
-    body: 'Click Scan to import job descriptions from your configured folder. New jobs appear in the table below.',
+    title: 'Or bulk-scan your folder',
+    body: 'Click Scan to import all .md job files at once. New listings appear in the table below automatically.',
   },
   {
     id: 'jobs-filter', page: '/jobs', target: 'filters-bar',
     title: 'Filter and search',
-    body: 'Search by company or role. Filter by fit score, track, or visa requirements.',
+    body: 'Search by company or role. Narrow by fit score, track, or visa requirements to find today\'s targets.',
   },
   {
     id: 'jobs-table', page: '/jobs', target: 'jobs-table',
-    title: 'Select jobs',
-    body: 'Check the boxes next to jobs you want to tailor your resume for. Multi-select is supported.',
+    title: 'Select jobs to tailor',
+    body: 'Check boxes next to jobs you want a resume for. Multi-select works — batch-generate for all at once.',
   },
   {
     id: 'jobs-generate', page: '/jobs', target: 'generate-btn',
-    title: 'Generate resumes',
-    body: 'After selecting jobs, click Generate Resume. Each job gets its own AI-tailored DOCX.',
+    title: 'Generate tailored resumes',
+    body: 'AI reads the JD, picks your best bullets, writes a custom tagline, and produces a 1-page DOCX — one per job.',
   },
   {
     id: 'jobs-action', page: '/jobs', target: 'action-cell',
-    title: 'Track your stage',
-    body: 'Update the stage per job — Applied, Interview, Offer. Writes back to your markdown file instantly.',
+    title: 'Track your applications',
+    body: 'Log each stage — Applied, Interview, Offer. Keeps your pipeline visible and updates your .md file in sync.',
   },
-  // Settings
+
+  // ── 4. DASHBOARD — review results once jobs are generated ─────────────────────
   {
-    id: 'settings-folder', page: '/settings', target: 'jobs-folder',
-    title: 'Jobs folder',
-    body: 'Point this at the folder containing your .md job description files. ResumeLoop scans here for new jobs.',
-  },
-  {
-    id: 'settings-clipper-guide', page: '/settings', target: 'clipper-guide-btn',
-    title: 'Web Clipper guide',
-    body: 'Opens a step-by-step setup guide for Obsidian Web Clipper — includes a downloadable LinkedIn profile template so you can clip contacts directly from LinkedIn into outreach cards. Optional, but recommended for networked job searching.',
+    id: 'dash-role-chart', page: '/', target: 'dashboard-role-chart',
+    title: 'Pipeline funnel',
+    body: 'Sankey chart tracks how jobs move from Saved → Applied → Interview → Offer. Spot drop-off at a glance.',
   },
   {
-    id: 'settings-ai', page: '/settings', target: 'ai-settings',
-    title: 'AI provider',
-    body: 'Choose your AI provider and model. Anthropic Claude is required for Chat; other providers work for generation.',
+    id: 'dash-outputs', page: '/', target: 'dashboard-outputs',
+    title: 'Download your resumes',
+    body: 'Every generated DOCX lives here. Click to preview AI reasoning or download.',
   },
-  // Chat
+
+  // ── 5. CHAT — advanced refinement ────────────────────────────────────────────
   {
     id: 'chat-intro', page: '/chat', target: null,
-    title: 'Chat',
-    body: 'Refine your resume with Claude. Ask it to emphasize skills, swap bullets, or tailor to a specific JD.',
+    title: 'Refine with Chat',
+    body: 'Ask Claude to swap bullets, emphasize different skills, or tailor your resume to a specific JD in conversation.',
   },
   {
     id: 'chat-github-import', page: '/chat', target: 'chat-github-import',
-    title: 'Import from GitHub',
-    body: 'Paste a GitHub repo URL to auto-generate a project entry — AI extracts the stack, writes 3-5 achievement bullets, and adds it to your master resume data.',
+    title: 'Import projects from GitHub',
+    body: 'Paste any repo URL — AI reads the README and writes 3–5 achievement bullets ready to use in your resume.',
   },
-  // Config
+
+  // ── 6. CONFIG — manage bullet libraries and profiles ─────────────────────────
   {
     id: 'config-intro', page: '/config', target: null,
-    title: 'Profile editor',
-    body: 'Edit your base resume as JSON. Fork profiles for different role tracks — GenAI, Systems, Backend. The active profile is used for every generation.',
+    title: 'Edit your resume profile',
+    body: 'Manage bullet libraries, fork profiles for different tracks (GenAI / Systems / Backend), and set the active one.',
   },
 ]
 
