@@ -1,6 +1,6 @@
 ---
 title: "AWS Maintenance Runbook"
-description: "Operational runbook for the ResumeAnalyze App Runner deployment: monitoring, deployments, scaling, secrets rotation, cost management, and troubleshooting."
+description: "Operational runbook for the ResumeLoop App Runner deployment: monitoring, deployments, scaling, secrets rotation, cost management, and troubleshooting."
 tags: [aws, operations, runbook, app-runner]
 updated: 2026-05-11
 ---
@@ -31,25 +31,25 @@ Expected `Status`: `RUNNING`. Other values: `OPERATION_IN_PROGRESS` (deployment 
 
 ### CloudWatch logs
 
-App Runner streams stdout to CloudWatch under the log group `/aws/apprunner/resumeanalyze/<service-id>/application`.
+App Runner streams stdout to CloudWatch under the log group `/aws/apprunner/resumeloop/<service-id>/application`.
 
 Tail live:
 
 ```bash
 # Get the log group name first
 aws logs describe-log-groups \
-  --log-group-name-prefix /aws/apprunner/resumeanalyze \
+  --log-group-name-prefix /aws/apprunner/resumeloop \
   --query 'logGroups[].logGroupName'
 
 # Then tail
-aws logs tail /aws/apprunner/resumeanalyze/<service-id>/application --follow
+aws logs tail /aws/apprunner/resumeloop/<service-id>/application --follow
 ```
 
 Filter for errors only:
 
 ```bash
 aws logs filter-log-events \
-  --log-group-name /aws/apprunner/resumeanalyze/<service-id>/application \
+  --log-group-name /aws/apprunner/resumeloop/<service-id>/application \
   --filter-pattern "ERROR" \
   --start-time $(date -v-1H +%s000)
 ```
@@ -96,7 +96,7 @@ git log --oneline -10
 ```bash
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 ECR_REGISTRY=$(aws ecr describe-repositories \
-  --repository-names resumeanalyze \
+  --repository-names resumeloop \
   --query 'repositories[0].repositoryUri' \
   --output text)
 
@@ -149,7 +149,7 @@ App Runner auto-scales instances based on concurrent requests. To configure:
 ```bash
 # Create an auto-scaling configuration
 aws apprunner create-auto-scaling-configuration \
-  --auto-scaling-configuration-name resumeanalyze-scaling \
+  --auto-scaling-configuration-name resumeloop-scaling \
   --max-concurrency 25 \
   --min-size 1 \
   --max-size 3
@@ -177,7 +177,7 @@ aws apprunner resume-service --service-arn <APP_RUNNER_SERVICE_ARN>
 
 ## Secrets rotation
 
-All secrets are in Secrets Manager under `resumeanalyze/prod/`. After updating a secret, redeploy the service so the new value is picked up at container startup.
+All secrets are in Secrets Manager under `resumeloop/prod/`. After updating a secret, redeploy the service so the new value is picked up at container startup.
 
 ### Rotate ENCRYPTION_KEY
 
@@ -187,7 +187,7 @@ Rotating `ENCRYPTION_KEY` will invalidate any API keys stored in the `user_setti
 NEW_KEY=$(openssl rand -hex 32)
 
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/ENCRYPTION_KEY \
+  --secret-id resumeloop/prod/ENCRYPTION_KEY \
   --secret-string "$NEW_KEY"
 
 aws apprunner start-deployment --service-arn <APP_RUNNER_SERVICE_ARN>
@@ -201,7 +201,7 @@ Rotating `AUTH_SECRET` invalidates all active user sessions — everyone will be
 NEW_SECRET=$(openssl rand -base64 32)
 
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/AUTH_SECRET \
+  --secret-id resumeloop/prod/AUTH_SECRET \
   --secret-string "$NEW_SECRET"
 
 aws apprunner start-deployment --service-arn <APP_RUNNER_SERVICE_ARN>
@@ -215,7 +215,7 @@ aws apprunner start-deployment --service-arn <APP_RUNNER_SERVICE_ARN>
 
 ```bash
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/DATABASE_URL \
+  --secret-id resumeloop/prod/DATABASE_URL \
   --secret-string "postgresql://user:NEWPASS@host/dbname?sslmode=require"
 
 aws apprunner start-deployment --service-arn <APP_RUNNER_SERVICE_ARN>
@@ -259,7 +259,7 @@ DOCX and PDF outputs accumulate over time. Add an expiration lifecycle rule for 
 
 ```bash
 aws s3api put-bucket-lifecycle-configuration \
-  --bucket resumeanalyze-outputs \
+  --bucket resumeloop-outputs \
   --lifecycle-configuration '{
     "Rules": [{
       "ID": "expire-old-outputs",
@@ -276,7 +276,7 @@ Old images accumulate with each push. Add a lifecycle policy to keep only the la
 
 ```bash
 aws ecr put-lifecycle-policy \
-  --repository-name resumeanalyze \
+  --repository-name resumeloop \
   --lifecycle-policy-text '{
     "rules": [{
       "rulePriority": 1,
@@ -301,19 +301,19 @@ Symptom: App Runner shows `OPERATION_IN_PROGRESS` indefinitely or health check f
 1. Check CloudWatch logs for the startup error:
 
 ```bash
-aws logs tail /aws/apprunner/resumeanalyze/<service-id>/application --follow
+aws logs tail /aws/apprunner/resumeloop/<service-id>/application --follow
 ```
 
 2. Verify all seven SSM parameters exist:
 
 ```bash
 aws ssm get-parameters-by-path \
-  --path /resumeanalyze/prod \
+  --path /resumeloop/prod \
   --with-decryption \
   --query 'Parameters[].{Name:Name,Value:Value}'
 ```
 
-3. Verify the instance role ARN in the App Runner service matches `AppRunnerResumeAnalyzeRole`.
+3. Verify the instance role ARN in the App Runner service matches `AppRunnerResumeLoopRole`.
 
 ### 502 errors from the App Runner URL
 
@@ -337,7 +337,7 @@ curl https://<ServiceUrl>/api/health
 
 ### S3 upload fails
 
-1. Verify the IAM policy on `AppRunnerResumeAnalyzeRole` includes `s3:PutObject` on `arn:aws:s3:::resumeanalyze-outputs/*`.
+1. Verify the IAM policy on `AppRunnerResumeLoopRole` includes `s3:PutObject` on `arn:aws:s3:::resumeloop-outputs/*`.
 
 2. Check `S3_BUCKET` SSM parameter matches the actual bucket name.
 
@@ -345,7 +345,7 @@ curl https://<ServiceUrl>/api/health
 
 ### GitHub Actions deploy fails (OIDC auth error)
 
-1. Verify the `AWS_DEPLOY_ROLE_ARN` secret in GitHub matches the ARN of `GitHubActionsResumeAnalyzeDeploy`.
+1. Verify the `AWS_DEPLOY_ROLE_ARN` secret in GitHub matches the ARN of `GitHubActionsResumeLoopDeploy`.
 
 2. Check the trust policy condition — it restricts to `repo:<ORG>/<REPO>:ref:refs/heads/main`. Deployments from other branches will fail.
 
@@ -359,7 +359,7 @@ curl https://<ServiceUrl>/api/health
 
 ```bash
 aws secretsmanager list-secrets \
-  --filter Key=name,Values=resumeanalyze/prod \
+  --filter Key=name,Values=resumeloop/prod \
   --query 'SecretList[].Name'
 ```
 
@@ -367,7 +367,7 @@ aws secretsmanager list-secrets \
 
 ```bash
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/AUTH_SECRET \
+  --secret-id resumeloop/prod/AUTH_SECRET \
   --secret-string "$(openssl rand -hex 32)"
 ```
 
@@ -377,6 +377,6 @@ After rotating `AUTH_SECRET` or `ENCRYPTION_KEY`, restart the container — all 
 
 ```bash
 aws secretsmanager get-secret-value \
-  --secret-id resumeanalyze/prod/AUTH_SECRET \
+  --secret-id resumeloop/prod/AUTH_SECRET \
   --query SecretString --output text
 ```

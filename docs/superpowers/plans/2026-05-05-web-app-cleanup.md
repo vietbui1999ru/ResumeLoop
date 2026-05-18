@@ -1,4 +1,4 @@
-# ResumeAnalyze Web App Cleanup — Implementation Plan
+# ResumeLoop Web App Cleanup — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -231,8 +231,8 @@ npx tsc --noEmit
 - [ ] **Step 4: Create the jobs directory**
 
 ```bash
-mkdir -p /Users/vietquocbui/repos/ResumeAnalyze/jobs
-echo "# jobs folder — JD markdown files live here" > /Users/vietquocbui/repos/ResumeAnalyze/jobs/.gitkeep
+mkdir -p /Users/vietquocbui/repos/ResumeLoop/jobs
+echo "# jobs folder — JD markdown files live here" > /Users/vietquocbui/repos/ResumeLoop/jobs/.gitkeep
 ```
 
 - [ ] **Step 5: Commit**

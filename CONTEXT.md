@@ -1,10 +1,10 @@
-# CONTEXT.md — ResumeAnalyze
+# CONTEXT.md — ResumeLoop
 
 Shared vocabulary and architectural invariants. Read this before any non-trivial task.
 
 ## What this app does
 
-ResumeAnalyze is a job-application automation tool. Given an Obsidian-clipped job description markdown file, it produces a tailored ATS-optimised 1-page DOCX resume, an AI fit assessment, and outreach drafts (LinkedIn + email). The web app is the pipeline — it is not a tracking layer on top of a separate pipeline.
+ResumeLoop is a job-application automation tool. Given an Obsidian-clipped job description markdown file, it produces a tailored ATS-optimised 1-page DOCX resume, an AI fit assessment, and outreach drafts (LinkedIn + email). The web app is the pipeline — it is not a tracking layer on top of a separate pipeline.
 
 ## Candidate profile (sourced from active resume profile in DB)
 

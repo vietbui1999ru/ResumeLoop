@@ -1,6 +1,6 @@
 ---
 title: "Manual Setup Checklist"
-description: "Every platform credential, key, secret, and one-time config step needed to run ResumeAnalyze end-to-end."
+description: "Every platform credential, key, secret, and one-time config step needed to run ResumeLoop end-to-end."
 tags: [setup, deployment, secrets, credentials]
 updated: 2026-05-12
 ---
@@ -45,10 +45,10 @@ bash infra/setup-aws.sh
 
 ```
 ✓ Setup complete. Add these to GitHub Secrets:
-  AWS_DEPLOY_ROLE_ARN = arn:aws:iam::<account-id>:role/GitHubActionsResumeAnalyze
+  AWS_DEPLOY_ROLE_ARN = arn:aws:iam::<account-id>:role/GitHubActionsResumeLoop
 
 ECR registry: <account-id>.dkr.ecr.us-east-1.amazonaws.com
-S3 bucket:    resumeanalyze-outputs-<account-id>
+S3 bucket:    resumeloop-outputs-<account-id>
 ```
 
 ### 1c. Fill in Secrets Manager values
@@ -58,32 +58,32 @@ The script creates placeholder secrets. Replace them with real values:
 ```bash
 # Auth secret — random 32+ char string
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/AUTH_SECRET \
+  --secret-id resumeloop/prod/AUTH_SECRET \
   --secret-string "$(openssl rand -base64 32)"
 
 # Encryption key — 32-byte hex
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/ENCRYPTION_KEY \
+  --secret-id resumeloop/prod/ENCRYPTION_KEY \
   --secret-string "$(openssl rand -hex 32)"
 
 # App mode
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/APP_MODE \
+  --secret-id resumeloop/prod/APP_MODE \
   --secret-string "cloud"
 
 # S3 bucket name (from setup-aws.sh output above)
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/S3_BUCKET \
-  --secret-string "resumeanalyze-outputs-<account-id>"
+  --secret-id resumeloop/prod/S3_BUCKET \
+  --secret-string "resumeloop-outputs-<account-id>"
 
 # AWS region
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/AWS_REGION \
+  --secret-id resumeloop/prod/AWS_REGION \
   --secret-string "us-east-1"
 
 # Fill these after you have the Neon DB and app URL (later steps):
-# aws secretsmanager update-secret --secret-id resumeanalyze/prod/DATABASE_URL --secret-string "postgresql://..."
-# aws secretsmanager update-secret --secret-id resumeanalyze/prod/NEXTAUTH_URL  --secret-string "https://..."
+# aws secretsmanager update-secret --secret-id resumeloop/prod/DATABASE_URL --secret-string "postgresql://..."
+# aws secretsmanager update-secret --secret-id resumeloop/prod/NEXTAUTH_URL  --secret-string "https://..."
 ```
 
 ---
@@ -110,7 +110,7 @@ systemctl enable docker && systemctl start docker
 
 ### 2b. Configure AWS credentials for ECR pull
 
-Create an IAM user (`resumeanalyze-homelab`) in the AWS console with the `AmazonEC2ContainerRegistryReadOnly` managed policy. Generate an access key for it.
+Create an IAM user (`resumeloop-homelab`) in the AWS console with the `AmazonEC2ContainerRegistryReadOnly` managed policy. Generate an access key for it.
 
 ```bash
 # On the homelab LXC
@@ -142,15 +142,15 @@ You'll use the Tailscale hostname as `HOMELAB_HOST` in GitHub Secrets.
 On your **local machine** (not the homelab), generate the deploy key:
 
 ```bash
-ssh-keygen -t ed25519 -C "resumeanalyze-deploy" -f ~/.ssh/resumeanalyze_deploy
+ssh-keygen -t ed25519 -C "resumeloop-deploy" -f ~/.ssh/resumeloop_deploy
 # No passphrase — GitHub Actions needs unattended access
 ```
 
 Copy the public key to the homelab:
 
 ```bash
-ssh-copy-id -i ~/.ssh/resumeanalyze_deploy.pub <user>@<homelab-tailscale-hostname>
-# Or manually: cat ~/.ssh/resumeanalyze_deploy.pub >> ~/.ssh/authorized_keys on the LXC
+ssh-copy-id -i ~/.ssh/resumeloop_deploy.pub <user>@<homelab-tailscale-hostname>
+# Or manually: cat ~/.ssh/resumeloop_deploy.pub >> ~/.ssh/authorized_keys on the LXC
 ```
 
 **Get the known_hosts entry** (needed for GitHub Secrets):
@@ -163,7 +163,7 @@ ssh-keyscan <homelab-tailscale-hostname>
 **Get the private key contents** (needed for GitHub Secrets):
 
 ```bash
-cat ~/.ssh/resumeanalyze_deploy
+cat ~/.ssh/resumeloop_deploy
 # Copy the full PEM block including -----BEGIN/END----- lines
 ```
 
@@ -171,8 +171,8 @@ cat ~/.ssh/resumeanalyze_deploy
 
 ```bash
 # On the homelab LXC
-mkdir -p ~/resumeanalyze/pipeline
-cd ~/resumeanalyze
+mkdir -p ~/resumeloop/pipeline
+cd ~/resumeloop
 
 # Copy compose file from the repo (or wget from your fork)
 # Copy and fill .env.prod
@@ -182,7 +182,7 @@ cp /path/to/repo/.env.prod.example .env.prod
 Edit `.env.prod` — every value marked `<...>` must be replaced:
 
 ```bash
-nano ~/resumeanalyze/.env.prod
+nano ~/resumeloop/.env.prod
 ```
 
 ```
@@ -190,8 +190,8 @@ ECR_REGISTRY=<account-id>.dkr.ecr.us-east-1.amazonaws.com
 IMAGE_TAG=latest
 OBSIDIAN_JOBS_PATH=/home/<user>/Obsidian/References/Jobs   # path to your JD markdown files
 OUTPUT_PATH=/home/<user>/resume-output                      # where DOCX files land
-DB_PATH=/home/<user>/resumeanalyze/resume.db
-PIPELINE_DATA_PATH=/home/<user>/resumeanalyze/pipeline/master_resume_data.json
+DB_PATH=/home/<user>/resumeloop/resume.db
+PIPELINE_DATA_PATH=/home/<user>/resumeloop/pipeline/master_resume_data.json
 
 AUTH_SECRET=<same value you put in Secrets Manager>
 NEXTAUTH_URL=https://<tailscale-hostname>                   # or http://localhost:3010 for local-only
@@ -204,9 +204,9 @@ BATCH_CONCURRENCY=3
 Seed required files:
 
 ```bash
-touch ~/resumeanalyze/resume.db   # compose volume mount requires file to exist
+touch ~/resumeloop/resume.db   # compose volume mount requires file to exist
 # Copy master_resume_data.json from repo if not already there:
-cp /path/to/repo/pipeline/master_resume_data.json ~/resumeanalyze/pipeline/
+cp /path/to/repo/pipeline/master_resume_data.json ~/resumeloop/pipeline/
 ```
 
 ---
@@ -234,7 +234,7 @@ Add all of these:
 |---|---|
 | `AWS_DEPLOY_ROLE_ARN` | Output of `bash infra/setup-aws.sh` |
 | `TAILSCALE_AUTHKEY` | Tailscale Admin → Settings → Keys → Generate auth key (Ephemeral) |
-| `HOMELAB_SSH_KEY` | Full contents of `~/.ssh/resumeanalyze_deploy` (private key PEM block) |
+| `HOMELAB_SSH_KEY` | Full contents of `~/.ssh/resumeloop_deploy` (private key PEM block) |
 | `HOMELAB_SSH_HOST_KEY` | Output of `ssh-keyscan <homelab-tailscale-hostname>` |
 | `HOMELAB_USER` | SSH username on the LXC (e.g. `root`) |
 | `HOMELAB_HOST` | Tailscale hostname of the LXC (e.g. `my-proxmox-lxc`) |

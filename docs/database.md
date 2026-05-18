@@ -1,13 +1,13 @@
 ---
 title: "Database Reference"
-description: "Schema, migrations, and operational guide for ResumeAnalyze's SQLite (local) and Neon Postgres (cloud) databases."
+description: "Schema, migrations, and operational guide for ResumeLoop's SQLite (local) and Neon Postgres (cloud) databases."
 tags: [database, sqlite, neon, postgres, schema]
 updated: 2026-05-11
 ---
 
 # Database Reference
 
-ResumeAnalyze uses two database backends selected by the `APP_MODE` environment variable:
+ResumeLoop uses two database backends selected by the `APP_MODE` environment variable:
 
 - **Local** (`APP_MODE` unset): `better-sqlite3`, file at `resume.db` in the project root
 - **Cloud** (`APP_MODE=cloud`): Neon serverless Postgres via `@neondatabase/serverless`
@@ -340,7 +340,7 @@ postgresql://user:password@ep-xxx-yyy.us-east-1.aws.neon.tech/dbname?sslmode=req
 
 ```bash
 aws ssm put-parameter \
-  --name /resumeanalyze/prod/DATABASE_URL \
+  --name /resumeloop/prod/DATABASE_URL \
   --value "<YOUR_CONNECTION_STRING>" \
   --type SecureString \
   --overwrite

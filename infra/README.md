@@ -1,6 +1,6 @@
 # AWS Deployment Setup
 
-ResumeAnalyze runs on AWS App Runner (compute) + Neon serverless Postgres (database) + S3 (DOCX/PDF outputs).
+ResumeLoop runs on AWS App Runner (compute) + Neon serverless Postgres (database) + S3 (DOCX/PDF outputs).
 
 All secrets are stored in AWS Systems Manager Parameter Store and injected at runtime. No secrets live in GitHub or the Docker image.
 
@@ -151,7 +151,7 @@ This lets GitHub Actions assume an AWS role via OIDC — no AWS access keys stor
 ```bash
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 GITHUB_ORG=<YOUR_GITHUB_USERNAME_OR_ORG>
-GITHUB_REPO=ResumeAnalyze
+GITHUB_REPO=ResumeLoop
 
 # Create the OIDC provider (one-time per AWS account)
 aws iam create-open-id-connect-provider \

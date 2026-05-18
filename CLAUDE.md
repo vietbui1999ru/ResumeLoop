@@ -213,7 +213,7 @@ Trigger phrases:
 ## Agent skills
 
 ### Issue tracker
-GitHub — `github.com/vietbui1999ru/ObsidianTasks` (pending rename to ResumeAnalyze). See `docs/agents/issue-tracker.md`.
+GitHub — `github.com/vietbui1999ru/ResumeLoop`. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 Standard five-label vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.

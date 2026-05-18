@@ -1,14 +1,14 @@
 ---
 title: "Architecture"
 type: explanation
-description: "System design, data flow, key files, and design decisions behind ResumeAnalyze."
+description: "System design, data flow, key files, and design decisions behind ResumeLoop."
 tags: [architecture, data-flow, design]
 updated: 2026-05-11
 ---
 
 # Architecture
 
-ResumeAnalyze is a Next.js 14 App Router application. It operates in two modes determined by the `APP_MODE` environment variable:
+ResumeLoop is a Next.js 14 App Router application. It operates in two modes determined by the `APP_MODE` environment variable:
 
 - **Local** (`APP_MODE` unset) — SQLite database (`resume.db`), local filesystem for file I/O
 - **Cloud** (`APP_MODE=cloud`) — Neon serverless Postgres, S3 for file storage

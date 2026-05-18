@@ -7,7 +7,7 @@
 
 ## Overview
 
-Add a resume generation pipeline to the ResumeAnalyze dashboard. Users select one or many jobs via checkboxes, click "Generate", and the system produces a tailored ATS-optimized DOCX per job using a hybrid Anthropic SDK + node subprocess pipeline. Progress streams via SSE. Mistakes are rated in the UI and fed back into future AI reasoning calls.
+Add a resume generation pipeline to the ResumeLoop dashboard. Users select one or many jobs via checkboxes, click "Generate", and the system produces a tailored ATS-optimized DOCX per job using a hybrid Anthropic SDK + node subprocess pipeline. Progress streams via SSE. Mistakes are rated in the UI and fed back into future AI reasoning calls.
 
 ---
 
