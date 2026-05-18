@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { runPipeline } from '@/lib/generate-pipeline'
 import { auth } from '@/lib/auth'
+import { getActiveProvider } from '@/lib/user-settings'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +17,14 @@ export async function GET(
 
   const { jobId } = await params
   const sessionId = new URL(request.url).searchParams.get('sessionId') ?? 'default'
+
+  const provider = await getActiveProvider(userId)
+  if (!provider) {
+    return NextResponse.json(
+      { error: 'No AI provider configured. Add an API key in Settings → AI Provider before generating.' },
+      { status: 400 }
+    )
+  }
 
   const userJobs = inFlight.get(userId) ?? new Set<string>()
   if (userJobs.size >= 3) {

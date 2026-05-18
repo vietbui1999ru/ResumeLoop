@@ -458,7 +458,9 @@ export default function SettingsPage() {
   const [saveStatus, setSaveStatus] = useState('')
 
   useEffect(() => {
-    fetch('/api/settings').then(r => r.json()).then(setSettings)
+    fetch('/api/settings')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setSettings(data) })
   }, [])
 
   const save = async (patch: Partial<Pick<Settings, 'jobs_path' | 'output_path' | 'outreach_path'>>) => {

@@ -93,3 +93,8 @@ The four markdown reference docs (`ats-optimization-guidelines.md`, `CLAUDE-full
 | `app/api/generate/[jobId]/stream/route.ts` | SSE stream for generation progress |
 | `harness/batch-build/` | Working directory for Node build script execution |
 | `pipeline/` | `master_resume_data.json` + `buildv2.js` (bootstrap copies) |
+
+## Slop Register
+
+Known AI failure patterns for this codebase: see `.claude/slop-register.md`.
+Read this before generating any code.

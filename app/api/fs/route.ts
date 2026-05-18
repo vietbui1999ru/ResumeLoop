@@ -4,7 +4,6 @@ import path from 'path'
 import os from 'os'
 import { auth } from '@/lib/auth'
 import { validateSafeDir } from '@/lib/settings'
-import { isCloud } from '@/lib/app-mode'
 
 function safePath(p: string): string {
   if (p.startsWith('~/')) p = path.join(os.homedir(), p.slice(2))
@@ -15,10 +14,6 @@ function safePath(p: string): string {
 export async function GET(req: Request) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  if (isCloud()) {
-    return NextResponse.json({ error: 'Not available in cloud mode' }, { status: 403 })
-  }
 
   const url = new URL(req.url)
   const raw = url.searchParams.get('path') ?? os.homedir()
@@ -69,9 +64,6 @@ export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  if (isCloud()) {
-    return NextResponse.json({ error: 'Not available in cloud mode' }, { status: 403 })
-  }
   const { path: rawPath }: { path: string } = await req.json()
   if (!rawPath?.trim()) return NextResponse.json({ error: 'path required' }, { status: 400 })
 

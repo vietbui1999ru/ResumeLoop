@@ -125,6 +125,7 @@ export default function JobsPage() {
   const [showPanel, setShowPanel]         = useState(false)
   const [panelMinimized, setPanelMinimized] = useState(false)
   const [generateQueue, setGenerateQueue] = useState<string[]>([])
+  const [hasAiProvider, setHasAiProvider] = useState<boolean | null>(null)
 
   const [sort, setSort] = useState<{ col: SortCol; dir: SortDir }>({ col: 'clipped_at', dir: 'desc' })
   const [jobsPathExists, setJobsPathExists] = useState<boolean | null>(null)
@@ -166,6 +167,17 @@ export default function JobsPage() {
       .then(r => r.ok ? r.json() : null)
       .then((d: Record<string, unknown> | null) => {
         setJobsPathExists(d ? Boolean(d.jobs_path_exists) : true)
+      })
+      .catch(e => { if (e.name !== 'AbortError') console.error(e) })
+    return () => ctrl.abort()
+  }, [])
+
+  useEffect(() => {
+    const ctrl = new AbortController()
+    fetch('/api/settings/ai', { signal: ctrl.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then((d: { active_provider: string | null } | null) => {
+        setHasAiProvider(d ? d.active_provider !== null : false)
       })
       .catch(e => { if (e.name !== 'AbortError') console.error(e) })
     return () => ctrl.abort()
@@ -582,20 +594,30 @@ export default function JobsPage() {
         <div className="fixed bottom-0 left-12 right-0 z-20 bg-surface-card border-t border-zinc-800 shadow-xl shadow-black/40 px-6 py-3">
           {!showPanel ? (
             /* Compact selection bar */
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-zinc-300 font-medium">{selected.size} selected</span>
-              <button onClick={() => setSelected(new Set())} className="text-xs text-zinc-500 hover:text-zinc-300">
-                Clear
-              </button>
-              <div className="ml-auto">
-                <button
-                  data-tour="generate-btn"
-                  onClick={() => void generate()}
-                  disabled={selected.size === 0}
-                  className="text-sm px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded disabled:opacity-40 transition-colors"
-                >
-                  {`Generate ${selected.size}`}
+            <div className="flex flex-col gap-2">
+              {hasAiProvider === false && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-yellow-900/40 border border-yellow-700/60 rounded text-xs text-yellow-300">
+                  <span>No AI provider configured — add your API key in</span>
+                  <a href="/settings" className="underline hover:text-yellow-100 font-medium">Settings</a>
+                  <span>before generating.</span>
+                </div>
+              )}
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-zinc-300 font-medium">{selected.size} selected</span>
+                <button onClick={() => setSelected(new Set())} className="text-xs text-zinc-500 hover:text-zinc-300">
+                  Clear
                 </button>
+                <div className="ml-auto">
+                  <button
+                    data-tour="generate-btn"
+                    onClick={() => void generate()}
+                    disabled={selected.size === 0 || hasAiProvider === false}
+                    title={hasAiProvider === false ? 'Add an AI provider in Settings first' : undefined}
+                    className="text-sm px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded disabled:opacity-40 transition-colors"
+                  >
+                    {`Generate ${selected.size}`}
+                  </button>
+                </div>
               </div>
             </div>
           ) : (

@@ -9,6 +9,13 @@ export const FONT_SIZE_LABELS: Record<FontSize, string> = {
   large:  'Large',
 }
 
+/** CSS variable values — immune to Tailwind content scanning. */
+const FONT_SCALE_MAP: Record<FontSize, string> = {
+  small:  '1.00',
+  medium: '1.15',
+  large:  '1.30',
+}
+
 export function isValidFontSize(s: string | null): s is FontSize {
   return s !== null && (FONT_SIZES as readonly string[]).includes(s)
 }
@@ -21,11 +28,15 @@ export function fontClass(s: FontSize): string {
 export function buildFontInitScript(): string {
   const valid = FONT_SIZES.map(s => `'${s}'`).join(',')
   const classes = FONT_SIZES.map(s => `'${fontClass(s)}'`).join(',')
+  // Inline the scale map so the script is self-contained.
+  const scaleEntries = FONT_SIZES.map(s => `'${s}':'${FONT_SCALE_MAP[s]}'`).join(',')
   return (
     `try{` +
     `var f=localStorage.getItem('${FONT_SIZE_KEY}');` +
     `if([${valid}].indexOf(f)!==-1){` +
     `var h=document.documentElement;` +
+    `var m={${scaleEntries}};` +
+    `h.style.setProperty('--font-scale',m[f]);` +
     `[${classes}].forEach(function(c){h.classList.remove(c)});` +
     `h.classList.add('font-'+f)` +
     `}` +
@@ -35,9 +46,11 @@ export function buildFontInitScript(): string {
 
 /**
  * Applies the given font size to the root HTML element.
- * Safe to call during component mount — removes all other font-* classes first.
+ * Sets --font-scale CSS variable (primary, immune to Tailwind purging) and
+ * also toggles the font-* class (backward compat / init script alignment).
  */
 export function applyFontSize(size: FontSize, root: HTMLElement = document.documentElement): void {
+  root.style.setProperty('--font-scale', FONT_SCALE_MAP[size])
   FONT_SIZES.forEach(s => root.classList.remove(fontClass(s)))
   root.classList.add(fontClass(size))
 }

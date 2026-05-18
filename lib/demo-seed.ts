@@ -1,5 +1,4 @@
 import { randomUUID } from 'crypto'
-import path from 'path'
 import { getAdapter } from './db-adapter'
 
 const DEMO_TTL_MS = 12 * 60 * 60 * 1000
@@ -277,13 +276,8 @@ export async function seedDemoUser(userId: string): Promise<void> {
     [profileId, userId, 'Demo Profile — Alex Chen', DEMO_PROFILE_DATA],
   )
 
-  // Seed jobs and collect Wefunder job ID for the pre-gen output
-  let wefunderJobId: string | null = null
-
   for (const job of DEMO_JOBS) {
     const jobId = randomUUID()
-    if (job.company === 'Wefunder') wefunderJobId = jobId
-
     await db.run(
       `INSERT INTO jd_jobs
          (id, file_path, company, role_title, tags, visa_status, role_track, fit_pct,
@@ -300,27 +294,6 @@ export async function seedDemoUser(userId: string): Promise<void> {
         job.fit_pct,
         job.raw_content,
         job.action,
-        userId,
-      ],
-    )
-  }
-
-  // Seed pre-generated resume output for Wefunder job
-  if (wefunderJobId) {
-    const docxPath = path.join(process.cwd(), 'public', 'demo', 'demo-resume.docx')
-    await db.run(
-      `INSERT INTO jd_outputs
-         (id, job_id, docx_path, projects_used, work_ids_used, variant, tagline, reasoning, user_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        randomUUID(),
-        wefunderJobId,
-        docxPath,
-        JSON.stringify(['api_platform', 'llm_assistant', 'infra_dashboard']),
-        JSON.stringify(['startup', 'university']),
-        'genai',
-        'Full-Stack Engineer building AI-powered product tooling with React and Python',
-        'Strong fit: full-stack experience, AI integration, startup velocity. Selected api_platform + llm_assistant for relevance to Wefunder\'s AI-generated code workflow.',
         userId,
       ],
     )

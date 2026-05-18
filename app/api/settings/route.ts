@@ -2,15 +2,11 @@ import { NextResponse } from 'next/server'
 import fs from 'fs'
 import { auth } from '@/lib/auth'
 import { getAllSettings, setSetting } from '@/lib/settings'
-import { isCloud } from '@/lib/app-mode'
 
 export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  if (isCloud()) {
-    return NextResponse.json({ error: 'Not available in cloud mode' }, { status: 403 })
-  }
   const settings = await getAllSettings()
   return NextResponse.json({
     ...settings,
@@ -24,9 +20,6 @@ export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  if (isCloud()) {
-    return NextResponse.json({ error: 'Not available in cloud mode' }, { status: 403 })
-  }
   const body: { jobs_path?: string; output_path?: string; outreach_path?: string } = await req.json()
 
   try {

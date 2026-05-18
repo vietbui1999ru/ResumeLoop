@@ -4,9 +4,11 @@
 
 @layer base {
   html {
-    font-size: 115%; /* medium — overridden by .font-* classes */
+    --font-scale: 1.15; /* medium default */
+    font-size: calc(var(--font-scale) * 100%);
   }
 
+  /* Class-based fallback (kept for init script / SSR compat). */
   html.font-small  { font-size: 100%; }
   html.font-medium { font-size: 115%; }
   html.font-large  { font-size: 130%; }
