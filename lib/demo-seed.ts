@@ -1,5 +1,7 @@
 import { randomUUID } from 'crypto'
 import { getAdapter } from './db-adapter'
+import { parseJd } from './jd-parser'
+import { scoreJd } from './fit-scorer'
 
 const DEMO_TTL_MS = 12 * 60 * 60 * 1000
 
@@ -214,107 +216,466 @@ const DEMO_PROFILE_DATA = JSON.stringify({
   },
 }, null, 2)
 
-// 10 demo jobs seeded for every ephemeral demo user
-const DEMO_JOBS = [
+// 10 demo jobs in real Obsidian JD markdown format.
+// parseJd + scoreJd derive all DB fields from these at seed time.
+const DEMO_JOB_MARKDOWNS: Array<{ filePath: string; content: string }> = [
   {
-    company:    'KeyBank',
-    role_title: 'DevOps Engineer I',
-    role_track: 'SRE / DevOps Engineer',
-    fit_pct:    42,
-    visa_status:'kill',
-    action:     '0-Saved',
-    tags:       JSON.stringify(['jobs', 'visa-kill']),
-    raw_content:'DevOps Engineer I — KeyBank. Hybrid Brooklyn OH. Harness.io, GitLab CI/CD, Kubernetes, GCP. Requires US citizenship. Not eligible for employment visa sponsorship for non-US citizens.',
+    filePath: 'demo/keybank-devops-engineer-i.md',
+    content: `---
+created: 2025-01-15
+title: DevOps Engineer I
+Company: KeyBank
+Action: 0-Saved
+source: https://keybank.wd5.myworkdayjobs.com/en-US/Key_External_Site
+description: Entry-level DevOps role at KeyBank managing CI/CD and containerized infrastructure
+published: 2025-01-10
+tags:
+  - jobs
+  - visa-kill
+outreach: []
+notes: ""
+---
+
+## Location
+Brooklyn, OH — Hybrid (3 days on-site)
+
+## Employment Type
+Full-time
+
+## About KeyBank
+KeyBank is one of the nation's largest bank-based financial services companies, providing investment management, retail and commercial banking, consumer finance, and investment banking products and services to individuals and businesses.
+
+## Responsibilities
+- Build and maintain CI/CD pipelines using Harness.io and GitLab for application delivery
+- Manage containerized workloads on Kubernetes and Docker environments across cloud and on-prem
+- Support provisioning and configuration of infrastructure on GCP
+- Partner with development teams to improve DevOps practices and release reliability
+- Document runbooks and incident response procedures
+
+## Requirements
+- 1–3 years of experience in infrastructure or platform engineering
+- Hands-on experience with Kubernetes, Docker, and CI/CD tooling
+- Familiarity with GitLab and GCP preferred
+- Strong Linux administration skills
+- Must be a US citizen or green card holder — KeyBank does not provide employment visa sponsorship for non-US citizens
+
+## Compensation
+$75,000–$95,000 + bonus + benefits
+`,
   },
   {
-    company:    'Profound',
-    role_title: 'Software Engineer, New Grad',
-    role_track: 'Software Engineer / Full-Stack',
-    fit_pct:    78,
-    visa_status:null,
-    action:     '0-Saved',
-    tags:       JSON.stringify(['jobs', 'un-resume']),
-    raw_content:'Software Engineer, New Grad — Profound, San Francisco (on-site). Build full-stack AI-driven applications. React, TypeScript, Node.js, scalable databases and APIs. $140k–$170k. Startup, fast-moving.',
+    filePath: 'demo/profound-software-engineer-new-grad.md',
+    content: `---
+created: 2025-01-20
+title: Software Engineer, New Grad
+Company: Profound
+Action: 0-Saved
+source: https://jobs.ashbyhq.com/profound
+description: Full-stack new grad role at an early-stage AI startup
+published: 2025-01-18
+tags:
+  - jobs
+  - un-resume
+outreach: []
+notes: ""
+---
+
+## Location
+San Francisco, CA — On-site
+
+## Employment Type
+Full-time
+
+## About Profound
+Profound is an early-stage AI startup building next-generation tools for knowledge workers. Small team, fast-moving, high ownership. We use AI to accelerate everything.
+
+## Responsibilities
+- Build full-stack web applications using React, TypeScript, and Node.js
+- Design and ship product features end-to-end, from database schema to frontend component
+- Collaborate on REST API design, backend services, and data modeling
+- Write clean, well-tested code and contribute to code review culture
+
+## Requirements
+- CS degree or equivalent, graduating 2024–2025
+- Proficiency in React, TypeScript, and full-stack web development
+- Experience with Next.js, PostgreSQL, and REST APIs a plus
+- Eagerness to own features and ship quickly with a small team
+
+## Compensation
+$140,000–$170,000 + equity
+
+## Equal Opportunity Employer
+Profound is an equal opportunity employer and considers all candidates authorized to work in the United States.
+`,
   },
   {
-    company:    'U.S. Bank',
-    role_title: 'Entry-Level AI/ML Software Engineer',
-    role_track: 'ML Engineer',
-    fit_pct:    65,
-    visa_status:null,
-    action:     '0-Saved',
-    tags:       JSON.stringify(['jobs', 'un-resume']),
-    raw_content:'Entry-Level AI/ML Software Engineer — U.S. Bank, Hopkins MN. Design and deploy ML models for financial use cases. Python, TensorFlow/PyTorch, cloud platforms, data pipelines.',
+    filePath: 'demo/us-bank-entry-level-ai-ml.md',
+    content: `---
+created: 2025-01-18
+title: Entry-Level AI/ML Software Engineer
+Company: U.S. Bank
+Action: 0-Saved
+source: https://careers.usbank.com/
+description: Entry-level AI/ML role building and deploying ML models for financial use cases
+published: 2025-01-15
+tags:
+  - jobs
+  - un-resume
+outreach: []
+notes: ""
+---
+
+## Location
+Hopkins, MN — Hybrid (2 days on-site)
+
+## Employment Type
+Full-time
+
+## About U.S. Bank
+U.S. Bank is the fifth-largest commercial bank in the United States, with over $680B in assets. We're making significant investments in machine learning and AI for fraud detection, credit risk, and personalization.
+
+## Responsibilities
+- Design and build machine learning models for fraud detection, credit risk assessment, and customer recommendations
+- Write Python scripts for data preprocessing, feature engineering, and model evaluation
+- Implement model training pipelines and collaborate on integrations with production systems
+- Work with data scientists and ML engineers on model accuracy and validation
+- Maintain documentation and contribute to team knowledge sharing
+
+## Requirements
+- B.S./M.S. in Computer Science, Statistics, or related field (2024–2025 grad)
+- Proficiency in Python and at least one ML framework — PyTorch or TensorFlow
+- Understanding of neural network architectures and model training workflows
+- Experience with cloud platforms (AWS, GCP, or Azure) a plus
+- Strong analytical skills and attention to data quality
+
+## Compensation
+$85,000–$110,000 + bonus and full benefits
+
+## Equal Opportunity Employer
+U.S. Bank is an equal opportunity employer and considers candidates authorized to work in the United States.
+`,
   },
   {
-    company:    'Euna Solutions',
-    role_title: 'Associate AI Developer',
-    role_track: 'GenAI / AI Engineer',
-    fit_pct:    72,
-    visa_status:null,
-    action:     '1-Applied',
-    tags:       JSON.stringify(['jobs', 'resume-ed']),
-    raw_content:'Associate AI Developer — Euna Solutions. Proof-of-concept AI development, prompt engineering, LLM tooling. Python, LangChain, OpenAI API. Remote-friendly.',
+    filePath: 'demo/euna-solutions-associate-ai-developer.md',
+    content: `---
+created: 2025-01-22
+title: Associate AI Developer
+Company: Euna Solutions
+Action: 1-Applied
+source: https://www.eunasolutions.com/careers
+description: AI developer role building LLM features and RAG pipelines for govtech SaaS
+published: 2025-01-20
+tags:
+  - jobs
+  - resume-ed
+outreach: []
+notes: ""
+---
+
+## Location
+Remote — US or Canada
+
+## Employment Type
+Full-time
+
+## About Euna Solutions
+Euna Solutions provides cloud-based procurement, budget, and grant management software for government agencies. We're expanding our AI capabilities and looking for engineers to build LLM-powered features across our product suite.
+
+## Responsibilities
+- Prototype and develop AI features using LLMs and prompt engineering best practices
+- Build workflows with LangChain and OpenAI API for document analysis and summarization
+- Implement RAG pipelines for document search, using embedding models for semantic retrieval
+- Evaluate and iterate on prompt designs to improve accuracy and reliability of AI features
+- Collaborate with product and backend teams to integrate AI capabilities into existing modules
+
+## Requirements
+- 1–2 years of experience with Python and LLM tooling
+- Hands-on experience with LangChain, OpenAI API, or comparable frameworks
+- Familiarity with prompt engineering and RAG pipeline design
+- Understanding of embedding models and their role in semantic search
+- Strong communication skills for cross-functional collaboration
+
+## Compensation
+$90,000–$115,000 + equity
+
+## Equal Opportunity Employer
+Euna Solutions is an equal opportunity employer and encourages applications from all qualified candidates.
+`,
   },
   {
-    company:    'Open Orion',
-    role_title: 'Backend Engineer',
-    role_track: 'Backend / API Engineer',
-    fit_pct:    81,
-    visa_status:null,
-    action:     '1-Applied',
-    tags:       JSON.stringify(['jobs', 'resume-ed']),
-    raw_content:'Backend Engineer — Open Orion Inc. Build scalable APIs and cloud infrastructure for AI and simulation tools. Python, FastAPI, Node.js, GraphQL, PostgreSQL, AWS, Terraform, Docker.',
+    filePath: 'demo/open-orion-backend-engineer.md',
+    content: `---
+created: 2025-01-25
+title: Backend Engineer
+Company: Open Orion
+Action: 1-Applied
+source: https://openorion.io/careers
+description: Backend engineering role building scalable APIs and microservices for AI simulation platforms
+published: 2025-01-22
+tags:
+  - jobs
+  - resume-ed
+outreach: []
+notes: ""
+---
+
+## Location
+Remote — United States
+
+## Employment Type
+Full-time
+
+## About Open Orion
+Open Orion Inc. builds backend infrastructure for AI simulation and robotics platforms. We're a small, fully distributed team focused on high-throughput backend systems.
+
+## Responsibilities
+- Design and implement REST APIs and GraphQL services using FastAPI and Python
+- Build backend microservices for data ingestion, processing, and storage at scale
+- Optimize API design for high-throughput workloads, including gRPC integrations between services
+- Provision and maintain cloud infrastructure on AWS using Terraform and Docker
+- Participate in on-call rotations and incident response for backend services
+
+## Requirements
+- 2+ years of backend engineering experience
+- Proficiency in FastAPI, Flask, or similar Python frameworks
+- Strong understanding of REST API design, microservices architecture, and backend systems
+- Experience with gRPC, GraphQL, and API design patterns preferred
+- Familiarity with PostgreSQL, Docker, and AWS deployment
+
+## Compensation
+$120,000–$155,000 + equity
+
+## Equal Opportunity Employer
+Open Orion is an equal opportunity employer and considers all candidates authorized to work in the US.
+`,
   },
   {
-    company:    'Wefunder',
-    role_title: 'Full Stack Product Engineer',
-    role_track: 'Software Engineer / Full-Stack',
-    fit_pct:    88,
-    visa_status:null,
-    action:     '1-Applied',
-    tags:       JSON.stringify(['jobs', 'resume-ed']),
-    raw_content:'Full Stack Product Engineer — Wefunder, San Francisco. Rails + React. 70%+ AI-generated code. Build matching engines, ledgers, deal rooms. $160k–$250k + equity. Visa sponsorship available.',
+    filePath: 'demo/wefunder-full-stack-product-engineer.md',
+    content: `---
+created: 2025-01-28
+title: Full Stack Product Engineer
+Company: Wefunder
+Action: 1-Applied
+source: https://wefunder.com/jobs
+description: Full-stack engineer building product features on the largest equity crowdfunding platform
+published: 2025-01-25
+tags:
+  - jobs
+  - resume-ed
+outreach: []
+notes: ""
+---
+
+## Location
+San Francisco, CA — On-site preferred, remote considered
+
+## Employment Type
+Full-time
+
+## About Wefunder
+Wefunder is the largest equity crowdfunding platform in the US, helping startups raise capital from their communities. We move fast, build in public, and ship 70%+ AI-generated code. Small team, big impact.
+
+## Responsibilities
+- Build full-stack web application features end-to-end: database schema, backend services, and React frontend
+- Design and implement RESTful APIs and backend logic in Ruby on Rails and TypeScript
+- Ship product features including matching engines, investment ledgers, and deal room workflows used by thousands of investors
+- Write React and TypeScript components with a focus on clean UX, accessibility, and performance
+- Collaborate directly with founders on product direction and full stack ownership decisions
+
+## Requirements
+- Experience with full-stack development using React, TypeScript, Node.js, or Ruby on Rails
+- Comfort with full stack ownership: web application architecture, database modeling, and API development
+- Familiarity with Next.js, PostgreSQL, or modern frontend frameworks preferred
+- Ability to work at software engineer level: ship features, review code, debug production issues
+- Visa sponsorship available for exceptional candidates
+
+## Compensation
+$160,000–$250,000 + significant equity
+`,
   },
   {
-    company:    'Coinbase',
-    role_title: 'Software Engineer, Remote',
-    role_track: 'Backend / API Engineer',
-    fit_pct:    74,
-    visa_status:null,
-    action:     '1-Applied',
-    tags:       JSON.stringify(['jobs', 'resume-ed']),
-    raw_content:'Software Engineer — Coinbase, Remote USA. Build secure crypto trading infrastructure. Go, Python, distributed systems, microservices, AWS. Competitive comp + equity.',
+    filePath: 'demo/coinbase-software-engineer-remote.md',
+    content: `---
+created: 2025-02-01
+title: Software Engineer, Remote
+Company: Coinbase
+Action: 1-Applied
+source: https://www.coinbase.com/careers
+description: Backend engineering role building crypto trading infrastructure at Coinbase
+published: 2025-01-28
+tags:
+  - jobs
+  - resume-ed
+outreach: []
+notes: ""
+---
+
+## Location
+Remote — United States
+
+## Employment Type
+Full-time
+
+## About Coinbase
+Coinbase is the leading US crypto exchange, serving 110M+ verified users. Our engineering teams build the backend infrastructure that moves billions of dollars in cryptocurrency daily.
+
+## Responsibilities
+- Build and maintain scalable backend microservices for crypto trading, custody, and settlement
+- Design and implement REST APIs and backend systems using Go (Golang) and Python
+- Work on distributed systems with strict latency and reliability requirements
+- Contribute to API design and service architecture across backend teams
+- Write tests and participate in on-call rotations for critical trading infrastructure
+
+## Requirements
+- 2+ years of backend engineering experience
+- Proficiency in Go lang, Python, or similar strongly-typed backend languages
+- Solid understanding of microservices, distributed systems, and REST API design
+- Experience with gRPC, PostgreSQL, or AWS a plus
+
+## Compensation
+$147,600–$173,700 + equity + benefits
+
+## Equal Opportunity Employer
+Coinbase is committed to diversity and equal opportunity in employment.
+`,
   },
   {
-    company:    'Crusoe Energy',
-    role_title: 'Junior Infrastructure Engineer, Lab',
-    role_track: 'SRE / DevOps Engineer',
-    fit_pct:    69,
-    visa_status:null,
-    action:     '4-Offer',
-    tags:       JSON.stringify(['jobs', 'resume-ed']),
-    raw_content:'Junior Infrastructure Engineer — Crusoe Energy. Deploy and manage GPU fleet for AI workloads. NVIDIA A100/H200/GB200, Ubuntu, InfiniBand, hardware diagnostics. $112k–$132k + RSUs.',
+    filePath: 'demo/crusoe-energy-junior-infrastructure-engineer.md',
+    content: `---
+created: 2025-02-05
+title: Junior Infrastructure Engineer, Lab
+Company: Crusoe Energy
+Action: 4-Offer
+source: https://www.crusoeenergy.com/careers
+description: Hands-on GPU infrastructure role deploying and maintaining AI compute clusters
+published: 2025-02-01
+tags:
+  - jobs
+  - resume-ed
+outreach: []
+notes: ""
+---
+
+## Location
+Denver, CO — On-site
+
+## Employment Type
+Full-time
+
+## About Crusoe Energy
+Crusoe Energy deploys AI compute infrastructure powered by otherwise-stranded natural gas, reducing emissions while providing affordable GPU capacity for ML training workloads.
+
+## Responsibilities
+- Deploy, configure, and maintain GPU servers (NVIDIA A100, H200, GB200) for AI training workloads
+- Manage containerized infrastructure using Docker and Kubernetes for workload orchestration
+- Set up and maintain observability with Prometheus and Grafana dashboards for fleet health
+- Write Terraform modules for automated provisioning and maintain CI/CD pipelines for infrastructure changes
+- Perform hardware diagnostics, rack-and-stack operations, and network configuration for new deployments
+
+## Requirements
+- 1+ years of experience in infrastructure, lab ops, or DevOps engineering
+- Hands-on experience with Docker, Kubernetes, Linux server administration
+- Familiarity with Prometheus, Grafana, Terraform, and CI/CD tooling
+- Interest in GPU compute, high-performance networking, and AI workload optimization
+
+## Compensation
+$112,000–$132,000 + RSUs + benefits
+
+## Equal Opportunity Employer
+Crusoe Energy is an equal opportunity employer.
+`,
   },
   {
-    company:    'TherapyNotes',
-    role_title: 'Software Developer',
-    role_track: 'Software Engineer / Full-Stack',
-    fit_pct:    70,
-    visa_status:null,
-    action:     '3-Interview',
-    tags:       JSON.stringify(['jobs', 'resume-ed']),
-    raw_content:'Software Developer — TherapyNotes, Horsham PA (Remote). Build and maintain EHR SaaS platform. C#/.NET, React, PostgreSQL, Azure. Mid-level, collaborative team.',
+    filePath: 'demo/therapynotes-software-developer.md',
+    content: `---
+created: 2025-02-08
+title: Software Developer
+Company: TherapyNotes
+Action: 3-Interview
+source: https://www.therapynotes.com/careers
+description: Full-stack developer role on a leading behavioral health EHR built in C# and React
+published: 2025-02-04
+tags:
+  - jobs
+  - resume-ed
+outreach: []
+notes: ""
+---
+
+## Location
+Horsham, PA — Remote-friendly (occasional on-site)
+
+## Employment Type
+Full-time
+
+## About TherapyNotes
+TherapyNotes is the leading EHR and practice management software for behavioral health providers, serving 100,000+ clinicians. Our platform is built on ASP.NET Core (C#) with a React frontend.
+
+## Responsibilities
+- Develop and maintain features for the TherapyNotes EHR platform built on ASP.NET Core (dotnet) and C#
+- Build and optimize REST APIs and backend services using .NET and C#
+- Work on React and TypeScript frontend components integrated with the Entity Framework data layer
+- Write unit and integration tests using xUnit and maintain code quality across a large codebase
+- Collaborate with QA, product, and design on new feature development
+
+## Requirements
+- 2+ years of software development experience
+- Proficiency in C# and .NET — ASP.NET Core strongly preferred
+- Experience with Entity Framework, PostgreSQL or SQL Server, and REST API design
+- React, TypeScript, or JavaScript frontend experience a plus
+
+## Compensation
+$90,000–$120,000 + benefits
+
+## Equal Opportunity Employer
+TherapyNotes is an equal opportunity employer and considers all candidates authorized to work in the US.
+`,
   },
   {
-    company:    'BizFlow',
-    role_title: 'Associate Software Engineer (Full-Stack)',
-    role_track: 'Software Engineer / Full-Stack',
-    fit_pct:    76,
-    visa_status:null,
-    action:     '5-Rejected',
-    tags:       JSON.stringify(['jobs', 'resume-ed']),
-    raw_content:'Associate Software Engineer (Full-Stack) — BizFlow, Falls Church VA. Client-facing workflow automation platform. Java, React, PostgreSQL, REST APIs, Agile. Entry-level, hybrid.',
+    filePath: 'demo/bizflow-associate-software-engineer.md',
+    content: `---
+created: 2025-02-10
+title: Associate Software Engineer (Full-Stack)
+Company: BizFlow
+Action: 5-Rejected
+source: https://www.bizflow.com/careers
+description: Entry-level full-stack role building workflow automation software for federal agencies
+published: 2025-02-07
+tags:
+  - jobs
+  - resume-ed
+outreach: []
+notes: ""
+---
+
+## Location
+Falls Church, VA — Hybrid (3 days on-site)
+
+## Employment Type
+Full-time
+
+## About BizFlow
+BizFlow provides business process management (BPM) and workflow automation software to federal agencies and commercial clients. Our platform automates complex approval workflows and document routing at scale.
+
+## Responsibilities
+- Build and maintain full-stack web application features using React and TypeScript on the frontend
+- Design and implement REST APIs and backend services in Java (Spring Boot) or Node.js
+- Write SQL queries and manage relational database schemas in PostgreSQL
+- Work with cross-functional teams on client-facing workflow automation features
+- Participate in Agile ceremonies and contribute to sprint planning and code reviews
+
+## Requirements
+- 0–2 years of full-stack development experience (new grads welcome)
+- Proficiency with React, TypeScript, and full stack web application development
+- Backend experience with Java, Spring Boot, or Node.js
+- Understanding of REST API design and relational databases
+
+## Compensation
+$75,000–$95,000 + benefits
+
+## Equal Opportunity Employer
+BizFlow is an equal opportunity employer.
+`,
   },
 ]
 
@@ -351,28 +712,34 @@ export async function seedDemoUser(userId: string): Promise<void> {
   )
 
   let wefunderJobId: string | null = null
-  for (const job of DEMO_JOBS) {
-    const jobId = randomUUID()
+  for (const { filePath, content } of DEMO_JOB_MARKDOWNS) {
+    const parsed = parseJd(filePath, content)
+    const scored = scoreJd(parsed.raw_content)
+    const jobId  = randomUUID()
+
     await db.run(
       `INSERT INTO jd_jobs
          (id, file_path, company, role_title, tags, visa_status, role_track, fit_pct,
-          raw_content, action, hidden, user_id, scanned_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, CURRENT_TIMESTAMP)`,
+          raw_content, action, clipped_at, apply_url, hidden, user_id, scanned_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, CURRENT_TIMESTAMP)`,
       [
         jobId,
-        `demo/${job.company.toLowerCase().replace(/\s+/g, '-')}.md`,
-        job.company,
-        job.role_title,
-        job.tags,
-        job.visa_status ?? null,
-        job.role_track,
-        job.fit_pct,
-        job.raw_content,
-        job.action,
+        parsed.file_path,
+        parsed.company,
+        parsed.role_title,
+        parsed.tags,
+        parsed.visa_status || null,
+        scored.role_track,
+        scored.fit_pct,
+        parsed.raw_content,
+        parsed.action,
+        parsed.clipped_at,
+        parsed.apply_url,
         userId,
       ],
     )
-    if (job.company === 'Wefunder') wefunderJobId = jobId
+
+    if (parsed.company === 'Wefunder') wefunderJobId = jobId
   }
 
   // Seed a sample output on the highest-fit job so Output History isn't empty
