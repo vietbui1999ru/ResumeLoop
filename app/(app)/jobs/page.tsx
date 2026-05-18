@@ -12,6 +12,7 @@ import SessionSwitcher from '@/components/SessionSwitcher'
 import { VALID_ACTIONS } from '@/lib/actions'
 import { useSession } from '@/contexts/SessionContext'
 import { AnimatePresence } from 'framer-motion'
+import { readUploadedMdFiles } from '@/lib/upload-md-files'
 
 const JobDetailModal  = dynamic(() => import('@/components/JobDetailModal'),  { ssr: false })
 const GenerationPanel = dynamic(() => import('@/components/GenerationPanel'), { ssr: false })
@@ -136,6 +137,7 @@ export default function JobsPage() {
   // Filter-change re-fetches keep the current rows visible (no skeleton flash).
   const [initialLoading, setInitialLoading] = useState(true)
   const abortRef = useRef<AbortController | null>(null)
+  const uploadRef = useRef<HTMLInputElement>(null)
 
   // Debounced q for search — fires reload 300ms after typing stops
   const [debouncedQ, setDebouncedQ] = useState('')
@@ -272,40 +274,69 @@ export default function JobsPage() {
   const allVisibleSelected = visible.length > 0 && visible.every(j => selected.has(j.id))
   const toggleAll = () => setSelected(allVisibleSelected ? new Set() : new Set(visible.map(j => j.id)))
 
+  const scanUploadedFiles = useCallback(async (pickedFiles: FileList | null) => {
+    const { files, skipped: skippedNonMd } = await readUploadedMdFiles(pickedFiles)
+    if (files.length === 0) {
+      setScanStatus('No .md files selected.')
+      setTimeout(() => setScanStatus(''), 4000)
+      return
+    }
+
+    const res = await fetch('/api/batch/scan/files', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ files }),
+    })
+    const data = await res.json() as { processed?: number; skipped?: number; error?: string }
+    const skippedTotal = (data.skipped ?? 0) + skippedNonMd
+    setScanStatus(
+      res.ok
+        ? `↑ ${data.processed ?? 0} imported${skippedTotal > 0 ? ` (${skippedTotal} skipped)` : ''}`
+        : `✗ ${data.error ?? 'scan failed'}`,
+    )
+    if (res.ok) reload()
+    setTimeout(() => setScanStatus(''), 4000)
+  }, [reload])
+
   const scan = async () => {
     setScanStatus('Scanning…')
 
     if (IS_CLOUD) {
       try {
-        const { loadHandle, readMdFiles, checkPermission, requestPermission } = await import('@/lib/cloud-fs')
-        const handle = await loadHandle('jobs-folder')
-        if (!handle) {
-          setScanStatus('No folder selected — go to Settings and select your Jobs folder.')
-          setTimeout(() => setScanStatus(''), 5000)
-          return
-        }
-        const perm = await checkPermission(handle)
-        if (perm !== 'granted') {
-          const ok = await requestPermission(handle)
-          if (!ok) {
-            setScanStatus('Folder permission denied.')
+        const supportsFsa = typeof window !== 'undefined' && 'showDirectoryPicker' in window
+        if (supportsFsa) {
+          const { loadHandle, readMdFiles, checkPermission, requestPermission } = await import('@/lib/cloud-fs')
+          const handle = await loadHandle('jobs-folder')
+          if (handle) {
+            const perm = await checkPermission(handle)
+            if (perm !== 'granted') {
+              const ok = await requestPermission(handle)
+              if (!ok) {
+                setScanStatus('Folder permission denied — select .md files to upload.')
+                uploadRef.current?.click()
+                return
+              }
+            }
+            const files = await readMdFiles(handle)
+            const res = await fetch('/api/batch/scan/files', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ files }),
+            })
+            const data = await res.json() as { processed?: number; error?: string }
+            setScanStatus(res.ok ? `↑ ${data.processed ?? 0} imported` : `✗ ${data.error ?? 'scan failed'}`)
+            if (res.ok) reload()
             setTimeout(() => setScanStatus(''), 4000)
             return
           }
         }
-        const files = await readMdFiles(handle)
-        const res = await fetch('/api/batch/scan/files', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ files }),
-        })
-        const data = await res.json() as { processed?: number; error?: string }
-        setScanStatus(res.ok ? `↑ ${data.processed ?? 0} imported` : `✗ ${data.error ?? 'scan failed'}`)
-        if (res.ok) reload()
+
+        setScanStatus('Select one or more .md files to upload.')
+        uploadRef.current?.click()
       } catch (e) {
         setScanStatus(`✗ ${(e as Error).message}`)
+        setTimeout(() => setScanStatus(''), 4000)
       }
-      setTimeout(() => setScanStatus(''), 4000)
       return
     }
 
@@ -452,8 +483,8 @@ export default function JobsPage() {
           <div className="text-center space-y-3 max-w-sm">
             <p className="text-zinc-400 text-sm">No jobs yet.</p>
             <p className="text-zinc-500 text-xs leading-relaxed">
-              Go to <strong className="text-zinc-300">Settings → Folders</strong> and select your Jobs folder,
-              then click <strong className="text-zinc-300">Scan</strong> above to import .md files.
+              Click <strong className="text-zinc-300">Scan</strong> to import jobs.
+              In Chrome/Edge, a connected Jobs folder in <strong className="text-zinc-300">Settings</strong> scans automatically; otherwise you can upload <strong className="text-zinc-300">.md</strong> files.
             </p>
           </div>
         </div>
@@ -700,6 +731,21 @@ export default function JobsPage() {
             </AnimatePresence>
           )}
         </div>
+      )}
+
+      {IS_CLOUD && (
+        <input
+          ref={uploadRef}
+          type="file"
+          accept=".md"
+          aria-label="Upload markdown job files"
+          multiple
+          className="hidden"
+          onChange={e => {
+            void scanUploadedFiles(e.target.files)
+            e.currentTarget.value = ''
+          }}
+        />
       )}
     </div>
   )
