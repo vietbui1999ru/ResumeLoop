@@ -360,8 +360,11 @@ export function initSchema(db: DB): void {
   }
 
   // Migrate existing users table to add auth columns
-  if (!hasColumn(db, 'users', 'email_verified'))
+  if (!hasColumn(db, 'users', 'email_verified')) {
     db.exec(`ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0`)
+    // Pre-existing demo user gets email_verified=0 from the DEFAULT — fix it now.
+    db.exec(`UPDATE users SET email_verified = 1 WHERE is_demo = 1`)
+  }
   if (!hasColumn(db, 'users', 'password_changed_at'))
     db.exec(`ALTER TABLE users ADD COLUMN password_changed_at DATETIME`)
   if (!hasColumn(db, 'users', 'deleted_at'))
@@ -440,7 +443,11 @@ export function initSchema(db: DB): void {
   if (!hasColumn(db, 'resume_profiles', 'persona_md'))
     db.exec(`ALTER TABLE resume_profiles ADD COLUMN persona_md TEXT`)
   if (!hasColumn(db, 'resume_profiles', 'updated_at'))
-    db.exec(`ALTER TABLE resume_profiles ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`)
+    db.exec(`ALTER TABLE resume_profiles ADD COLUMN updated_at DATETIME DEFAULT NULL`)
+
+  // One-time cleanup: orphaned jd_outputs rows (user_id='default') whose job has been deleted.
+  // These block demo-user job deletion via FK. Safe to run every init — deletes nothing if already clean.
+  db.exec(`DELETE FROM jd_outputs WHERE job_id NOT IN (SELECT id FROM jd_jobs)`)
 }
 
 // Seed system_prompts from disk files when the table is empty.

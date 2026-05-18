@@ -4,12 +4,12 @@ Shared vocabulary and architectural invariants. Read this before any non-trivial
 
 ## What this app does
 
-ResumeAnalyze is a personal job-application automation tool for Quoc-Viet Bui. Given an Obsidian-clipped job description markdown file, it produces a tailored ATS-optimised 1-page DOCX resume, an AI fit assessment, and outreach drafts (LinkedIn + email). The web app is the pipeline — it is not a tracking layer on top of a separate pipeline.
+ResumeAnalyze is a job-application automation tool. Given an Obsidian-clipped job description markdown file, it produces a tailored ATS-optimised 1-page DOCX resume, an AI fit assessment, and outreach drafts (LinkedIn + email). The web app is the pipeline — it is not a tracking layer on top of a separate pipeline.
 
-## Candidate facts (invariants — never change without explicit instruction)
+## Candidate profile (sourced from active resume profile in DB)
 
-- **Name:** Quoc-Viet Bui
-- **Work auth:** OPT + STEM OPT — qualifies as "authorised to work in the US"; does NOT need H-1B sponsorship yet
+Candidate data (name, work auth, contact, experience, projects, skills) is stored in the active `resume_profiles` row for the authenticated user. The disk file `pipeline/master_resume_data.json` is the bootstrap template only.
+
 - **Visa kill rule:** "US Citizen/GC only", "no sponsorship", "must be US citizen", "US person", "export control" → tag `visa-kill`, stop. "Authorised to work in US", EEO boilerplate → proceed.
 
 ## Hard limits (non-negotiable, enforced by `validate.js`)
@@ -57,7 +57,7 @@ Every table with user data has a `user_id TEXT NOT NULL DEFAULT 'default'` colum
 All DB access goes through `DbAdapter` (`lib/db-adapter.ts`). Never import `getDb()` directly in API routes — use `getAdapter()`. This enables SQLite (local) ↔ Neon Postgres (cloud) switching via `isCloud()`.
 
 ### Generation pipeline contract
-The pipeline (`lib/generate-pipeline.ts`) takes a `jobId` + `userId`, fetches the active resume profile from DB (fallback: disk), runs AI reasoning, writes a Node.js build script, executes it via `child_process.spawn`, and validates the DOCX output. The build script format is fixed: `{ id, bullets[] }` objects only — no inline metadata.
+The pipeline (`lib/generate-pipeline.ts`) takes a `jobId` + `userId`, fetches the active resume profile from DB (fallback: disk), runs AI reasoning, writes a Node.js build script, executes it via `child_process.spawn`, and validates the DOCX output. Generated scripts carry all metadata inline (work title/company/location/dates, project name/url/stack/date).
 
 ### Scan incremental skip rule
 A file is skipped during scan only if **both** `file_mtime` matches the stored value **and** `clipped_at` is non-null. This prevents rows with null `clipped_at` from being permanently skipped after a schema migration.

@@ -25,11 +25,11 @@ function buildDecisionSchema(workIds: string[]) {
     properties: {
       track:        { type: 'string', description: 'Role track from the role-track table in the system prompt' },
       workVariant:  { type: 'string', enum: ['genai', 'systems', 'IT-track'] },
-      workIds:      { type: 'array', items: workIdsItems, minItems: 3, maxItems: 3 },
-      projects:     { type: 'array', items: { type: 'string' }, minItems: 3, maxItems: 3 },
+      workIds:      { type: 'array', items: workIdsItems, minItems: 1, maxItems: 6 },
+      projects:     { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 6 },
       personaTitle: { type: 'string', maxLength: 60 },
       tagline:      { type: 'string', maxLength: 76 },
-      skillsRows:   { type: 'array', items: { type: 'string' }, minItems: 5, maxItems: 5 },
+      skillsRows:   { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 10 },
       reasoning: {
         type: 'string',
         description:
@@ -40,60 +40,189 @@ function buildDecisionSchema(workIds: string[]) {
   })
 }
 
+/**
+ * Pull the first valid JSON object out of a text response.
+ * Handles: plain JSON, ```json ... ```, ``` ... ```, prose + embedded JSON.
+ */
+function extractJsonFromText(text: string): string | null {
+  const stripped = text.trim()
+  // Strip markdown code fences (```json ... ``` or ``` ... ```)
+  const fenceMatch = stripped.match(/```(?:json)?\s*([\s\S]*?)```/)
+  const candidate = fenceMatch ? fenceMatch[1].trim() : stripped
+  // Find the outermost {...} block
+  const start = candidate.indexOf('{')
+  const end   = candidate.lastIndexOf('}')
+  if (start === -1 || end === -1 || end <= start) return null
+  return candidate.slice(start, end + 1)
+}
+
+function isCapacityError(err: unknown): boolean {
+  const msg = String(err).toLowerCase()
+  return msg.includes('high demand') || msg.includes('overloaded') ||
+         msg.includes('rate limit') || msg.includes('429') || msg.includes('503')
+}
+
 export async function reasonForJob(rawContent: string, masterData?: string, userId = 'default'): Promise<ReasoningResult> {
+  const cfg          = await getActiveConfig(userId)
   const model        = await getModel(userId)
   const systemPrompt = await buildSystemPrompt(masterData)
   const workIds      = masterData ? parseCandidateInfo(masterData).workIds : []
   const decisionSchema = buildDecisionSchema(workIds)
 
-  const { toolCalls, text, finishReason, usage } = await generateText({
-    model,
-    maxOutputTokens: 2048,
-    abortSignal: AbortSignal.timeout(60_000),
-    system: systemPrompt,
-    tools: {
-      resume_decision: {
-        description: 'Select resume components tailored to this job posting',
-        inputSchema: decisionSchema,
-      },
-    },
-    // 'required' = must call any tool. Equivalent to forcing resume_decision since it's
-    // the only tool defined, and is supported by all providers (Gemini, OpenAI, Anthropic).
-    // { type: 'tool', toolName: '...' } is Anthropic-specific and breaks Gemini.
-    toolChoice: 'required',
-    messages: [{ role: 'user', content: `Job Description:\n\n${rawContent}` }],
-  })
+  // Google thinking models reject toolChoice:'required' entirely — skip straight to JSON mode.
+  const isGoogle = cfg?.provider === 'google'
+
+  const userMessage = `Job Description:\n\n${rawContent}\n\nYou MUST call the resume_decision tool with your selections. Do not output text.`
+
+  let toolCalls: Awaited<ReturnType<typeof generateText>>['toolCalls'] = []
+  let text: string | undefined
+  let finishReason = 'error'
+  let usage: Awaited<ReturnType<typeof generateText>>['usage'] = {
+    inputTokens: 0, outputTokens: 0, totalTokens: 0,
+    inputTokenDetails: { noCacheTokens: undefined, cacheReadTokens: undefined, cacheWriteTokens: undefined },
+    outputTokenDetails: { textTokens: undefined, reasoningTokens: undefined },
+  }
+
+  if (!isGoogle) {
+    try {
+      ;({ toolCalls, text, finishReason, usage } = await generateText({
+        model,
+        maxOutputTokens: 2048,
+        abortSignal: AbortSignal.timeout(60_000),
+        system: systemPrompt,
+        tools: {
+          resume_decision: {
+            description: 'Select resume components tailored to this job posting',
+            inputSchema: decisionSchema,
+          },
+        },
+        // 'required' = must call any tool. Equivalent to forcing resume_decision since it's
+        // the only tool defined. { type: 'tool', toolName: '...' } is Anthropic-specific.
+        toolChoice: 'required',
+        messages: [{ role: 'user', content: userMessage }],
+      }))
+    } catch (firstErr: unknown) {
+      if (isCapacityError(firstErr)) {
+        throw new Error(
+          `AI provider is temporarily overloaded — wait a moment and try again. ` +
+          `(${String(firstErr).split('\n')[0]})`
+        )
+      }
+      // Non-capacity SDK error: fall through to JSON-mode retry. finishReason stays 'error'.
+      console.warn('[ai-reason] first attempt threw:', String(firstErr).slice(0, 200))
+    }
+  }
 
   const call = toolCalls.find(t => t.toolName === 'resume_decision')
 
   if (!call) {
-    // Gemini and some providers may return JSON in text instead of a formal tool call
-    if (text?.trim()) {
-      try {
-        const parsed = JSON.parse(text.trim()) as ReasoningResult
-        validateResult(parsed)
-        const cfg = await getActiveConfig(userId)
-        if (cfg) await logAiUsage(userId, cfg.provider, cfg.model, 'reason', usage.inputTokens ?? 0, usage.outputTokens ?? 0)
-        return parsed
-      } catch { /* fall through to structured error */ }
+    console.warn(
+      `[ai-reason] tool call missing — finishReason=${finishReason} toolCalls=${toolCalls.length} ` +
+      `textLen=${text?.length ?? 0} textPreview=${text?.slice(0, 200).replace(/\n/g, '↵') ?? '(empty)'}`
+    )
+
+    // Only attempt text extraction when the model actually returned text (not an API error).
+    if (finishReason !== 'error' && text?.trim()) {
+      const extracted = extractJsonFromText(text)
+      if (extracted) {
+        try {
+          const parsed = JSON.parse(extracted) as ReasoningResult
+          validateResult(parsed)
+          console.info('[ai-reason] text-fallback succeeded (fence extraction)')
+          if (cfg) await logAiUsage(userId, cfg.provider, cfg.model, 'reason', usage.inputTokens ?? 0, usage.outputTokens ?? 0)
+          return parsed
+        } catch (e) {
+          console.warn('[ai-reason] text-fallback JSON parse/validate failed:', String(e))
+        }
+      }
     }
+
+    // JSON-mode path: used directly for Google (thinking models reject toolChoice:'required')
+    // and as fallback for all other providers when the tool call is missing.
+    // maxOutputTokens=16384: Gemini thinking models consume thinking tokens within this budget,
+    // so 4096 left only ~200 tokens for the actual response → JSON truncated mid-value.
+    const schemaHint = JSON.stringify({
+      track: 'string', workVariant: 'genai|systems|IT-track',
+      workIds: `array of 1–6 IDs from: ${workIds.join(', ')}`,
+      projects: 'array of 1–6 project IDs from profile data',
+      personaTitle: 'string ≤60 chars', tagline: 'string ≤76 chars',
+      skillsRows: 'array of 1–10 strings formatted "Tech · Tech · Tech"',
+      reasoning: 'string with sections ## Track ## Work Experience ## Projects ## Tagline ## Skills',
+    }, null, 2)
+
+    const {
+      text: retryText,
+      finishReason: retryFinishReason,
+      usage: retryUsage,
+    } = await generateText({
+      model,
+      maxOutputTokens: 16384,
+      abortSignal: AbortSignal.timeout(120_000),
+      system: systemPrompt,
+      messages: [{
+        role: 'user',
+        content: `${userMessage}\n\nRespond with ONLY a valid, complete JSON object. No markdown, no explanation.\nShape:\n${schemaHint}`,
+      }],
+    })
+
+    console.info(
+      `[ai-reason] retry finishReason=${retryFinishReason} retryTextLen=${retryText?.length ?? 0} ` +
+      `retryPreview=${retryText?.slice(0, 300).replace(/\n/g, '↵') ?? '(empty)'}`
+    )
+
+    if (retryFinishReason === 'error') {
+      throw new Error(
+        `AI provider error on both attempts (finishReason=error). ` +
+        `The model may not support the current configuration. ` +
+        `Try switching to a different model in Settings → AI Provider.`
+      )
+    }
+    if (retryFinishReason === 'length') {
+      console.error(
+        `[ai-reason] retry truncated at ${retryText?.length ?? 0} chars — ` +
+        `maxOutputTokens=16384 still insufficient (thinking model consuming budget). ` +
+        `retryPreview=${retryText?.slice(0, 200).replace(/\n/g, '↵') ?? '(empty)'}`
+      )
+      throw new Error(
+        `AI response was cut off before the JSON completed. ` +
+        `Try a non-thinking model variant (e.g. gemini-2.0-flash) in Settings → AI Provider.`
+      )
+    }
+
+    const retryExtracted = retryText ? extractJsonFromText(retryText) : null
+    if (retryExtracted) {
+      try {
+        const parsed = JSON.parse(retryExtracted) as ReasoningResult
+        validateResult(parsed)
+        console.info('[ai-reason] JSON-mode retry succeeded')
+        if (cfg) {
+          const totalIn  = (usage.inputTokens ?? 0) + (retryUsage.inputTokens ?? 0)
+          const totalOut = (usage.outputTokens ?? 0) + (retryUsage.outputTokens ?? 0)
+          await logAiUsage(userId, cfg.provider, cfg.model, 'reason', totalIn, totalOut)
+        }
+        return parsed
+      } catch (e) {
+        console.error('[ai-reason] JSON-mode retry parse/validate failed:', String(e), 'extracted:', retryExtracted.slice(0, 300))
+      }
+    }
+
     throw new Error(
-      `No resume_decision tool call in AI response. ` +
-      `finishReason=${finishReason}, toolCalls=${toolCalls.length}, textLen=${text?.length ?? 0}`
+      `No resume_decision tool call in AI response after retry. ` +
+      `finishReason=${finishReason}, retryFinishReason=${retryFinishReason}, ` +
+      `textLen=${text?.length ?? 0}, retryTextLen=${retryText?.length ?? 0}`
     )
   }
 
   const result = call.input as ReasoningResult
   validateResult(result)
-  const cfg = await getActiveConfig(userId)
   if (cfg) await logAiUsage(userId, cfg.provider, cfg.model, 'reason', usage.inputTokens ?? 0, usage.outputTokens ?? 0)
   return result
 }
 
 export function validateResult(r: ReasoningResult): void {
-  if (!r.workIds  || r.workIds.length  !== 3) throw new Error(`workIds must have 3 entries, got ${r.workIds?.length}`)
-  if (!r.projects || r.projects.length !== 3) throw new Error(`projects must have 3 entries, got ${r.projects?.length}`)
-  if (!r.skillsRows || r.skillsRows.length !== 5) throw new Error(`skillsRows must have 5 entries, got ${r.skillsRows?.length}`)
+  if (!r.workIds  || r.workIds.length  < 1) throw new Error(`workIds must have at least 1 entry, got ${r.workIds?.length}`)
+  if (!r.projects || r.projects.length < 1) throw new Error(`projects must have at least 1 entry, got ${r.projects?.length}`)
+  if (!r.skillsRows || r.skillsRows.length < 1) throw new Error(`skillsRows must have at least 1 entry, got ${r.skillsRows?.length}`)
   if (!r.tagline)      throw new Error('tagline missing from AI response')
   if (!r.personaTitle) throw new Error('personaTitle missing from AI response')
 

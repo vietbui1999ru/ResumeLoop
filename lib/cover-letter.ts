@@ -69,12 +69,13 @@ function buildPrompt(ctx: CoverLetterContext, candidate: ReturnType<typeof parse
     `</untrusted_content>`,
     ``,
     `## Instructions`,
+    `Write in FIRST PERSON (I, my, me) — this is a cover letter written by ${candidate.name}, not about them.`,
     `Write exactly 3 paragraphs, 200–250 words total, plain text only (no markdown, no headers, no bullet points).`,
-    `Para 1: Name the role and state one specific hook connecting the candidate's background to this position.`,
-    `Para 2: Reference 2–3 specific projects or work experiences from the resume context that directly match the JD requirements.`,
+    `Para 1: Name the role and state one specific hook connecting your background to this position.`,
+    `Para 2: Reference 2–3 of your specific projects or work experiences that directly match the JD requirements.`,
     `Para 3: One sentence call to action. Final line (on its own line): "${[candidate.name, candidate.email].filter(Boolean).join(' | ')}"`,
     `Do not use generic phrases like "I am excited to apply" or "I am writing to express my interest".`,
-    `Be direct, specific, and professional.`,
+    `Be direct, specific, and professional. Always use first person — never refer to yourself in the third person.`,
   )
 
   return lines.join('\n')

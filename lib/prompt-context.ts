@@ -31,9 +31,9 @@ ${data}
 ## Hard Constraints (MUST NOT violate)
 - tagline: ≤76 characters WITH spaces — count carefully
 - personaTitle: ≤60 chars, must NOT match the JD job title verbatim
-- workIds: exactly 3 IDs from ${workIdsDisplay}
-- projects: exactly 3 project IDs that exist in the profile data above
-- skillsRows: exactly 5 plain strings formatted "Tech · Tech · Tech"
+- workIds: 1–6 IDs from ${workIdsDisplay} — select however many best fit the role
+- projects: 1–6 project IDs that exist in the profile data above — select however many best fit the role
+- skillsRows: 1–10 plain strings formatted "Tech · Tech · Tech"
 
 ${resumeRules}
 

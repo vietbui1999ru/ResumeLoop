@@ -55,26 +55,6 @@ function useTargetRect(target: string | null, active: boolean): Rect | null {
   return rect
 }
 
-// 4-rect spotlight — darker backdrop, cuts a transparent hole around the target
-function Spotlight({ rect }: { rect: Rect }) {
-  const vw = typeof window !== 'undefined' ? window.innerWidth  : 1920
-  const vh = typeof window !== 'undefined' ? window.innerHeight : 1080
-  const t = rect.top    - PAD
-  const l = rect.left   - PAD
-  const r = rect.left   + rect.width  + PAD
-  const b = rect.top    + rect.height + PAD
-  const base = 'fixed pointer-events-none z-[68]'
-  const bg   = 'bg-black/80'
-  return (
-    <>
-      <div className={`${base} ${bg}`} style={{ top: 0,    left: 0, right: 0, height: Math.max(0, t) }} />
-      <div className={`${base} ${bg}`} style={{ top: b,    left: 0, right: 0, bottom: 0, height: Math.max(0, vh - b) }} />
-      <div className={`${base} ${bg}`} style={{ top: t,    left: 0, width: Math.max(0, l),      height: b - t }} />
-      <div className={`${base} ${bg}`} style={{ top: t,    left: r, right: 0, width: Math.max(0, vw - r), height: b - t }} />
-    </>
-  )
-}
-
 // Glowing pulsing ring drawn exactly over the highlighted component
 function HighlightRing({ rect }: { rect: Rect }) {
   return (
@@ -207,16 +187,8 @@ export function TourOverlay() {
 
   return (
     <>
-      {/* Full-screen click blocker */}
-      <div className="fixed inset-0 z-[65] bg-black/80" aria-hidden="true" />
-
-      {/* Spotlight hole + highlight ring (only when target element found) */}
-      {rect && (
-        <>
-          <Spotlight rect={rect} />
-          <HighlightRing rect={rect} />
-        </>
-      )}
+      {/* Highlight ring (only when target element found) */}
+      {rect && <HighlightRing rect={rect} />}
 
       {/* Bubble */}
       <div

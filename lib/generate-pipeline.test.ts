@@ -116,7 +116,7 @@ describe('runPipeline', () => {
     expect(errorEvent!.status).toBe('fail')
   })
 
-  it('falls back to disk master data when profile data is missing a work id', async () => {
+  it('falls back to disk master data when no active profile or session data exists', async () => {
     const fakeJob = {
       id: 'job-stale', company: 'Acme', role_title: 'Engineer',
       file_path: '/jobs/acme.md', raw_content: 'JD content',
@@ -132,35 +132,21 @@ describe('runPipeline', () => {
     } as any)
 
     mockedExistsSync.mockReturnValue(true)
-    mockedIsCloud.mockReturnValue(false)
+    mockedIsCloud.mockReturnValue(false)  // disk fallback only active in local mode
 
-    // Profile has OLD data — 'gitlab' not present
-    const staleProfile = JSON.stringify({
-      experience: [
-        { id: 'techcorp',     bullets: { genai: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] } },
-        { id: 'startup',      bullets: { genai: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] } },
-        { id: 'research',     bullets: { genai: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] } },
-      ],
-      projects: [
-        { id: 'CalAI', bullets: ['Built X', 'Built Y', 'Built Z'] },
-        { id: 'MRR Dashboard', bullets: ['Built X', 'Built Y', 'Built Z'] },
-        { id: 'HomeBoard', bullets: ['Built X', 'Built Y', 'Built Z'] },
-      ],
-      skills: {},
-    })
-    // Disk file has the correct/current data with 'gitlab'
+    // Disk file is the only source of data (no active profile, no session data)
     const diskMaster = JSON.stringify({
       experience: [
-        { id: 'gitlab',       bullets: { genai: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] } },
-        { id: 'carboncopies', bullets: { genai: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] } },
-        { id: 'udayton',      bullets: { genai: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] } },
+        { id: 'startup',    bullets: { genai: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] } },
+        { id: 'university', bullets: { genai: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] } },
+        { id: 'internship', bullets: { genai: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] } },
       ],
       projects: [
-        { id: 'CalAI', bullets: ['Built X', 'Built Y', 'Built Z'] },
+        { id: 'CalAI',         bullets: ['Built X', 'Built Y', 'Built Z'] },
         { id: 'MRR Dashboard', bullets: ['Built X', 'Built Y', 'Built Z'] },
-        { id: 'HomeBoard', bullets: ['Built X', 'Built Y', 'Built Z'] },
+        { id: 'HomeBoard',     bullets: ['Built X', 'Built Y', 'Built Z'] },
       ],
-      skills: {},
+      skills: ['TypeScript · React'],
     })
 
     const mockedReadFileSync = fs.readFileSync as unknown as ReturnType<typeof vi.fn>
@@ -171,16 +157,16 @@ describe('runPipeline', () => {
 
     mockedGetAdapter.mockResolvedValue({
       queryOne: vi.fn()
-        .mockResolvedValueOnce(fakeJob)    // job lookup
-        .mockResolvedValueOnce({ data: staleProfile }),  // active profile
+        .mockResolvedValueOnce(fakeJob)  // job lookup
+        .mockResolvedValueOnce(null),    // no active profile in DB
       run: vi.fn(),
       query: vi.fn(),
     } as any)
     mockedEnsureDefaultSession.mockResolvedValue(undefined)
-    mockedGetSession.mockResolvedValue({ id: 'sess-1', data: staleProfile } as any)
+    mockedGetSession.mockResolvedValue({ id: 'sess-1', data: '' } as any)  // empty session → disk fallback
     mockedReasonForJob.mockResolvedValue({
       track: 'genai', workVariant: 'genai',
-      workIds: ['gitlab', 'carboncopies', 'udayton'],
+      workIds: ['startup', 'university', 'internship'],
       projects: ['CalAI', 'MRR Dashboard', 'HomeBoard'],
       personaTitle: 'Software Engineer',
       tagline: 'Software Engineer building AI tools',
@@ -190,7 +176,7 @@ describe('runPipeline', () => {
 
     const events = await collect(runPipeline('job-stale', 'sess-1', 'user-123'))
     const scriptError = events.find(e => e.stage === 'write-script' && e.status === 'fail')
-    expect(scriptError).toBeUndefined() // must NOT fail with "Unknown work id: gitlab"
+    expect(scriptError).toBeUndefined() // disk master loaded successfully — no write-script fail
     expect(events.some(e => e.stage === 'write-script' && e.status === 'ok')).toBe(true)
   })
 
@@ -215,7 +201,7 @@ describe('runPipeline', () => {
 
     mockedExistsSync.mockReturnValue(true)
     mockedIsCloud.mockReturnValue(true)
-    mockedSaveOutput.mockResolvedValue('s3:outputs/user-123/job-cloud/acme_engineer_VietBui.docx')
+    mockedSaveOutput.mockResolvedValue('s3:outputs/user-123/job-cloud/acme_engineer_Resume.docx')
 
     mockedGetAdapter.mockResolvedValue({
       queryOne: vi.fn()
@@ -227,9 +213,9 @@ describe('runPipeline', () => {
     mockedEnsureDefaultSession.mockResolvedValue(undefined)
     const masterData = JSON.stringify({
       experience: [
-        { id: 'gitlab',       bullets: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] },
-        { id: 'carboncopies', bullets: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] },
-        { id: 'udayton',      bullets: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] },
+        { id: 'startup',      bullets: { genai: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] } },
+        { id: 'university',   bullets: { genai: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] } },
+        { id: 'internship',   bullets: { genai: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] } },
       ],
       projects: [
         { id: 'CalAI',         bullets: ['Built X', 'Built Y', 'Built Z'] },
@@ -241,7 +227,7 @@ describe('runPipeline', () => {
     mockedGetSession.mockResolvedValue({ id: 'sess-1', data: masterData } as any)
     mockedReasonForJob.mockResolvedValue({
       track: 'genai', workVariant: 'genai',
-      workIds: ['gitlab', 'carboncopies', 'udayton'],
+      workIds: ['startup', 'university', 'internship'],
       projects: ['CalAI', 'MRR Dashboard', 'HomeBoard'],
       personaTitle: 'Software Engineer',
       tagline: 'Software Engineer building AI tools',

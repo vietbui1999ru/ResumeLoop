@@ -51,11 +51,27 @@ export async function* runPipeline(jobId: string, sessionId = 'default', userId 
   // Per-job working directory — isolates concurrent builds
   const jobBuildDir = path.join(BATCH_BUILD_ROOT, jobId)
 
+  // Resolve master data once — used by all stages.
+  // Priority: active DB profile > session.data > disk file (local-dev fallback only).
+  // Both AI reasoning and build script must see the same data to keep work/project IDs consistent.
+  // The disk file is Viet's personal local artifact — never override a user's uploaded profile with it.
+  const activeProfile = await db.queryOne<{ data: string }>(
+    'SELECT data FROM resume_profiles WHERE user_id = ? AND is_active = 1 LIMIT 1',
+    [userId],
+  )
+  let masterDataJson = activeProfile?.data || session.data || ''
+  if (!masterDataJson && !isCloud()) {
+    try { masterDataJson = fs.readFileSync(PATHS.pipeline.masterData, 'utf8') } catch { /* file absent */ }
+  }
+
+  const { workIds: resolvedWorkIds } = parseCandidateInfo(masterDataJson)
+  console.info(`[pipeline] job=${job.id} company="${job.company}" role="${job.role_title}" workIds=${JSON.stringify(resolvedWorkIds)}`)
+
   // Stage 0: Preflight
   if (signal?.aborted) { yield emit(errEvent('preflight', 'Aborted')); logger.finish('failed'); return }
   yield emit({ stage: 'preflight', status: 'running', data: {} })
   try {
-    await preflight(session.data, jobBuildDir)
+    await preflight(masterDataJson, jobBuildDir)
   } catch (e) {
     yield emit(errEvent('preflight', String(e))); logger.finish('failed'); return
   }
@@ -63,32 +79,23 @@ export async function* runPipeline(jobId: string, sessionId = 'default', userId 
 
   // Stage 1: AI reasoning
   if (signal?.aborted) { yield emit(errEvent('ai-reason', 'Aborted')); logger.finish('failed'); return }
-  yield emit({ stage: 'ai-reason', status: 'running', data: {} })
+  yield emit({ stage: 'ai-reason', status: 'running', data: { workIds: resolvedWorkIds } })
   let decision: ReasoningResult
   try {
-    decision = await reasonForJob(job.raw_content, session.data, userId)
+    decision = await reasonForJob(job.raw_content, masterDataJson, userId)
   } catch (e) {
-    yield emit(errEvent('ai-reason', String(e))); logger.finish('failed'); return
+    const errMsg = String(e)
+    console.error(`[pipeline] ai-reason failed: ${errMsg}`)
+    yield emit(errEvent('ai-reason', errMsg)); logger.finish('failed'); return
   }
   logger.setAIDecision(decision as unknown as Record<string, unknown>)
+  console.info(`[pipeline] ai-reason ok — track="${decision.track}" variant="${decision.workVariant}" workIds=${JSON.stringify(decision.workIds)} projects=${JSON.stringify(decision.projects)}`)
   yield emit({ stage: 'ai-reason', status: 'ok', data: decision as unknown as Record<string, unknown> })
 
   // Stage 2: Write build script
   if (signal?.aborted) { yield emit(errEvent('write-script', 'Aborted')); logger.finish('failed'); return }
   yield emit({ stage: 'write-script', status: 'running', data: {} })
   const slug = toSlug(`${job.company}_${job.role_title}`)
-
-  // Resolve master data for the build script.
-  // Priority: disk file (always current) > active profile > session.data.
-  // Disk file takes precedence because profiles in DB can be stale when the
-  // pipeline JSON is updated — the AI schema already enforces the current work IDs.
-  let masterDataJson = session.data
-  const activeProfile = await db.queryOne<{ data: string }>(
-    'SELECT data FROM resume_profiles WHERE user_id = ? AND is_active = 1 LIMIT 1',
-    [userId],
-  )
-  if (activeProfile?.data) masterDataJson = activeProfile.data
-  try { masterDataJson = fs.readFileSync(PATHS.pipeline.masterData, 'utf8') } catch { /* cloud or file absent — use profile */ }
 
   const scriptName = `${slug}.js`
   const scriptPath = path.join(jobBuildDir, scriptName)
@@ -237,9 +244,12 @@ async function* buildValidateLoop(scriptPath: string, docxName: string, jobBuild
     const buildResult = await spawnAsync('node', [scriptPath], jobBuildDir, signal)
     if (signal?.aborted) { yield errEvent('build', 'Aborted'); return }
     if (buildResult.code !== 0) {
-      yield errEvent('build', buildResult.stderr || buildResult.stdout); return
+      const errOut = (buildResult.stderr || buildResult.stdout).slice(0, 800)
+      console.error(`[pipeline] build failed attempt=${attempt} code=${buildResult.code}\n${errOut}`)
+      yield errEvent('build', errOut); return
     }
-    yield { stage: 'build', status: 'ok', data: { script: path.basename(scriptPath), attempt } }
+    console.info(`[pipeline] build ok attempt=${attempt} stdout=${buildResult.stdout.trim().slice(0, 200)}`)
+    yield { stage: 'build', status: 'ok', data: { script: path.basename(scriptPath), attempt, out: buildResult.stdout.trim().slice(0, 200) } }
 
     if (!fs.existsSync(docxExpected)) {
       yield errEvent('build', `Build exited 0 but DOCX not found at ${docxExpected}`)
@@ -250,6 +260,7 @@ async function* buildValidateLoop(scriptPath: string, docxName: string, jobBuild
     yield { stage: 'validate', status: 'running', data: {} }
     const validateResult = await spawnAsync('node', [VALIDATE_JS, scriptPath], process.cwd(), signal)
     if (signal?.aborted) { yield errEvent('validate', 'Aborted'); return }
+    console.info(`[pipeline] validate code=${validateResult.code} stdout=${validateResult.stdout.trim().slice(0, 300)}`)
     if (validateResult.code === 0) {
       yield { stage: 'validate', status: 'ok', data: {} }
       yield { stage: 'finalize', status: 'ok', data: { docx: docxExpected } }
@@ -257,10 +268,12 @@ async function* buildValidateLoop(scriptPath: string, docxName: string, jobBuild
     }
 
     const violations = validateResult.stdout.split('\n').filter(l => l.startsWith('FAIL'))
+    console.warn(`[pipeline] validate violations: ${JSON.stringify(violations)}`)
     yield { stage: 'validate', status: 'fail', data: { violations } }
 
     yield { stage: 'fix-loop', status: 'running', data: { violations } }
     const fixed = applyFixes(scriptPath, violations)
+    console.info(`[pipeline] fix-loop fixed=${JSON.stringify(fixed)} for violations=${JSON.stringify(violations)}`)
     if (fixed.length === 0) {
       yield errEvent('fix-loop', `Unfixable violations: ${violations.join(', ')}`); return
     }
@@ -296,9 +309,16 @@ function applyFixes(scriptPath: string, violations: string[]): string[] {
 
 function buildScript(d: ReasoningResult, _slug: string, docxName: string, masterDataJson: string): string {
   const master = JSON.parse(masterDataJson) as {
-    experience: Array<{ id: string; bullets: Record<string, string[]> }>
-    projects:   Array<{ id: string; bullets: string[] }>
-    skills:     Record<string, Record<string, string>>
+    contact?:   { name?: string; phone?: string; email?: string; linkedin?: string; portfolio?: string }
+    experience: Array<{
+      id: string; title?: string; company?: string; location?: string; dates?: string
+      bullets: Record<string, string[]>
+    }>
+    projects: Array<{
+      id: string; name?: string; url?: string; short_stack?: string; date?: string; dates?: string
+      bullets: string[]
+    }>
+    skills: Record<string, Record<string, string>>
   }
 
   const variantKey = bulletsKey(d.workVariant)
@@ -307,29 +327,66 @@ function buildScript(d: ReasoningResult, _slug: string, docxName: string, master
     const exp = master.experience.find(e => e.id === id)
     if (!exp) throw new Error(`Unknown work id: ${id}`)
     const bullets = exp.bullets[variantKey] ?? exp.bullets['genai'] ?? []
-    return { id, bullets: bullets.slice(0, 5) }
+    return {
+      id,
+      title:    exp.title,
+      company:  exp.company,
+      location: exp.location,
+      dates:    exp.dates,
+      bullets:  bullets.slice(0, 5),
+    }
   })
 
   const projectEntries = d.projects.map(id => {
     const proj = master.projects.find(p => p.id === id)
     if (!proj) throw new Error(`Unknown project id: ${id}`)
-    return { id, bullets: proj.bullets.slice(0, 3) }
+    return {
+      id,
+      name:    proj.name,
+      url:     proj.url,
+      stack:   proj.short_stack,
+      date:    proj.date ?? proj.dates,
+      bullets: proj.bullets.slice(0, 3),
+    }
   })
 
   const skillRows = d.skillsRows
+  const candidateName = master.contact?.name
+  const contact       = master.contact
 
   // validate.js requires unquoted JS object keys (not JSON) and T() wrappers on bullets
   const fmtWork = workEntries.map(w => {
     const bullets = w.bullets.map(b => `      T(${JSON.stringify(b)})`).join(',\n')
-    return `    {\n      id: ${JSON.stringify(w.id)},\n      bullets: [\n${bullets},\n      ],\n    }`
+    return [
+      `    {`,
+      `      id: ${JSON.stringify(w.id)},`,
+      w.title    ? `      title: ${JSON.stringify(w.title)},`    : null,
+      w.company  ? `      company: ${JSON.stringify(w.company)},`  : null,
+      w.location ? `      location: ${JSON.stringify(w.location)},` : null,
+      w.dates    ? `      dates: ${JSON.stringify(w.dates)},`    : null,
+      `      bullets: [\n${bullets},\n      ],`,
+      `    }`,
+    ].filter(Boolean).join('\n')
   }).join(',\n')
 
   const fmtProj = projectEntries.map(p => {
     const bullets = p.bullets.map(b => `      T(${JSON.stringify(b)})`).join(',\n')
-    return `    {\n      id: ${JSON.stringify(p.id)},\n      bullets: [\n${bullets},\n      ],\n    }`
+    return [
+      `    {`,
+      `      id: ${JSON.stringify(p.id)},`,
+      p.name  ? `      name: ${JSON.stringify(p.name)},`   : null,
+      p.url   ? `      url: ${JSON.stringify(p.url)},`     : null,
+      p.stack ? `      stack: ${JSON.stringify(p.stack)},` : null,
+      p.date  ? `      date: ${JSON.stringify(p.date)},`   : null,
+      `      bullets: [\n${bullets},\n      ],`,
+      `    }`,
+    ].filter(Boolean).join('\n')
   }).join(',\n')
 
   const fmtSkills = skillRows.map(s => `    ${JSON.stringify(s)}`).join(',\n')
+
+  const fmtContact = contact ? JSON.stringify(contact, null, 4).split('\n').map((l, i) => i === 0 ? `  contact: ${l}` : `  ${l}`).join('\n') : null
+  const fmtName    = candidateName ? `  name: ${JSON.stringify(candidateName)},` : null
 
   return `// Generated by ResumeLoop — ${new Date().toISOString()}
 const { makeDoc, TL, T } = require('../buildv2.js');
@@ -338,6 +395,7 @@ const fs = require('fs');
 const path = require('path');
 
 const doc = makeDoc({
+${[fmtName, fmtContact ? `${fmtContact},` : null].filter(Boolean).join('\n')}
   tagline: TL(${JSON.stringify(d.tagline)}),
   work: [
 ${fmtWork}

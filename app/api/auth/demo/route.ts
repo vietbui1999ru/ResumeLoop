@@ -8,7 +8,7 @@ import { headers } from 'next/headers'
 
 export async function POST() {
   const ip = (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
-  const rl = await checkRateLimitAsync(`auth:demo:${ip}`, 10, 60_000)
+  const rl = await checkRateLimitAsync(`auth:demo:${ip}`, 30, 60_000)
   if (!rl.success) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
   }

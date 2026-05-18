@@ -185,6 +185,7 @@ export default function ChatPage() {
             className={`text-sm pb-2 border-b-2 ${tab === 'chat' ? 'border-indigo-400 text-indigo-300' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
           >Chat</button>
           <button
+            data-tour="chat-github-import"
             onClick={() => setTab('import')}
             className={`text-sm pb-2 border-b-2 ${tab === 'import' ? 'border-indigo-400 text-indigo-300' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
           >Import from GitHub</button>

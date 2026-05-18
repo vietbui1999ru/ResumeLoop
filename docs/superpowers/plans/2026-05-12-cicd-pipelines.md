@@ -577,7 +577,7 @@ done
 
 # ── GitHub Actions OIDC role ──────────────────────────────────────────────────
 echo "Creating GitHub Actions OIDC role..."
-GITHUB_REPO="vietbui1999ru/ResumeAnalyze"
+GITHUB_REPO="${GITHUB_REPO:-YOUR_GITHUB_USERNAME/ResumeAnalyze}"
 
 TRUST_POLICY=$(cat <<EOF
 {

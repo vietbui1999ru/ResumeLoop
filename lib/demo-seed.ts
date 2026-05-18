@@ -680,11 +680,14 @@ BizFlow is an equal opportunity employer.
 ]
 
 async function deleteDemoUser(userId: string, db: Awaited<ReturnType<typeof getAdapter>>): Promise<void> {
-  await db.run(`DELETE FROM outreach_items             WHERE user_id = ?`, [userId])
-  await db.run(`DELETE FROM chat_messages              WHERE user_id = ?`, [userId])
-  await db.run(`DELETE FROM jd_outputs                 WHERE user_id = ?`, [userId])
-  await db.run(`DELETE FROM jd_metrics                 WHERE user_id = ?`, [userId])
-  await db.run(`DELETE FROM jd_jobs                    WHERE user_id = ?`, [userId])
+  await db.run(`DELETE FROM outreach_items WHERE user_id = ?`, [userId])
+  await db.run(`DELETE FROM chat_messages  WHERE user_id = ?`, [userId])
+  // Delete outputs both by user_id AND by job_id — pre-multi-user DBs may have
+  // user_id='default' on outputs that FK-reference jobs owned by this user.
+  await db.run(`DELETE FROM jd_outputs WHERE job_id IN (SELECT id FROM jd_jobs WHERE user_id = ?)`, [userId])
+  await db.run(`DELETE FROM jd_outputs WHERE user_id = ?`, [userId])
+  await db.run(`DELETE FROM jd_metrics WHERE user_id = ?`, [userId])
+  await db.run(`DELETE FROM jd_jobs    WHERE user_id = ?`, [userId])
   await db.run(`DELETE FROM resume_sessions            WHERE user_id = ?`, [userId])
   await db.run(`DELETE FROM resume_profiles            WHERE user_id = ?`, [userId])
   await db.run(`DELETE FROM user_settings              WHERE user_id = ?`, [userId])
@@ -698,8 +701,9 @@ async function deleteDemoUser(userId: string, db: Awaited<ReturnType<typeof getA
 export async function cleanupExpiredDemoUsers(): Promise<{ purged: number }> {
   const db     = await getAdapter()
   const cutoff = new Date(Date.now() - DEMO_TTL_MS).toISOString()
+  // Exclude the permanent static seed user ('demo-user') — it should never be purged.
   const expired = await db.query<{ id: string }>(
-    `SELECT id FROM users WHERE is_demo = 1 AND created_at < ?`,
+    `SELECT id FROM users WHERE is_demo = 1 AND id != 'demo-user' AND created_at < ?`,
     [cutoff],
   )
   for (const u of expired) await deleteDemoUser(u.id, db)
@@ -774,9 +778,9 @@ export async function seedDemoUser(userId: string): Promise<void> {
         's3:demo/AlexChen_Wefunder_Resume.pdf',
         'genai',
         'Full-Stack Engineer building product-first features with React and Python',
-        JSON.stringify(['MRR Dashboard', 'ObsidianTasks', 'CalAI']),
-        JSON.stringify(['startup', 'techcorp', 'research']),
-        `## Track\nGenAI / AI Engineer — strong keyword overlap on LLMs, agent tooling, and FastAPI.\n\n## Work Experience\nSelected genai variant across all three roles to emphasize Python, AI integration, and product delivery. Startup bullets highlight LLM pipeline work; TechCorp covers full-stack velocity.\n\n## Projects\nMRR Dashboard (FastAPI + React data product), ObsidianTasks (agent orchestrator with Claude API), CalAI (LangChain + Calendar API integration). Together they demonstrate end-to-end AI product delivery.\n\n## Tagline\n"Full-Stack Engineer building product-first features with React and Python" — scoped to Wefunder's stack signal (React, Python, data-driven product).\n\n## Skills\nLeading with Python · FastAPI · LangChain, followed by React · TypeScript · PostgreSQL, then Docker · GitHub Actions · AWS to match the infra signals in the JD.`,
+        JSON.stringify(['api_platform', 'llm_assistant', 'infra_dashboard']),
+        JSON.stringify(['startup', 'university', 'internship']),
+        `## Track\nGenAI / AI Engineer — strong keyword overlap on LLMs, agent tooling, and FastAPI.\n\n## Work Experience\nSelected genai variant across all three roles to emphasize Python, AI integration, and product delivery. Startup bullets highlight LLM pipeline work; Internship covers full-stack velocity.\n\n## Projects\nAPI Platform (FastAPI + React data product), LLM Code Assistant (LangChain + OpenAI agent pipeline), Homelab Infra Dashboard (self-managed infra with Prometheus/Grafana). Together they demonstrate end-to-end AI product delivery.\n\n## Tagline\n"Full-Stack Engineer building product-first features with React and Python" — scoped to Wefunder's stack signal (React, Python, data-driven product).\n\n## Skills\nLeading with Python · FastAPI · LangChain, followed by React · TypeScript · PostgreSQL, then Docker · GitHub Actions · AWS to match the infra signals in the JD.`,
         `Dear Wefunder Hiring Team,\n\nI'm excited to apply for the Full-Stack Engineer role at Wefunder. Your mission of democratizing startup investment aligns closely with my interest in building products that expand access to capital markets.\n\nIn my current role at Acme Startup, I built an LLM-powered analytics pipeline in Python and FastAPI that reduced reporting latency by 60% and served 200+ daily active investors. I also led a React dashboard migration that improved page load by 40%. These projects gave me direct experience with the data-intensive, product-first development culture I see in Wefunder's engineering blog.\n\nI'd love to bring this experience to Wefunder's platform team. Happy to discuss how my background fits your roadmap.\n\nBest,\nAlex Chen`,
         userId,
       ],
@@ -784,7 +788,7 @@ export async function seedDemoUser(userId: string): Promise<void> {
     await db.run(
       `UPDATE jd_jobs SET application_case = ? WHERE id = ? AND user_id = ?`,
       [
-        `## Company Overview\nWefunder is the leading equity crowdfunding platform, enabling retail investors to back early-stage startups. Raised $75M Series B in 2023. Engineering team of ~20, known for rapid product iteration.\n\n## Role Fit\n**Strengths**: FastAPI/React stack matches exactly. Prior LLM pipeline work maps to their data-science feature roadmap. Full-stack delivery cadence (2-week sprints) aligns with demonstrated velocity.\n**Watch-outs**: No prior fintech compliance experience — highlight audit-trail work in MRR Dashboard.\n\n## Outreach Angle\nReference their recent "Founder Stories" blog post series — shows genuine product empathy. Mention the dashboard migration case study as a concrete signal of product-first thinking.`,
+        `## Company Overview\nWefunder is the leading equity crowdfunding platform, enabling retail investors to back early-stage startups. Raised $75M Series B in 2023. Engineering team of ~20, known for rapid product iteration.\n\n## Role Fit\n**Strengths**: FastAPI/React stack matches exactly. Prior LLM pipeline work maps to their data-science feature roadmap. Full-stack delivery cadence (2-week sprints) aligns with demonstrated velocity.\n**Watch-outs**: No prior fintech compliance experience — highlight audit-trail work in API Platform.\n\n## Outreach Angle\nReference their recent "Founder Stories" blog post series — shows genuine product empathy. Mention the API Platform case study as a concrete signal of product-first thinking.`,
         jobId, userId,
       ],
     )
@@ -818,7 +822,7 @@ export async function seedDemoUser(userId: string): Promise<void> {
         'Staff Engineer',
         'Author of Coinbase engineering blog post on Go goroutine leak detection.',
         `Hi Marcus, your post on goroutine leak detection in Go was exactly what I needed this week — bookmarked it immediately. I'm applying for the Backend Engineer role on your team and would love to hear how you approach latency tradeoffs in the matching engine. Would a quick call work?`,
-        `Subject: Backend Engineer Application — Alex Chen\n\nHi Marcus,\n\nI'm applying for the Backend Engineer role on your Exchange Infrastructure team. Your recent post on goroutine leak detection resonated with a concurrency issue I debugged in EthSwitch — a Go Ethernet switch I built from scratch.\n\nI'd love to discuss how my distributed systems background maps to the matching engine challenges at Coinbase's scale.\n\nBest,\nAlex Chen | alex.chen@example.com`,
+        `Subject: Backend Engineer Application — Alex Chen\n\nHi Marcus,\n\nI'm applying for the Backend Engineer role on your Exchange Infrastructure team. Your recent post on goroutine leak detection resonated — I dealt with similar concurrency debugging building the API Platform's Go event bus handling 10k events/sec.\n\nI'd love to discuss how my distributed systems background maps to the matching engine challenges at Coinbase's scale.\n\nBest,\nAlex Chen | alex.chen@example.com`,
         'not_contacted',
       ],
     )
@@ -833,17 +837,17 @@ export async function seedDemoUser(userId: string): Promise<void> {
         's3:demo/AlexChen_Coinbase_Resume.pdf',
         'systems',
         'Backend Engineer building distributed ledger services with Go and PostgreSQL',
-        JSON.stringify(['EthSwitch', 'MRR Dashboard', 'Homelab']),
-        JSON.stringify(['startup', 'techcorp', 'research']),
-        `## Track\nBackend / API Engineer (systems variant) — Coinbase JD emphasizes Go, distributed systems, and financial data integrity.\n\n## Work Experience\nSystems variant surfaces Go experience, concurrency patterns, and infrastructure ownership. TechCorp bullets highlight SLA ownership and incident response cadence.\n\n## Projects\nEthSwitch (Go IEEE 802.3 networking, concurrency), MRR Dashboard (financial data integrity, Stripe API), Homelab (Proxmox + k8s self-hosted infra). Maps cleanly to Coinbase's backend scale story.\n\n## Tagline\nPositioned on distributed systems + financial data — the two pillars Coinbase engineering cares about most.\n\n## Skills\nGo · Python · PostgreSQL lead; Docker · Kubernetes · Terraform in second row to signal cloud-native maturity.`,
-        `Dear Coinbase Engineering Team,\n\nI'm writing to express my interest in the Backend Engineer role on the Exchange Infrastructure team. Coinbase's commitment to building financial infrastructure for the open economy aligns with my background in high-reliability distributed systems.\n\nMy most relevant project is EthSwitch — a Go-based Ethernet switch implementing IEEE 802.3 with full concurrency via goroutines and channels. I also operate a 3-node Proxmox homelab running Kubernetes, Prometheus, and Grafana, which gave me practical experience with the observability patterns your SRE team uses at scale.\n\nI'd welcome the opportunity to discuss how my systems background fits Coinbase's infrastructure roadmap.\n\nBest regards,\nAlex Chen`,
+        JSON.stringify(['infra_dashboard', 'api_platform', 'llm_assistant']),
+        JSON.stringify(['startup', 'university', 'internship']),
+        `## Track\nBackend / API Engineer (systems variant) — Coinbase JD emphasizes Go, distributed systems, and financial data integrity.\n\n## Work Experience\nSystems variant surfaces Go experience, concurrency patterns, and infrastructure ownership. Internship bullets highlight SLA ownership and incident response cadence.\n\n## Projects\nHomelab Infra Dashboard (Prometheus + k8s self-hosted cluster), API Platform (Go event bus, financial data integrity), LLM Code Assistant (real-time streaming API). Maps cleanly to Coinbase's backend scale story.\n\n## Tagline\nPositioned on distributed systems + financial data — the two pillars Coinbase engineering cares about most.\n\n## Skills\nGo · Python · PostgreSQL lead; Docker · Kubernetes · Terraform in second row to signal cloud-native maturity.`,
+        `Dear Coinbase Engineering Team,\n\nI'm writing to express my interest in the Backend Engineer role on the Exchange Infrastructure team. Coinbase's commitment to building financial infrastructure for the open economy aligns with my background in high-reliability distributed systems.\n\nMy most relevant project is the API Platform — a Go event bus handling 10k events/sec with <5ms p99 latency using goroutines and channels. I also operate a 3-node Proxmox homelab running Kubernetes, Prometheus, and Grafana, which gave me practical experience with the observability patterns your SRE team uses at scale.\n\nI'd welcome the opportunity to discuss how my systems background fits Coinbase's infrastructure roadmap.\n\nBest regards,\nAlex Chen`,
         userId,
       ],
     )
     await db.run(
       `UPDATE jd_jobs SET application_case = ? WHERE id = ? AND user_id = ?`,
       [
-        `## Company Overview\nCoinbase is the leading US crypto exchange (~$200B+ annual volume). Engineering org of ~1,000. Backend team owns the exchange matching engine, custody APIs, and financial reporting pipeline.\n\n## Role Fit\n**Strengths**: Go experience via EthSwitch; financial data integrity demonstrated in MRR Dashboard (Stripe reconciliation). Homelab infra maps to their k8s-heavy backend.\n**Watch-outs**: No prior crypto/blockchain domain experience — frame as "financial systems" angle instead.\n\n## Outreach Angle\nCoinbase engineers blog heavily on reliability and incident culture. Reference a specific post — shows genuine engineering curiosity beyond the crypto hype.`,
+        `## Company Overview\nCoinbase is the leading US crypto exchange (~$200B+ annual volume). Engineering org of ~1,000. Backend team owns the exchange matching engine, custody APIs, and financial reporting pipeline.\n\n## Role Fit\n**Strengths**: Go experience in Startup role (10k events/sec event bus); financial data integrity demonstrated in API Platform. Homelab infra maps to their k8s-heavy backend.\n**Watch-outs**: No prior crypto/blockchain domain experience — frame as "financial systems" angle instead.\n\n## Outreach Angle\nCoinbase engineers blog heavily on reliability and incident culture. Reference a specific post — shows genuine engineering curiosity beyond the crypto hype.`,
         jobId, userId,
       ],
     )
@@ -862,7 +866,7 @@ export async function seedDemoUser(userId: string): Promise<void> {
         'ML Platform Lead',
         'Co-authored Crusoe whitepaper on flare gas → GPU compute pipeline.',
         `Hi Anya, I read the Crusoe whitepaper on flare gas utilization for GPU compute — the infrastructure architecture section was fascinating. I'm applying for the ML Engineer role and would love to hear how your team manages memory bandwidth constraints at cluster scale. Quick chat this week?`,
-        `Subject: ML Engineer Application — Alex Chen\n\nHi Anya,\n\nI'm applying for the ML Engineer role at Crusoe. Your work on sustainable GPU infrastructure genuinely excites me — I built an edge inference pipeline on NVIDIA Jetson with CUDA/PyTorch and learned firsthand how memory bandwidth is the binding constraint for real-time ML.\n\nI'd love to discuss how that experience maps to Crusoe's cluster orchestration challenges.\n\nBest,\nAlex Chen | alex.chen@example.com`,
+        `Subject: ML Engineer Application — Alex Chen\n\nHi Anya,\n\nI'm applying for the ML Engineer role at Crusoe. Your work on sustainable GPU infrastructure genuinely excites me — I built a Core ML rep-counting model for my iOS Fitness Tracker that runs fully on-device, which gave me hands-on experience with the memory bandwidth constraints of real-time inference.\n\nI'd love to discuss how that experience maps to Crusoe's cluster orchestration challenges.\n\nBest,\nAlex Chen | alex.chen@example.com`,
         'not_contacted',
       ],
     )
@@ -877,17 +881,17 @@ export async function seedDemoUser(userId: string): Promise<void> {
         's3:demo/AlexChen_Crusoe_Resume.pdf',
         'genai',
         'ML Engineer deploying GPU-accelerated workloads on cloud infrastructure',
-        JSON.stringify(['Jetson', 'maze_drl', 'MRR Dashboard']),
-        JSON.stringify(['startup', 'research', 'techcorp']),
-        `## Track\nML Engineer — Crusoe builds climate-friendly cloud GPU infrastructure for AI training.\n\n## Work Experience\nGenAI variant emphasizes Python, PyTorch, CUDA experience. Research role bullets highlight GPU kernel work and ML training pipelines.\n\n## Projects\nJetson (NVIDIA CUDA + MIPI edge inference), maze_drl (PyTorch DQN training), MRR Dashboard (data pipeline). Demonstrates end-to-end ML from training to edge deployment.\n\n## Tagline\n"ML Engineer deploying GPU-accelerated workloads" — maps to Crusoe's core value proposition of sustainable GPU compute.\n\n## Skills\nPython · PyTorch · CUDA lead; FastAPI · Docker · GitHub Actions second row; Prometheus · Grafana for MLOps observability.`,
-        `Dear Crusoe Energy Team,\n\nI'm applying for the ML Engineer role at Crusoe. Your mission of repurposing stranded energy for sustainable compute resonates deeply — I've followed your work on flare gas utilization since your Series B announcement.\n\nMy NVIDIA Jetson project is directly relevant: I built a real-time inference pipeline using CUDA and PyTorch that processed MIPI CSI-2 camera streams at 30fps on edge hardware. This gave me hands-on experience with the GPU memory management and kernel optimization challenges your team faces at datacenter scale.\n\nI'd love to discuss how my ML infrastructure background aligns with Crusoe's compute platform roadmap.\n\nBest,\nAlex Chen`,
+        JSON.stringify(['mobile_app', 'llm_assistant', 'api_platform']),
+        JSON.stringify(['startup', 'university', 'internship']),
+        `## Track\nML Engineer — Crusoe builds climate-friendly cloud GPU infrastructure for AI training.\n\n## Work Experience\nGenAI variant emphasizes Python, PyTorch experience. University research bullets highlight ML training pipelines and model evaluation.\n\n## Projects\niOS Fitness Tracker (Core ML on-device inference, accelerometer model), LLM Code Assistant (PyTorch-adjacent: embedding models, RAG pipeline), API Platform (data pipeline, model serving). Demonstrates end-to-end ML from training to deployment.\n\n## Tagline\n"ML Engineer deploying GPU-accelerated workloads" — maps to Crusoe's core value proposition of sustainable GPU compute.\n\n## Skills\nPython · PyTorch · CUDA lead; FastAPI · Docker · GitHub Actions second row; Prometheus · Grafana for MLOps observability.`,
+        `Dear Crusoe Energy Team,\n\nI'm applying for the ML Engineer role at Crusoe. Your mission of repurposing stranded energy for sustainable compute resonates deeply — I've followed your work on flare gas utilization since your Series B announcement.\n\nMy most relevant project is the iOS Fitness Tracker: I trained a Core ML model for rep counting from accelerometer data, which required me to reason about memory bandwidth and on-device inference tradeoffs directly. The University research role adds PyTorch DQN training and CUDA kernel work on NVIDIA hardware.\n\nI'd love to discuss how my ML background aligns with Crusoe's compute platform roadmap.\n\nBest,\nAlex Chen`,
         userId,
       ],
     )
     await db.run(
       `UPDATE jd_jobs SET application_case = ? WHERE id = ? AND user_id = ?`,
       [
-        `## Company Overview\nCrusoe Energy repurposes otherwise-wasted energy (flare gas, excess renewable) to power GPU compute clusters for AI training. Series C ($500M), 200+ employees. Engineering team owns the cluster orchestration, GPU scheduling, and customer-facing MLOps tooling.\n\n## Role Fit\n**Strengths**: CUDA/PyTorch hands-on experience; Homelab k8s background maps to cluster ops; edge inference experience is differentiating.\n**Watch-outs**: No prior cloud provider experience at scale — emphasize adaptability and infra-from-scratch mindset.\n\n## Outreach Angle\nCrusoe's CTO posts on sustainable AI infrastructure. Reference the flare gas → compute whitepaper — shows you understand the business thesis, not just the tech stack.`,
+        `## Company Overview\nCrusoe Energy repurposes otherwise-wasted energy (flare gas, excess renewable) to power GPU compute clusters for AI training. Series C ($500M), 200+ employees. Engineering team owns the cluster orchestration, GPU scheduling, and customer-facing MLOps tooling.\n\n## Role Fit\n**Strengths**: PyTorch + Core ML hands-on experience; Homelab Infra Dashboard k8s background maps to cluster ops; on-device inference experience is differentiating.\n**Watch-outs**: No prior cloud provider experience at scale — emphasize adaptability and infra-from-scratch mindset.\n\n## Outreach Angle\nCrusoe's CTO posts on sustainable AI infrastructure. Reference the flare gas → compute whitepaper — shows you understand the business thesis, not just the tech stack.`,
         jobId, userId,
       ],
     )

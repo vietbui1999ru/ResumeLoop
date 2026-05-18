@@ -9,8 +9,8 @@ vi.mock('./ai-usage',       () => ({ logAiUsage: vi.fn().mockResolvedValue(undef
 const GOOD_INPUT = {
   track:        'systems',
   workVariant:  'systems',
-  workIds:      ['gitlab', 'carboncopies', 'udayton'],
-  projects:     ['homelab', 'eth_switch', 'claude_tui'],
+  workIds:      ['startup', 'university', 'internship'],
+  projects:     ['api_platform', 'llm_assistant', 'infra_dashboard'],
   personaTitle: 'Software Engineer — distributed systems',
   tagline:      'Software Engineer building distributed systems with Go',
   skillsRows:   ['Go · Python · Rust', 'React · FastAPI', 'Docker · k8s', 'PostgreSQL · SQLite', 'Prometheus · Grafana'],
@@ -33,19 +33,19 @@ describe('validateResult', () => {
     expect(() => validateResult({ ...GOOD_INPUT })).not.toThrow()
   })
 
-  it('throws if workIds length !== 3', async () => {
+  it('throws if workIds is empty', async () => {
     const { validateResult } = await import('./ai-reason')
-    expect(() => validateResult({ ...GOOD_INPUT, workIds: ['only-one'] })).toThrow('workIds')
+    expect(() => validateResult({ ...GOOD_INPUT, workIds: [] })).toThrow('workIds')
   })
 
-  it('throws if projects length !== 3', async () => {
+  it('throws if projects is empty', async () => {
     const { validateResult } = await import('./ai-reason')
-    expect(() => validateResult({ ...GOOD_INPUT, projects: ['a', 'b'] })).toThrow('projects')
+    expect(() => validateResult({ ...GOOD_INPUT, projects: [] })).toThrow('projects')
   })
 
-  it('throws if skillsRows length !== 5', async () => {
+  it('throws if skillsRows is empty', async () => {
     const { validateResult } = await import('./ai-reason')
-    expect(() => validateResult({ ...GOOD_INPUT, skillsRows: ['Go'] })).toThrow('skillsRows')
+    expect(() => validateResult({ ...GOOD_INPUT, skillsRows: [] })).toThrow('skillsRows')
   })
 
   it('throws if tagline is missing', async () => {

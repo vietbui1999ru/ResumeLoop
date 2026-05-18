@@ -83,6 +83,11 @@ export const TOUR_STEPS: TourStepDef[] = [
     title: 'Chat',
     body: 'Refine your resume with Claude. Ask it to emphasize skills, swap bullets, or tailor to a specific JD.',
   },
+  {
+    id: 'chat-github-import', page: '/chat', target: 'chat-github-import',
+    title: 'Import from GitHub',
+    body: 'Paste a GitHub repo URL to auto-generate a project entry — AI extracts the stack, writes 3-5 achievement bullets, and adds it to your master resume data.',
+  },
   // Config
   {
     id: 'config-intro', page: '/config', target: null,

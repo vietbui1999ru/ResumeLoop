@@ -3,8 +3,8 @@ import { parseGithubUrl, validateBullets } from './github-ingest'
 
 describe('parseGithubUrl', () => {
   it('parses owner and repo from HTTPS URL', () => {
-    const result = parseGithubUrl('https://github.com/vietbui1999ru/HomeBoard')
-    expect(result).toEqual({ owner: 'vietbui1999ru', repo: 'HomeBoard' })
+    const result = parseGithubUrl('https://github.com/example-user/example-repo')
+    expect(result).toEqual({ owner: 'example-user', repo: 'example-repo' })
   })
 
   it('strips .git suffix', () => {

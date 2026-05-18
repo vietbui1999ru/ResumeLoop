@@ -74,17 +74,24 @@ async function testKey(provider: Provider, apiKey: string, model: string, baseUr
     // to a user-controlled base URL (SSRF key-harvesting mitigation)
     const keyToTest = provider === 'ollama' ? 'ollama' : apiKey
     const testModel = buildModel(provider, keyToTest, model, baseUrl)
-    await generateText({ model: testModel, maxOutputTokens: 1, messages: [{ role: 'user', content: '.' }] })
+    // Thinking models consume thinking tokens within maxOutputTokens, so maxOutputTokens:1
+    // always fails. Use 200 for Google (Gemini 2.5) and Anthropic (Opus 4.7 with extended thinking).
+    const needsThinkingBudget = provider === 'google' ||
+      (provider === 'anthropic' && model.includes('opus'))
+    const maxOutputTokens = needsThinkingBudget ? 200 : 1
+    await generateText({ model: testModel, maxOutputTokens, messages: [{ role: 'user', content: '.' }] })
     return null
   } catch (e) {
-    const msg = String(e)
-    if (msg.includes('401') || msg.includes('auth') || msg.includes('invalid') || msg.includes('Unauthorized'))
+    const raw = String(e)
+    const msg = raw.toLowerCase()
+    console.error(`[settings/ai] testKey provider=${provider} model=${model} error: ${raw.slice(0, 500)}`)
+    if (msg.includes('401') || msg.includes('unauthorized') || msg.includes('invalid api key') || msg.includes('invalid_api_key'))
       return 'API key rejected — check the key and try again'
-    if (msg.includes('404') || msg.includes('model') || msg.includes('not found'))
+    if (msg.includes('404') || (msg.includes('not found') && msg.includes('model')))
       return 'Model not found for this provider — check the model name'
-    if (msg.includes('ECONNREFUSED') || msg.includes('fetch failed'))
+    if (msg.includes('econnrefused') || msg.includes('fetch failed'))
       return 'Could not connect to provider — check the URL and that the service is running'
-    return 'Provider test failed — check key and model name'
+    return `Provider test failed — ${raw.slice(0, 120)}`
   }
 }
 
@@ -163,8 +170,13 @@ export async function POST(req: Request) {
   if (fmtErr) return NextResponse.json({ error: fmtErr }, { status: 400 })
 
   // Live test (uses sanitized inputs only)
+  console.info(`[settings/ai] testing provider=${provider} model=${rawModel}`)
   const testErr = await testKey(provider, rawKey, rawModel, safeUrl)
-  if (testErr) return NextResponse.json({ error: testErr }, { status: 400 })
+  if (testErr) {
+    console.warn(`[settings/ai] testKey failed provider=${provider} model=${rawModel}: ${testErr}`)
+    return NextResponse.json({ error: testErr }, { status: 400 })
+  }
+  console.info(`[settings/ai] testKey ok provider=${provider} model=${rawModel}`)
 
   try {
     await setProviderConfig(USER_ID, provider, rawKey, rawModel, safeUrl)

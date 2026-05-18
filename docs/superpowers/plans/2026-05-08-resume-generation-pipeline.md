@@ -202,7 +202,7 @@ The system prompt assembler reads 4 sources: master data JSON, CLAUDE-full.md, a
     const claudeFull    = fs.readFileSync(PATHS.docs.claudeFull, 'utf8')
     const feedback      = loadFeedbackContext()
 
-    return `You are a resume tailoring expert for candidate Quoc-Viet Bui.
+    return `You are a resume tailoring expert for the candidate.
   Use the tool \`resume_decision\` to return your selections. Do not output anything else.
 
   ## Candidate Profile & All Bullet Data
