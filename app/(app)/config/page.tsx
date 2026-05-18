@@ -29,7 +29,6 @@ function BulletsPreview({ json, onJump }: { json: string; onJump?: (path: string
   let parsed: {
     experience?: Array<{ id: string; bullets: Record<string, string[]> }>
     projects?:   Array<{ id: string; name?: string; bullets: string[] }>
-    skills?:     string[]
   } | null = null
 
   try { parsed = JSON.parse(json) } catch { /* ignore parse errors */ }
@@ -44,12 +43,33 @@ function BulletsPreview({ json, onJump }: { json: string; onJump?: (path: string
 
   const experience = parsed.experience ?? []
   const projects   = parsed.projects ?? []
-  // skills can be string[] (legacy) or Record<string, string> (current format)
-  const rawSkills  = parsed.skills ?? []
-  const skills: string[] = Array.isArray(rawSkills)
-    ? rawSkills as string[]
-    : Object.values(rawSkills as Record<string, string>)
-  const allEmpty   = experience.length === 0 && projects.length === 0 && skills.length === 0
+
+  // skills structure: string[] | Record<string,string> | Record<string, Record<string,string>>
+  const rawSkills = (parsed as Record<string, unknown>).skills ?? []
+  type SkillRow = { variant?: string; label: string; value: string }
+  const skillRows: SkillRow[] = (() => {
+    if (Array.isArray(rawSkills)) {
+      return (rawSkills as unknown[]).map((v, i) =>
+        typeof v === 'string'
+          ? { label: `row ${i}`, value: v }
+          : { label: `row ${i}`, value: JSON.stringify(v) }
+      )
+    }
+    if (typeof rawSkills !== 'object' || rawSkills === null) return []
+    const rows: SkillRow[] = []
+    for (const [k, v] of Object.entries(rawSkills as Record<string, unknown>)) {
+      if (typeof v === 'string') {
+        rows.push({ label: k, value: v })
+      } else if (typeof v === 'object' && v !== null) {
+        for (const [cat, val] of Object.entries(v as Record<string, unknown>)) {
+          rows.push({ variant: k, label: cat, value: typeof val === 'string' ? val : JSON.stringify(val) })
+        }
+      }
+    }
+    return rows
+  })()
+
+  const allEmpty = experience.length === 0 && projects.length === 0 && skillRows.length === 0
 
   if (allEmpty) {
     return (
@@ -128,18 +148,20 @@ function BulletsPreview({ json, onJump }: { json: string; onJump?: (path: string
         </section>
       )}
 
-      {skills.length > 0 && (
+      {skillRows.length > 0 && (
         <section>
           <p className="text-zinc-500 uppercase tracking-widest text-2xs mb-2">Skills</p>
-          {(skills as string[]).map((row, si) => (
+          {skillRows.map((row, si) => (
             <div
               key={si}
-              className={`flex items-start gap-2 border-l-2 pl-2 py-0.5 mb-0.5 cursor-pointer hover:opacity-80 ${charColor(row.length)}`}
-              onClick={() => onJump?.(`/skills/${si}`)}
-              title="Jump to JSON"
+              className={`flex items-start gap-2 border-l-2 pl-2 py-0.5 mb-0.5 ${charColor(row.value.length)}`}
             >
-              <span className="flex-1 leading-relaxed">{row}</span>
-              <span className="shrink-0 text-zinc-400 text-2xs">{row.length}</span>
+              <span className="flex-1 leading-relaxed">
+                {row.variant && <span className="text-zinc-500 mr-1">[{row.variant}]</span>}
+                <span className="text-zinc-400 mr-1">{row.label}:</span>
+                {row.value}
+              </span>
+              <span className="shrink-0 text-zinc-400 text-2xs">{row.value.length}</span>
             </div>
           ))}
         </section>

@@ -159,9 +159,9 @@ export default function JobsPage() {
     if (tagFilter)               p.set('tag',      tagFilter)
     if (fromDate)                p.set('fromDate', fromDate)
     fetch(`/api/jobs?${p}`, { signal: ctrl.signal })
-      .then(r => r.ok ? r.json() : [])
-      .then(d => { setJobs(d); setInitialLoading(false) })
-      .catch(e => { if (e.name !== 'AbortError') setInitialLoading(false) })
+      .then(r => { console.log('[Jobs] /api/jobs status', r.status); return r.ok ? r.json() : [] })
+      .then(d => { console.log('[Jobs] fetched', Array.isArray(d) ? d.length : d, 'jobs'); setJobs(d); setInitialLoading(false) })
+      .catch(e => { if (e.name !== 'AbortError') { console.error('[Jobs] fetch error', e); setInitialLoading(false) } })
   }, [debouncedQ, showHidden, fitMin, trackFilter, visaFilter, actionFilter, tagFilter, fromDate])
 
   useEffect(() => {

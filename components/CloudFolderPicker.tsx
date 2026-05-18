@@ -36,6 +36,7 @@ export function CloudFolderPicker({ handleKey, label, hint, onSelect }: Props) {
   }, [handleKey, supported]) // intentionally omit onSelect — stable callback
 
   const selectFolder = useCallback(async () => {
+    console.log('[CloudFolderPicker] selectFolder called, key:', handleKey, 'showDirectoryPicker available:', 'showDirectoryPicker' in window)
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const handle = await (window as any).showDirectoryPicker({ id: handleKey, mode: 'read' }) as FileSystemDirectoryHandle
@@ -44,7 +45,8 @@ export function CloudFolderPicker({ handleKey, label, hint, onSelect }: Props) {
       setPerm('granted')
       onSelect(handle.name)
     } catch (e) {
-      if ((e as Error).name !== 'AbortError') console.error('[CloudFolderPicker] picker error', e)
+      const err = e as Error
+      console.error('[CloudFolderPicker] picker error:', err.name, err.message, err)
     }
   }, [handleKey, onSelect])
 

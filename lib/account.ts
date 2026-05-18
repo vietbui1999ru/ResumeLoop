@@ -49,9 +49,9 @@ export async function createUser(email: string, password: string): Promise<strin
   const id   = randomUUID()
   const hash = await bcrypt.hash(password, 12)
   const db   = await getAdapter()
-  // Cloud mode requires email verification before login. Self-hosted has no email system,
-  // so auto-verify immediately to avoid permanent lockout after signup.
-  const emailVerified = isCloud() ? 0 : 1
+  // Only gate on email verification if Resend is actually configured.
+  // Without RESEND_API_KEY the verification email is silently dropped, permanently locking users out.
+  const emailVerified = (isCloud() && !!process.env.RESEND_API_KEY) ? 0 : 1
   await db.run(
     `INSERT INTO users (id, email, password, email_verified) VALUES (?, ?, ?, ?)`,
     [id, email.toLowerCase().trim(), hash, emailVerified],
