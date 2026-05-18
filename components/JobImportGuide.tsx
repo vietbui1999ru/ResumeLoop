@@ -99,21 +99,30 @@ export function JobImportGuide({ onClose }: { onClose: () => void }) {
             </div>
           </Step>
 
-          <Step n={2} title="Download the ResumeLoop JD template">
+          <Step n={2} title="Download the templates">
             <p className="text-xs text-zinc-300 leading-relaxed">
-              This template instructs the clipper to extract company name, role title, job description,
-              and source URL — tagged in the exact format ResumeLoop&apos;s scanner expects.
+              Two templates — one for job listings, one for LinkedIn profiles (used as outreach
+              contacts). Each tells the clipper exactly what to extract.
             </p>
-            <a
-              href="/jd-clipper-template.md"
-              download="jd-clipper-template.md"
-              className="inline-flex items-center gap-1.5 mt-3 text-xs px-3 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white font-medium transition-colors"
-            >
-              ↓ Download template
-            </a>
+            <div className="flex flex-col gap-2 mt-3">
+              <a
+                href="/jd-clipper-template.md"
+                download="jd-clipper-template.md"
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white font-medium transition-colors w-fit"
+              >
+                ↓ Job listing template
+              </a>
+              <a
+                href="/obsidian-linkedin-outreach-template.md"
+                download="obsidian-linkedin-outreach-template.md"
+                className="inline-flex items-center gap-1.5 text-xs px-3 py-2 bg-zinc-700 hover:bg-zinc-600 border border-zinc-600 rounded-lg text-zinc-200 font-medium transition-colors w-fit"
+              >
+                ↓ LinkedIn contact template
+              </a>
+            </div>
           </Step>
 
-          <Step n={3} title="Import template into Web Clipper">
+          <Step n={3} title="Import templates into Web Clipper">
             <ol className="text-xs text-zinc-300 leading-relaxed space-y-2 list-decimal list-inside">
               <li>Click the Web Clipper icon in your browser toolbar</li>
               <li>
@@ -121,18 +130,18 @@ export function JobImportGuide({ onClose }: { onClose: () => void }) {
               </li>
               <li>
                 Go to <strong className="text-zinc-100">Templates</strong> → click{' '}
-                <strong className="text-zinc-100">Import</strong>
+                <strong className="text-zinc-100">Import</strong> — import both files
               </li>
               <li>
-                Select the{' '}
+                The <strong className="text-zinc-100">Job listing</strong> template auto-triggers on
+                job board URLs (Greenhouse, Ashby, LinkedIn Jobs, and more)
+              </li>
+              <li>
+                The <strong className="text-zinc-100">LinkedIn contact</strong> template triggers on{' '}
                 <code className="text-indigo-300 bg-indigo-950/40 px-1 rounded text-2xs">
-                  jd-clipper-template.md
+                  linkedin.com/in/
                 </code>{' '}
-                file you just downloaded
-              </li>
-              <li>
-                Choose <strong className="text-zinc-100">ResumeLoop JD</strong> as your default
-                template for job pages
+                profile pages — clip people you want to reach out to
               </li>
             </ol>
           </Step>
