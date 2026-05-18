@@ -312,8 +312,8 @@ export default function JobsPage() {
             if (perm !== 'granted') {
               const ok = await requestPermission(handle)
               if (!ok) {
-                uploadRef.current?.click()
                 setScanStatus('Folder permission denied — select .md files to upload.')
+                uploadRef.current?.click()
                 return
               }
             }
@@ -331,8 +331,8 @@ export default function JobsPage() {
           }
         }
 
-        uploadRef.current?.click()
         setScanStatus('Select one or more .md files to upload.')
+        uploadRef.current?.click()
       } catch (e) {
         setScanStatus(`✗ ${(e as Error).message}`)
         setTimeout(() => setScanStatus(''), 4000)
@@ -484,7 +484,7 @@ export default function JobsPage() {
             <p className="text-zinc-400 text-sm">No jobs yet.</p>
             <p className="text-zinc-500 text-xs leading-relaxed">
               Click <strong className="text-zinc-300">Scan</strong> to upload one or more <code>.md</code> files.
-              In Chrome/Edge, you can optionally connect a Jobs folder in <strong className="text-zinc-300">Settings</strong>.
+              In Chrome/Edge, you can optionally connect a Jobs folder in <strong className="text-zinc-300">Settings</strong> for repeat scans without re-uploading.
             </p>
           </div>
         </div>

@@ -36,4 +36,12 @@ describe('readUploadedMdFiles', () => {
     const result = await readUploadedMdFiles(toFileList([file]))
     expect(result.files[0]?.name).toBe('jobs/fallback.md')
   })
+
+  it('falls back to file.name when webkitRelativePath is blank', async () => {
+    const file = new File(['body'], 'fallback.md', { type: 'text/markdown' })
+    Object.defineProperty(file, 'webkitRelativePath', { value: '   ' })
+
+    const result = await readUploadedMdFiles(toFileList([file]))
+    expect(result.files[0]?.name).toBe('fallback.md')
+  })
 })
