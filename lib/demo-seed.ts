@@ -932,8 +932,12 @@ export async function getOrCreateDemoUserForIp(
     [ipHash, cutoff],
   )
   if (existing) {
-    const password = await decrypt(existing.demo_cleartext_pwd)
-    return { email: existing.email, password }
+    try {
+      const password = await decrypt(existing.demo_cleartext_pwd)
+      return { email: existing.email, password }
+    } catch {
+      // Old plaintext format (pre-encryption migration) — fall through to delete + recreate
+    }
   }
 
   const stale = await db.queryOne<{ id: string }>(
