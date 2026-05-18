@@ -4,7 +4,11 @@ import './globals.css'
 import { Providers } from './providers'
 import { buildFontInitScript } from '@/lib/font-size'
 
-const inter = Inter({ subsets: ['latin'] })
+// display: 'swap' is set explicitly so Next.js emits a matching preload hint.
+// Without it, Next.js 14 preloads a size-adjusted fallback variant (.s.p.woff2)
+// that the browser never uses because the actual font is loaded differently,
+// producing "preloaded with link preload was not used within a few seconds".
+const inter = Inter({ subsets: ['latin'], display: 'swap' })
 
 export const metadata: Metadata = {
   title: 'ResumeLoop',

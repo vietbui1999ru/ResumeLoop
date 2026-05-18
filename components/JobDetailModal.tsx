@@ -213,6 +213,15 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) 
     return () => window.removeEventListener('keydown', handler)
   }, [onClose])
 
+  // Lock body scroll while the modal is open so the page cannot scroll behind
+  // the overlay. Without this, the page position shifts when the modal opens,
+  // causing the modal (position: fixed; inset: 0) to appear pushed down.
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [])
+
   // DnD sensors
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 

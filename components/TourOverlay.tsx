@@ -16,8 +16,16 @@ function useTargetRect(target: string | null, active: boolean): Rect | null {
     const attempt = () => {
       const el = document.querySelector(`[data-tour="${target}"]`)
       if (el) {
-        const r = el.getBoundingClientRect()
-        setRect({ top: r.top, left: r.left, width: r.width, height: r.height })
+        // Scroll the target into view first so getBoundingClientRect() returns
+        // an in-viewport position. Without this, elements below the fold have
+        // rect.top > window.innerHeight, pushing the bubble off-screen bottom.
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        // Wait for scroll to settle before measuring, so the bubble is positioned
+        // correctly on the first render rather than jumping after re-adjustment.
+        timerRef.current = setTimeout(() => {
+          const r = el.getBoundingClientRect()
+          setRect({ top: r.top, left: r.left, width: r.width, height: r.height })
+        }, 300)
       } else if (tries++ < 15) {
         timerRef.current = setTimeout(attempt, 150)
       } else {
