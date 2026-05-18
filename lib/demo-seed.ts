@@ -679,30 +679,38 @@ BizFlow is an equal opportunity employer.
   },
 ]
 
-export async function seedDemoUser(userId: string): Promise<void> {
-  const db = await getAdapter()
+async function deleteDemoUser(userId: string, db: Awaited<ReturnType<typeof getAdapter>>): Promise<void> {
+  await db.run(`DELETE FROM outreach_items             WHERE user_id = ?`, [userId])
+  await db.run(`DELETE FROM chat_messages              WHERE user_id = ?`, [userId])
+  await db.run(`DELETE FROM jd_outputs                 WHERE user_id = ?`, [userId])
+  await db.run(`DELETE FROM jd_metrics                 WHERE user_id = ?`, [userId])
+  await db.run(`DELETE FROM jd_jobs                    WHERE user_id = ?`, [userId])
+  await db.run(`DELETE FROM resume_sessions            WHERE user_id = ?`, [userId])
+  await db.run(`DELETE FROM resume_profiles            WHERE user_id = ?`, [userId])
+  await db.run(`DELETE FROM user_settings              WHERE user_id = ?`, [userId])
+  await db.run(`DELETE FROM ai_usage_log               WHERE user_id = ?`, [userId])
+  await db.run(`DELETE FROM password_reset_tokens      WHERE user_id = ?`, [userId])
+  await db.run(`DELETE FROM email_verification_tokens  WHERE user_id = ?`, [userId])
+  await db.run(`DELETE FROM oauth_accounts             WHERE user_id = ?`, [userId])
+  await db.run(`DELETE FROM users                      WHERE id      = ?`, [userId])
+}
 
-  // Lazy cleanup — delete demo users whose 12h window has expired
+export async function cleanupExpiredDemoUsers(): Promise<{ purged: number }> {
+  const db     = await getAdapter()
   const cutoff = new Date(Date.now() - DEMO_TTL_MS).toISOString()
   const expired = await db.query<{ id: string }>(
     `SELECT id FROM users WHERE is_demo = 1 AND created_at < ?`,
     [cutoff],
   )
-  for (const u of expired) {
-    await db.run(`DELETE FROM outreach_items             WHERE user_id = ?`, [u.id])
-    await db.run(`DELETE FROM chat_messages              WHERE user_id = ?`, [u.id])
-    await db.run(`DELETE FROM jd_outputs                 WHERE user_id = ?`, [u.id])
-    await db.run(`DELETE FROM jd_metrics                 WHERE user_id = ?`, [u.id])
-    await db.run(`DELETE FROM jd_jobs                    WHERE user_id = ?`, [u.id])
-    await db.run(`DELETE FROM resume_sessions            WHERE user_id = ?`, [u.id])
-    await db.run(`DELETE FROM resume_profiles            WHERE user_id = ?`, [u.id])
-    await db.run(`DELETE FROM user_settings              WHERE user_id = ?`, [u.id])
-    await db.run(`DELETE FROM ai_usage_log               WHERE user_id = ?`, [u.id])
-    await db.run(`DELETE FROM password_reset_tokens      WHERE user_id = ?`, [u.id])
-    await db.run(`DELETE FROM email_verification_tokens  WHERE user_id = ?`, [u.id])
-    await db.run(`DELETE FROM oauth_accounts             WHERE user_id = ?`, [u.id])
-    await db.run(`DELETE FROM users                      WHERE id      = ?`, [u.id])
-  }
+  for (const u of expired) await deleteDemoUser(u.id, db)
+  return { purged: expired.length }
+}
+
+export async function seedDemoUser(userId: string): Promise<void> {
+  const db = await getAdapter()
+
+  // Lazy cleanup as a safety net — the cron route is the primary cleanup path
+  await cleanupExpiredDemoUsers()
 
   // Seed profile
   const profileId = randomUUID()
