@@ -6,6 +6,7 @@ import { reasonForJob, type ReasoningResult } from './ai-reason'
 import { getAdapter } from './db-adapter'
 import { getSetting } from './settings'
 import { PATHS } from './paths'
+import { parseCandidateInfo } from './candidate-info'
 import { GenerationLogger } from './generation-logger'
 import { ensureDefaultSession, getSession } from './sessions'
 import { saveOutput } from './storage'
@@ -76,17 +77,23 @@ export async function* runPipeline(jobId: string, sessionId = 'default', userId 
   if (signal?.aborted) { yield emit(errEvent('write-script', 'Aborted')); logger.finish('failed'); return }
   yield emit({ stage: 'write-script', status: 'running', data: {} })
   const slug = toSlug(`${job.company}_${job.role_title}`)
-  const scriptName = `${slug}.js`
-  const scriptPath = path.join(jobBuildDir, scriptName)
-  const docxName   = `${slug}_VietBui.docx`
 
-  // Resolve master data: active profile > session.data > disk fallback
+  // Resolve master data for the build script.
+  // Priority: disk file (always current) > active profile > session.data.
+  // Disk file takes precedence because profiles in DB can be stale when the
+  // pipeline JSON is updated — the AI schema already enforces the current work IDs.
   let masterDataJson = session.data
   const activeProfile = await db.queryOne<{ data: string }>(
     'SELECT data FROM resume_profiles WHERE user_id = ? AND is_active = 1 LIMIT 1',
     [userId],
   )
   if (activeProfile?.data) masterDataJson = activeProfile.data
+  try { masterDataJson = fs.readFileSync(PATHS.pipeline.masterData, 'utf8') } catch { /* cloud or file absent — use profile */ }
+
+  const scriptName = `${slug}.js`
+  const scriptPath = path.join(jobBuildDir, scriptName)
+  const { nameSlug } = parseCandidateInfo(masterDataJson)
+  const docxName   = `${slug}_${nameSlug}.docx`
 
   try {
     const script = buildScript(decision, slug, docxName, masterDataJson)

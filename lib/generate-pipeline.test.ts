@@ -116,6 +116,84 @@ describe('runPipeline', () => {
     expect(errorEvent!.status).toBe('fail')
   })
 
+  it('falls back to disk master data when profile data is missing a work id', async () => {
+    const fakeJob = {
+      id: 'job-stale', company: 'Acme', role_title: 'Engineer',
+      file_path: '/jobs/acme.md', raw_content: 'JD content',
+    }
+
+    mockedSpawn.mockReturnValue({
+      stdout: { on: vi.fn() },
+      stderr: { on: vi.fn() },
+      on: vi.fn().mockImplementation((event: string, cb: (code: number) => void) => {
+        if (event === 'close') cb(0)
+      }),
+      kill: vi.fn(),
+    } as any)
+
+    mockedExistsSync.mockReturnValue(true)
+    mockedIsCloud.mockReturnValue(false)
+
+    // Profile has OLD data — 'gitlab' not present
+    const staleProfile = JSON.stringify({
+      experience: [
+        { id: 'techcorp',     bullets: { genai: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] } },
+        { id: 'startup',      bullets: { genai: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] } },
+        { id: 'research',     bullets: { genai: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] } },
+      ],
+      projects: [
+        { id: 'CalAI', bullets: ['Built X', 'Built Y', 'Built Z'] },
+        { id: 'MRR Dashboard', bullets: ['Built X', 'Built Y', 'Built Z'] },
+        { id: 'HomeBoard', bullets: ['Built X', 'Built Y', 'Built Z'] },
+      ],
+      skills: {},
+    })
+    // Disk file has the correct/current data with 'gitlab'
+    const diskMaster = JSON.stringify({
+      experience: [
+        { id: 'gitlab',       bullets: { genai: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] } },
+        { id: 'carboncopies', bullets: { genai: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] } },
+        { id: 'udayton',      bullets: { genai: ['Built A', 'Built B', 'Built C', 'Built D', 'Built E'] } },
+      ],
+      projects: [
+        { id: 'CalAI', bullets: ['Built X', 'Built Y', 'Built Z'] },
+        { id: 'MRR Dashboard', bullets: ['Built X', 'Built Y', 'Built Z'] },
+        { id: 'HomeBoard', bullets: ['Built X', 'Built Y', 'Built Z'] },
+      ],
+      skills: {},
+    })
+
+    const mockedReadFileSync = fs.readFileSync as unknown as ReturnType<typeof vi.fn>
+    mockedReadFileSync.mockImplementation((p: string) => {
+      if (String(p).endsWith('master.json')) return diskMaster
+      return ''
+    })
+
+    mockedGetAdapter.mockResolvedValue({
+      queryOne: vi.fn()
+        .mockResolvedValueOnce(fakeJob)    // job lookup
+        .mockResolvedValueOnce({ data: staleProfile }),  // active profile
+      run: vi.fn(),
+      query: vi.fn(),
+    } as any)
+    mockedEnsureDefaultSession.mockResolvedValue(undefined)
+    mockedGetSession.mockResolvedValue({ id: 'sess-1', data: staleProfile } as any)
+    mockedReasonForJob.mockResolvedValue({
+      track: 'genai', workVariant: 'genai',
+      workIds: ['gitlab', 'carboncopies', 'udayton'],
+      projects: ['CalAI', 'MRR Dashboard', 'HomeBoard'],
+      personaTitle: 'Software Engineer',
+      tagline: 'Software Engineer building AI tools',
+      skillsRows: ['TypeScript · React', 'Go · Python', 'Docker · k8s', 'PostgreSQL', 'Prometheus'],
+      reasoning: 'good fit',
+    } as any)
+
+    const events = await collect(runPipeline('job-stale', 'sess-1', 'user-123'))
+    const scriptError = events.find(e => e.stage === 'write-script' && e.status === 'fail')
+    expect(scriptError).toBeUndefined() // must NOT fail with "Unknown work id: gitlab"
+    expect(events.some(e => e.stage === 'write-script' && e.status === 'ok')).toBe(true)
+  })
+
   it('uploads DOCX to S3 under outputs/<userId>/<jobId>/ in cloud mode', async () => {
     const fakeJob = {
       id: 'job-cloud',

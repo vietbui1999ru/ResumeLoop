@@ -526,6 +526,7 @@ export default function SettingsPage() {
               />
             </div>
             <button
+              data-tour="clipper-guide-btn"
               onClick={() => setShowImportGuide(true)}
               className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors -mt-1"
             >
@@ -561,6 +562,7 @@ export default function SettingsPage() {
               />
             </div>
             <button
+              data-tour="clipper-guide-btn"
               onClick={() => setShowImportGuide(true)}
               className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors -mt-1"
             >

@@ -34,10 +34,27 @@ describe('buildSystemPrompt', () => {
 
     expect(prompt).toContain('master_resume_data')
     expect(prompt).toContain('ATS Guidelines')
-    expect(prompt).toContain('Role-Track Table')
+    // Role-track table is now derived from master data role_track_picks, not the system prompt blob
+    expect(prompt).not.toContain('Role-Track Table')
     expect(prompt).toContain('tagline')
     expect(prompt).toContain('workIds')
     expect(prompt).toContain('skillsRows')
+  })
+
+  it('includes role-track picks when master data has role_track_picks', async () => {
+    const masterWithPicks = JSON.stringify({
+      experience: [{ id: 'co1', bullets: { genai: ['a'] } }],
+      projects: [],
+      skills: {},
+      role_track_picks: { 'Backend Engineer': ['proj1', 'proj2', 'proj3'] },
+    })
+    vi.mocked(fs.readFileSync).mockReturnValue(masterWithPicks as never)
+    vi.mocked(fs.existsSync).mockReturnValue(false)
+
+    const { buildSystemPrompt } = await import('./prompt-context')
+    const prompt = await buildSystemPrompt(masterWithPicks)
+    expect(prompt).toContain('Role-Track → Project Picks')
+    expect(prompt).toContain('Backend Engineer')
   })
 
   it('does not call fs.readFileSync on docs/reference files', async () => {

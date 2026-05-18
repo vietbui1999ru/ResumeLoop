@@ -68,6 +68,11 @@ export const TOUR_STEPS: TourStepDef[] = [
     body: 'Point this at the folder containing your .md job description files. ResumeLoop scans here for new jobs.',
   },
   {
+    id: 'settings-clipper-guide', page: '/settings', target: 'clipper-guide-btn',
+    title: 'Web Clipper guide',
+    body: 'Opens a step-by-step setup guide for Obsidian Web Clipper — includes a downloadable LinkedIn profile template so you can clip contacts directly from LinkedIn into outreach cards. Optional, but recommended for networked job searching.',
+  },
+  {
     id: 'settings-ai', page: '/settings', target: 'ai-settings',
     title: 'AI provider',
     body: 'Choose your AI provider and model. Anthropic Claude is required for Chat; other providers work for generation.',

@@ -28,7 +28,7 @@ function extractTalkingPoints(items: OutreachItem[]): string {
   return points.length ? points.join('\n') : ''
 }
 
-const SYSTEM = `You are helping Quoc-Viet Bui build a targeted application strategy for a specific role.
+const SYSTEM = `You are helping a job candidate build a targeted application strategy for a specific role.
 Synthesize all available signals — the job context, resume positioning, company research, and contact talking points — into a concise, actionable strategy brief.
 
 Structure your response in markdown with these sections:

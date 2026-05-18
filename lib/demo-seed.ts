@@ -791,8 +791,8 @@ export async function seedDemoUser(userId: string): Promise<void> {
     await db.run(
       `INSERT INTO outreach_items
          (id, job_id, user_id, kind, raw_markdown, role, notes,
-          linkedin_draft, email_draft, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+          linkedin_draft, email_draft, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         randomUUID(), jobId, userId, 'person',
         `# Priya Sharma\n**Title**: Engineering Manager, Platform\n**Company**: Wefunder\n**LinkedIn**: linkedin.com/in/priyasharma-wefunder\n**Email**: priya@wefunder.com\n\nLeads the platform team. Previously at Stripe (Payments Infra). Posts regularly about API design and data quality.`,
@@ -807,6 +807,21 @@ export async function seedDemoUser(userId: string): Promise<void> {
 
   if (outputJobIds['Coinbase']) {
     const jobId = outputJobIds['Coinbase']
+    await db.run(
+      `INSERT INTO outreach_items
+         (id, job_id, user_id, kind, raw_markdown, role, notes,
+          linkedin_draft, email_draft, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        randomUUID(), jobId, userId, 'person',
+        `# Marcus Webb\n**Title**: Staff Engineer, Exchange Infrastructure\n**Company**: Coinbase\n**LinkedIn**: linkedin.com/in/marcuswebb\n**Email**: marcus@coinbase.com\n\nLeads the exchange matching engine team. Previously at Jane Street (HFT infra). Posts about distributed systems reliability and Go concurrency patterns.`,
+        'Staff Engineer',
+        'Author of Coinbase engineering blog post on Go goroutine leak detection.',
+        `Hi Marcus, your post on goroutine leak detection in Go was exactly what I needed this week — bookmarked it immediately. I'm applying for the Backend Engineer role on your team and would love to hear how you approach latency tradeoffs in the matching engine. Would a quick call work?`,
+        `Subject: Backend Engineer Application — Alex Chen\n\nHi Marcus,\n\nI'm applying for the Backend Engineer role on your Exchange Infrastructure team. Your recent post on goroutine leak detection resonated with a concurrency issue I debugged in EthSwitch — a Go Ethernet switch I built from scratch.\n\nI'd love to discuss how my distributed systems background maps to the matching engine challenges at Coinbase's scale.\n\nBest,\nAlex Chen | alex.chen@example.com`,
+        'not_contacted',
+      ],
+    )
     await db.run(
       `INSERT INTO jd_outputs
          (id, job_id, session_id, docx_path, pdf_path, variant, tagline,
@@ -836,6 +851,21 @@ export async function seedDemoUser(userId: string): Promise<void> {
 
   if (outputJobIds['Crusoe Energy']) {
     const jobId = outputJobIds['Crusoe Energy']
+    await db.run(
+      `INSERT INTO outreach_items
+         (id, job_id, user_id, kind, raw_markdown, role, notes,
+          linkedin_draft, email_draft, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        randomUUID(), jobId, userId, 'person',
+        `# Anya Petrova\n**Title**: ML Platform Lead\n**Company**: Crusoe Energy\n**LinkedIn**: linkedin.com/in/anyapetrova-crusoe\n**Email**: anya@crusoe.ai\n\nOwns the GPU cluster orchestration and MLOps tooling. Previously at Lambda Labs. Speaks at ML infrastructure conferences.`,
+        'ML Platform Lead',
+        'Co-authored Crusoe whitepaper on flare gas → GPU compute pipeline.',
+        `Hi Anya, I read the Crusoe whitepaper on flare gas utilization for GPU compute — the infrastructure architecture section was fascinating. I'm applying for the ML Engineer role and would love to hear how your team manages memory bandwidth constraints at cluster scale. Quick chat this week?`,
+        `Subject: ML Engineer Application — Alex Chen\n\nHi Anya,\n\nI'm applying for the ML Engineer role at Crusoe. Your work on sustainable GPU infrastructure genuinely excites me — I built an edge inference pipeline on NVIDIA Jetson with CUDA/PyTorch and learned firsthand how memory bandwidth is the binding constraint for real-time ML.\n\nI'd love to discuss how that experience maps to Crusoe's cluster orchestration challenges.\n\nBest,\nAlex Chen | alex.chen@example.com`,
+        'not_contacted',
+      ],
+    )
     await db.run(
       `INSERT INTO jd_outputs
          (id, job_id, session_id, docx_path, pdf_path, variant, tagline,

@@ -3,6 +3,7 @@ import { buildSystemPrompt } from './prompt-context'
 import { getModel } from './ai-client'
 import { logAiUsage } from './ai-usage'
 import { getActiveConfig } from './user-settings'
+import { parseCandidateInfo } from './candidate-info'
 
 export interface ReasoningResult {
   track:        string
@@ -15,32 +16,37 @@ export interface ReasoningResult {
   reasoning:    string
 }
 
-const VALID_WORK_IDS = ['gitlab', 'carboncopies', 'udayton', 'augustana']
-
-const DECISION_SCHEMA = jsonSchema<ReasoningResult>({
-  type: 'object',
-  properties: {
-    track:        { type: 'string', description: 'Role track from the role-track table' },
-    workVariant:  { type: 'string', enum: ['genai', 'systems', 'IT-track'] },
-    workIds:      { type: 'array', items: { type: 'string', enum: VALID_WORK_IDS }, minItems: 3, maxItems: 3 },
-    projects:     { type: 'array', items: { type: 'string' }, minItems: 3, maxItems: 3 },
-    personaTitle: { type: 'string', maxLength: 60 },
-    tagline:      { type: 'string', maxLength: 76 },
-    skillsRows:   { type: 'array', items: { type: 'string' }, minItems: 5, maxItems: 5 },
-    reasoning: {
-      type: 'string',
-      description:
-        'Structured markdown with exactly 5 sections: ## Track, ## Work Experience, ## Projects, ## Tagline, ## Skills. Each section explains why this choice matches the JD. Reference specific JD keywords. 2-4 sentences or bullet points per section.',
+function buildDecisionSchema(workIds: string[]) {
+  const workIdsItems = workIds.length
+    ? { type: 'string' as const, enum: workIds }
+    : { type: 'string' as const }
+  return jsonSchema<ReasoningResult>({
+    type: 'object',
+    properties: {
+      track:        { type: 'string', description: 'Role track from the role-track table in the system prompt' },
+      workVariant:  { type: 'string', enum: ['genai', 'systems', 'IT-track'] },
+      workIds:      { type: 'array', items: workIdsItems, minItems: 3, maxItems: 3 },
+      projects:     { type: 'array', items: { type: 'string' }, minItems: 3, maxItems: 3 },
+      personaTitle: { type: 'string', maxLength: 60 },
+      tagline:      { type: 'string', maxLength: 76 },
+      skillsRows:   { type: 'array', items: { type: 'string' }, minItems: 5, maxItems: 5 },
+      reasoning: {
+        type: 'string',
+        description:
+          'Structured markdown with exactly 5 sections: ## Track, ## Work Experience, ## Projects, ## Tagline, ## Skills. Each section explains why this choice matches the JD. Reference specific JD keywords. 2-4 sentences or bullet points per section.',
+      },
     },
-  },
-  required: ['track', 'workVariant', 'workIds', 'projects', 'personaTitle', 'tagline', 'skillsRows', 'reasoning'],
-})
+    required: ['track', 'workVariant', 'workIds', 'projects', 'personaTitle', 'tagline', 'skillsRows', 'reasoning'],
+  })
+}
 
 export async function reasonForJob(rawContent: string, masterData?: string, userId = 'default'): Promise<ReasoningResult> {
   const model        = await getModel(userId)
   const systemPrompt = await buildSystemPrompt(masterData)
+  const workIds      = masterData ? parseCandidateInfo(masterData).workIds : []
+  const decisionSchema = buildDecisionSchema(workIds)
 
-  const { toolCalls, usage } = await generateText({
+  const { toolCalls, text, finishReason, usage } = await generateText({
     model,
     maxOutputTokens: 2048,
     abortSignal: AbortSignal.timeout(60_000),
@@ -48,7 +54,7 @@ export async function reasonForJob(rawContent: string, masterData?: string, user
     tools: {
       resume_decision: {
         description: 'Select resume components tailored to this job posting',
-        inputSchema: DECISION_SCHEMA,
+        inputSchema: decisionSchema,
       },
     },
     // 'required' = must call any tool. Equivalent to forcing resume_decision since it's
@@ -59,7 +65,23 @@ export async function reasonForJob(rawContent: string, masterData?: string, user
   })
 
   const call = toolCalls.find(t => t.toolName === 'resume_decision')
-  if (!call) throw new Error('No resume_decision tool call in AI response')
+
+  if (!call) {
+    // Gemini and some providers may return JSON in text instead of a formal tool call
+    if (text?.trim()) {
+      try {
+        const parsed = JSON.parse(text.trim()) as ReasoningResult
+        validateResult(parsed)
+        const cfg = await getActiveConfig(userId)
+        if (cfg) await logAiUsage(userId, cfg.provider, cfg.model, 'reason', usage.inputTokens ?? 0, usage.outputTokens ?? 0)
+        return parsed
+      } catch { /* fall through to structured error */ }
+    }
+    throw new Error(
+      `No resume_decision tool call in AI response. ` +
+      `finishReason=${finishReason}, toolCalls=${toolCalls.length}, textLen=${text?.length ?? 0}`
+    )
+  }
 
   const result = call.input as ReasoningResult
   validateResult(result)

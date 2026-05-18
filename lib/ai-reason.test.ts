@@ -91,13 +91,37 @@ describe('reasonForJob', () => {
     expect(result.tagline.length).toBeLessThanOrEqual(76)
   })
 
-  it('throws if no resume_decision tool call returned', async () => {
+  it('throws if no resume_decision tool call returned and no parseable text', async () => {
     const { generateText } = await import('ai')
     vi.mocked(generateText).mockResolvedValueOnce({
-      toolCalls: [],
+      toolCalls: [], text: '', finishReason: 'stop',
       usage: { inputTokens: 0, outputTokens: 0 },
     } as never)
     const { reasonForJob } = await import('./ai-reason')
     await expect(reasonForJob('jd')).rejects.toThrow('No resume_decision')
+  })
+
+  it('falls back to JSON text when toolCalls is empty (Gemini text mode)', async () => {
+    const { generateText } = await import('ai')
+    vi.mocked(generateText).mockResolvedValueOnce({
+      toolCalls: [],
+      text: JSON.stringify(GOOD_INPUT),
+      finishReason: 'stop',
+      usage: { inputTokens: 10, outputTokens: 20 },
+    } as never)
+    const { reasonForJob } = await import('./ai-reason')
+    const result = await reasonForJob('jd')
+    expect(result.track).toBe('systems')
+    expect(result.workIds).toHaveLength(3)
+  })
+
+  it('error message includes finishReason and text length on total failure', async () => {
+    const { generateText } = await import('ai')
+    vi.mocked(generateText).mockResolvedValueOnce({
+      toolCalls: [], text: 'not json', finishReason: 'length',
+      usage: { inputTokens: 0, outputTokens: 0 },
+    } as never)
+    const { reasonForJob } = await import('./ai-reason')
+    await expect(reasonForJob('jd')).rejects.toThrow('finishReason=length')
   })
 })

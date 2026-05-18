@@ -9,7 +9,7 @@ import { auth } from '@/lib/auth'
 import { checkRateLimitBucket } from '@/lib/rate-limit'
 import { ensureDefaultSession } from '@/lib/sessions'
 
-const BASE_SYSTEM_PROMPT = `You are a resume profile editor for Quoc-Viet Bui.
+const BASE_SYSTEM_PROMPT = `You are a resume profile editor for the user's master resume data.
 
 Files you can read and edit:
 - master_resume_data: work experience bullets, projects, skills variants (JSON)

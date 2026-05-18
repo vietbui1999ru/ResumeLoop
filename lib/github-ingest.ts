@@ -93,7 +93,7 @@ const SUMMARIZE_SCHEMA = jsonSchema<ProjectEntry>({
   required: ['id', 'name', 'summary', 'short_stack', 'bullets'],
 })
 
-const SUMMARIZE_SYSTEM = `You are building resume bullet points for Quoc-Viet Bui.
+const SUMMARIZE_SYSTEM = `You are building resume bullet points for a software engineering candidate.
 Given a GitHub repo README and file tree, extract a project entry suitable for a software engineering resume.
 Bullet formula: "Built A doing B using C, which produced D" — each bullet must include ≥1 named technology and ≥1 measurable or observable result.
 Each bullet must be ≤116 characters with spaces. short_stack must be ≤40 chars total.
