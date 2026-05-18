@@ -1,5 +1,7 @@
 import SignInForm from './SignInForm'
 
+export const dynamic = 'force-dynamic'
+
 export default function SignInPage() {
   const isCloud = process.env.APP_MODE === 'cloud'
   const oauthProviders = [

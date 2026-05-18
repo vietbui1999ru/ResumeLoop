@@ -3,7 +3,7 @@ import { generateText }  from 'ai'
 import { auth } from '@/lib/auth'
 import {
   PROVIDERS, DEFAULT_MODELS, setProviderConfig, deleteProviderConfig,
-  listProviderHints, setActiveProvider, getActiveProvider,
+  listProviderHints, setActiveProvider, getActiveProvider, maskKey,
   type Provider,
 } from '@/lib/user-settings'
 import { buildModel } from '@/lib/ai-client'
@@ -179,7 +179,7 @@ export async function POST(req: Request) {
     throw e
   }
 
-  const hint = rawKey.length > 0 ? rawKey.slice(0, 16) + '••••••••••••••••' : ''
+  const hint = rawKey.length > 0 ? maskKey(rawKey) : ''
   return NextResponse.json({ ok: true, key_hint: hint })
 }
 

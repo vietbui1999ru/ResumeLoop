@@ -1,3 +1,4 @@
+import 'server-only'
 import { getAdapter } from './db-adapter'
 import { encrypt, decrypt } from './crypto'
 
@@ -74,8 +75,11 @@ export async function getProviderConfig(userId: string, provider: Provider): Pro
       model:    row.model,
       baseUrl:  row.base_url ?? undefined,
     }
-  } catch {
-    return null  // decryption failed — treat as not configured
+  } catch (e) {
+    // Row exists but GCM auth-tag failed — likely ENCRYPTION_KEY rotation or DB tampering.
+    // Log the event (never the ciphertext) so ops can detect key-rotation mistakes.
+    console.error('[user-settings] decrypt failed — possible key rotation or tampering', { userId, provider, error: String(e) })
+    return null
   }
 }
 
@@ -119,13 +123,23 @@ export async function listProviderHints(userId: string): Promise<ProviderHint[]>
         base_url:  r.base_url ?? undefined,
         is_active: r.provider === active,
       }
-    } catch {
-      return null  // skip rows whose ciphertext fails auth-tag verification
+    } catch (e) {
+      console.error('[user-settings] decrypt failed in listProviderHints', { userId, provider: r.provider, error: String(e) })
+      return null
     }
   }))
   return hints.filter((h): h is ProviderHint => h !== null)
 }
 
+export function maskKey(key: string): string {
+  if (key.length < 4) return '••••'
+  const last4 = key.slice(-4)
+  // Show provider prefix up to the first separator (-, _, :) or 8 chars, then mask
+  const prefixEnd = Math.min(key.search(/[-_:]/), 8)
+  const prefix = prefixEnd > 0 ? key.slice(0, prefixEnd) : key.slice(0, 4)
+  return `${prefix}-••••••••••••-${last4}`
+}
+
 function keyHint(key: string): string {
-  return key.slice(0, 16) + '••••••••••••••••'
+  return maskKey(key)
 }

@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef, useState, Fragment } from 'react'
+import { createPortal } from 'react-dom'
 import ReactMarkdown from 'react-markdown'
 import {
   DndContext,
@@ -133,6 +134,7 @@ function ResizeDivider({ leftId, rightId, onResize }: {
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) {
+  const [mounted, setMounted] = useState(false)
   const [job, setJob] = useState<JobDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -221,6 +223,10 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) 
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = prev }
   }, [])
+
+  // Portal mount guard — only render the portal after hydration to avoid
+  // SSR mismatch (document.body is not available on the server).
+  useEffect(() => { setMounted(true) }, [])
 
   // DnD sensors
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
@@ -413,7 +419,7 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) 
     case: 'Case',
   }
 
-  return (
+  const modalContent = (
     <motion.div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
       initial={{ opacity: 0 }}
@@ -573,6 +579,9 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) 
       </motion.div>
     </motion.div>
   )
+
+  if (!mounted) return null
+  return createPortal(modalContent, document.body)
 }
 
 // ── JD Panel ──────────────────────────────────────────────────────────────────
@@ -680,7 +689,12 @@ function JdPanel({ job, tags, localTags, onTagToggle, output, outputLoading, onG
         )}
         {!outputLoading && output && (
           <>
-            <a href={`/api/generate/${job.id}/download`} download className="text-xs text-indigo-400 hover:text-indigo-300">↓ DOCX</a>
+            <a href={`/api/jobs/${job.id}/output/download?format=docx`} download className="text-xs text-indigo-400 hover:text-indigo-300">↓ DOCX</a>
+            {output.pdf_path ? (
+              <a href={`/api/jobs/${job.id}/output/download?format=pdf`} download className="text-xs text-indigo-400 hover:text-indigo-300">↓ PDF</a>
+            ) : (
+              <span className="text-xs text-zinc-600 cursor-not-allowed" title="PDF not available">↓ PDF</span>
+            )}
             <button
               onClick={onGenCoverLetter}
               disabled={coverLoading}

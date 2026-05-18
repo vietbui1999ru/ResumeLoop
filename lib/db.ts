@@ -134,6 +134,7 @@ export function initSchema(db: DB): void {
       is_demo             INTEGER NOT NULL DEFAULT 0,
       email_verified      INTEGER NOT NULL DEFAULT 0,
       password_changed_at DATETIME,
+      deleted_at          DATETIME,
       created_at          DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -363,6 +364,8 @@ export function initSchema(db: DB): void {
     db.exec(`ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0`)
   if (!hasColumn(db, 'users', 'password_changed_at'))
     db.exec(`ALTER TABLE users ADD COLUMN password_changed_at DATETIME`)
+  if (!hasColumn(db, 'users', 'deleted_at'))
+    db.exec(`ALTER TABLE users ADD COLUMN deleted_at DATETIME`)
 
   // Migrate: allow empty password for OAuth-only accounts
   // (password column already exists; DEFAULT '' is set on new tables above)
@@ -407,7 +410,7 @@ export function initSchema(db: DB): void {
   // Seed demo user (pre-hashed bcrypt of 'demo', rounds=10) — local/self-hosted mode only
   if (!isCloud()) {
     const demoExists = (db.prepare(`SELECT COUNT(*) as c FROM users WHERE email = 'demo@demo.com'`).get() as { c: number }).c > 0
-    if (!demoExists) db.prepare(`INSERT INTO users (id, email, password, is_demo) VALUES (?, ?, ?, 1)`)
+    if (!demoExists) db.prepare(`INSERT INTO users (id, email, password, is_demo, email_verified) VALUES (?, ?, ?, 1, 1)`)
       .run('demo-user', 'demo@demo.com', '$2b$10$p/KLnbVfAXylbVN9Eonw/emuhlarCDbTI4P5CZchZET/5zEAd1hmW')
   }
 

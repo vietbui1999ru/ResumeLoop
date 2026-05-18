@@ -211,8 +211,8 @@ export const NEON_SCHEMA = `
 `
 
 const NEON_DEMO_SEED = `
-  INSERT INTO users (id, email, password, is_demo)
-  VALUES ('demo-user', 'demo@demo.com', '$2b$10$p/KLnbVfAXylbVN9Eonw/emuhlarCDbTI4P5CZchZET/5zEAd1hmW', 1)
+  INSERT INTO users (id, email, password, is_demo, email_verified)
+  VALUES ('demo-user', 'demo@demo.com', '$2b$10$p/KLnbVfAXylbVN9Eonw/emuhlarCDbTI4P5CZchZET/5zEAd1hmW', 1, 1)
   ON CONFLICT (email) DO NOTHING;
 `
 

@@ -2,20 +2,11 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { Skeleton } from '@/components/Skeleton'
-import ReactMarkdown from 'react-markdown'
-import type { Components } from 'react-markdown'
-import type { Element } from 'hast'
 import type { editor as MonacoEditorNS } from 'monaco-editor'
 import { parse as jsonSourceMap } from 'json-source-map'
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false })
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-
-type DocFileKey =
-  | 'ats-optimized-resume-system.md'
-  | 'ats-optimization-guidelines.md'
-  | 'CLAUDE-full.md'
-  | 'spec-job-match-resume-generator.md'
 
 interface Profile {
   id: string
@@ -503,8 +494,7 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h3 className="text-sm font-semibold text-zinc-300 font-mono">master_resume_data.json</h3>
-          <span className="text-xs text-zinc-400">profile: {profile.name}</span>
+          <h3 className="text-sm font-semibold text-zinc-300 font-mono">{profile.name}</h3>
         </div>
         <div className="flex items-center gap-2">
           {status && <span className={`text-xs ${status.startsWith('Error') ? 'text-red-400' : 'text-green-400'}`}>{status}</span>}
@@ -607,209 +597,6 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
             <span className="ml-auto text-2xs text-zinc-400 font-mono">live</span>
           </div>
           <BulletsPreview json={draft} onJump={jumpToJsonPath} />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ── Two-panel Monaco editor (markdown + rendered preview) ─────────────────────
-
-// Shared CSS for the sync-highlight class — toggled via DOM, not React state.
-const SYNC_HIGHLIGHT_STYLE = `
-  .sync-highlight {
-    border-left: 2px solid rgb(129 140 248);
-    background-color: rgb(99 102 241 / 0.08);
-    padding-left: 0.5rem;
-    margin-left: -0.5rem;
-    border-radius: 0 2px 2px 0;
-    scroll-margin-top: 4rem;
-  }
-`
-
-// Block tags that carry data-source-line and respond to clicks
-const SYNC_TAGS = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote', 'pre'] as const
-
-type SyncTag = typeof SYNC_TAGS[number]
-type BlockProps = React.HTMLAttributes<HTMLElement> & { node?: Element; children?: React.ReactNode }
-
-function DocEditor({ file, label }: { file: DocFileKey; label: string }) {
-  const [, setContent] = useState('')
-  const [draft, setDraft]     = useState('')
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving]   = useState(false)
-  const [status, setStatus]   = useState('')
-  const [showBackups, setShowBackups] = useState(false)
-
-  // Sync refs — no state so cursor moves don't trigger React re-renders
-  const editorRef     = useRef<MonacoEditorNS.IStandaloneCodeEditor | null>(null)
-  const previewRef    = useRef<HTMLDivElement>(null)
-  const activeElRef   = useRef<HTMLElement | null>(null)
-  const debounceRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const highlightLine = useCallback((lineNumber: number) => {
-    const container = previewRef.current
-    if (!container) return
-
-    // Remove previous highlight
-    activeElRef.current?.classList.remove('sync-highlight')
-    activeElRef.current = null
-
-    // Walk all annotated block elements; find last one starting at or before cursor line
-    const els = Array.from(container.querySelectorAll<HTMLElement>('[data-source-line]'))
-    let target: HTMLElement | null = null
-    for (const el of els) {
-      if (parseInt(el.getAttribute('data-source-line') ?? '0', 10) <= lineNumber) target = el
-      else break
-    }
-
-    if (target) {
-      target.classList.add('sync-highlight')
-      target.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
-      activeElRef.current = target
-    }
-  }, [])
-
-  const jumpToLine = useCallback((lineNumber: number) => {
-    const ed = editorRef.current
-    if (!ed) return
-    ed.setPosition({ lineNumber, column: 1 })
-    ed.revealLineInCenter(lineNumber)
-    ed.focus()
-  }, [])
-
-  const onEditorMount = useCallback((ed: MonacoEditorNS.IStandaloneCodeEditor) => {
-    editorRef.current = ed
-    ed.onDidChangeCursorPosition(e => {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-      debounceRef.current = setTimeout(() => highlightLine(e.position.lineNumber), 150)
-    })
-  }, [highlightLine])
-
-  // Build react-markdown components once — closes over jumpToLine (stable ref-backed fn)
-  const syncComponents = useMemo((): Components => {
-    const make = (Tag: SyncTag) => function SyncBlock({ node, children, ...props }: BlockProps) {
-      const line = node?.position?.start.line
-      return (
-        <Tag
-          data-source-line={line}
-          onClick={line != null ? () => jumpToLine(line) : undefined}
-          style={line != null ? { cursor: 'pointer' } : undefined}
-          {...props as React.HTMLAttributes<HTMLElement>}
-        >
-          {children}
-        </Tag>
-      )
-    }
-    return Object.fromEntries(SYNC_TAGS.map(t => [t, make(t)])) as Components
-  }, [jumpToLine])
-
-  const loadContent = useCallback(() => {
-    setLoading(true)
-    fetch(`/api/config/read?file=${encodeURIComponent(file)}`)
-      .then(r => r.json())
-      .then(d => { setContent(d.content ?? ''); setDraft(d.content ?? '') })
-      .finally(() => setLoading(false))
-  }, [file])
-
-  useEffect(() => { loadContent() }, [loadContent])
-
-  const save = async () => {
-    setSaving(true); setStatus('')
-    const res = await fetch('/api/config/write', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ file, content: draft }),
-    })
-    const d = await res.json()
-    if (res.ok) { setContent(draft); setStatus('Saved') }
-    else setStatus(`Error: ${d.error}`)
-    setSaving(false)
-    setTimeout(() => setStatus(''), 3000)
-  }
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-zinc-300 font-mono">{label}</h3>
-        <div className="flex items-center gap-2">
-          {status && <span className={`text-xs ${status.startsWith('Error') ? 'text-red-400' : 'text-green-400'}`}>{status}</span>}
-          <button
-            onClick={() => setShowBackups(v => !v)}
-            className={`text-xs px-2 py-1 rounded border transition-colors ${showBackups ? 'border-amber-500 text-amber-400' : 'border-zinc-700 text-zinc-500 hover:text-zinc-300'}`}
-          >
-            Backups
-          </button>
-          <button
-            onClick={() => void save()}
-            disabled={saving || loading}
-            className="text-xs px-3 py-1 bg-indigo-600 hover:bg-indigo-500 rounded disabled:opacity-40"
-          >
-            {saving ? 'Saving…' : 'Save'}
-          </button>
-        </div>
-      </div>
-
-      {showBackups && (
-        <BackupPanel
-          file={file}
-          currentContent={draft}
-          onRestored={() => { loadContent(); setShowBackups(false) }}
-        />
-      )}
-
-      <style>{SYNC_HIGHLIGHT_STYLE}</style>
-      <div className="grid grid-cols-2 gap-0 border border-zinc-700 rounded-lg overflow-hidden" style={{ height: 480 }}>
-        {/* Monaco */}
-        <div className="border-r border-zinc-700 flex flex-col min-h-0">
-          <div className="px-3 py-1.5 bg-zinc-800 border-b border-zinc-700 shrink-0">
-            <span className="text-2xs text-zinc-500 uppercase tracking-widest font-mono">Editor</span>
-            <span className="ml-2 text-2xs text-zinc-400 font-mono">click preview block to jump</span>
-          </div>
-          {loading ? (
-            <div className="flex-1 p-4 space-y-2 overflow-hidden">
-              {Array.from({ length: 22 }).map((_, i) => (
-                <Skeleton key={i} className={`h-3 ${
-                  i % 6 === 0 ? 'w-full' :
-                  i % 6 === 1 ? 'w-3/4' :
-                  i % 6 === 2 ? 'w-1/2' :
-                  i % 6 === 3 ? 'w-2/3' :
-                  i % 6 === 4 ? 'w-5/6' : 'w-1/3'
-                }`} />
-              ))}
-            </div>
-          ) : (
-            <MonacoEditor
-              height="100%"
-              language="markdown"
-              theme="vs-dark"
-              value={draft}
-              onChange={v => setDraft(v ?? '')}
-              onMount={onEditorMount}
-              options={{
-                minimap: { enabled: false },
-                fontSize: 14,
-                lineNumbers: 'on',
-                scrollBeyondLastLine: false,
-                wordWrap: 'on',
-                tabSize: 2,
-                fontFamily: 'JetBrains Mono, Fira Code, monospace',
-              }}
-            />
-          )}
-        </div>
-
-        {/* Markdown preview */}
-        <div className="flex flex-col bg-zinc-950 min-h-0">
-          <div className="px-3 py-1.5 bg-zinc-800 border-b border-zinc-700 shrink-0">
-            <span className="text-2xs text-zinc-500 uppercase tracking-widest font-mono">Preview</span>
-          </div>
-          <div
-            ref={previewRef}
-            className="flex-1 overflow-y-auto px-4 py-3 text-sm text-zinc-300 leading-relaxed [&_h1]:text-zinc-100 [&_h1]:font-semibold [&_h1]:text-base [&_h1]:mt-4 [&_h1]:mb-1 [&_h2]:text-zinc-200 [&_h2]:font-semibold [&_h2]:text-sm [&_h2]:mt-4 [&_h2]:mb-1 [&_h3]:text-zinc-300 [&_h3]:font-medium [&_h3]:mt-3 [&_h3]:mb-0.5 [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:space-y-0.5 [&_ol]:list-decimal [&_ol]:pl-4 [&_strong]:text-zinc-100 [&_code]:bg-zinc-800 [&_code]:px-1 [&_code]:rounded [&_code]:text-xs [&_code]:font-mono [&_pre]:bg-zinc-800 [&_pre]:rounded [&_pre]:p-3 [&_pre]:overflow-x-auto [&_p]:mb-2 [&_hr]:border-zinc-700 [&_hr]:my-3"
-          >
-            <ReactMarkdown components={syncComponents}>{draft}</ReactMarkdown>
-          </div>
         </div>
       </div>
     </div>
@@ -964,13 +751,6 @@ function ForkModal({ onConfirm, onCancel }: { onConfirm: (name: string) => void;
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-const DOC_FILES: { file: DocFileKey; label: string }[] = [
-  { file: 'ats-optimization-guidelines.md',    label: 'ats-optimization-guidelines.md' },
-  { file: 'CLAUDE-full.md',                    label: 'CLAUDE-full.md' },
-  { file: 'ats-optimized-resume-system.md',    label: 'ats-optimized-resume-system.md' },
-  { file: 'spec-job-match-resume-generator.md', label: 'spec-job-match-resume-generator.md' },
-]
-
 export default function ConfigPage() {
   const [profiles, setProfiles]       = useState<Profile[]>([])
   const [selectedId, setSelectedId]   = useState<string | null>(null)
@@ -1076,7 +856,7 @@ export default function ConfigPage() {
         <div>
           <h1 className="text-xl font-semibold">Config</h1>
           <p className="text-sm text-zinc-500 mt-1">
-            Edit resume profiles and AI pipeline docs. Monaco editor · live bullets preview · timestamped backups.
+            Edit resume profiles. Monaco editor · live bullets preview · timestamped backups.
           </p>
         </div>
         {status && <span className="text-xs text-red-400">{status}</span>}
@@ -1111,18 +891,6 @@ export default function ConfigPage() {
         )}
       </div>
 
-      {/* Reference docs */}
-      <div className="space-y-4">
-        <div>
-          <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Reference Docs</h2>
-          <p className="text-xs text-zinc-400 mt-1">Injected into every AI reasoning call. Edit to tune generation behavior.</p>
-        </div>
-        <div className="space-y-8">
-          {DOC_FILES.map(({ file, label }) => (
-            <DocEditor key={file} file={file} label={label} />
-          ))}
-        </div>
-      </div>
     </div>
   )
 }
