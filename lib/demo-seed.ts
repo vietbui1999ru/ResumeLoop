@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto'
+import bcrypt from 'bcryptjs'
 import { getAdapter } from './db-adapter'
 import { parseJd } from './jd-parser'
 import { scoreJd } from './fit-scorer'
@@ -896,4 +897,54 @@ export async function seedDemoUser(userId: string): Promise<void> {
       ],
     )
   }
+}
+
+
+async function createFreshDemoForIp(
+  ipHash: string,
+  db: Awaited<ReturnType<typeof getAdapter>>,
+): Promise<{ id: string; email: string; password: string }> {
+  const id       = randomUUID()
+  const email    = `demo_${id}@demo.local`
+  const password = randomUUID()
+  const hash     = await bcrypt.hash(password, 10)
+  await db.run(
+    `INSERT INTO users (id, email, password, is_demo, email_verified, ip_hash, demo_cleartext_pwd)
+     VALUES (?, ?, ?, 1, 1, ?, ?)`,
+    [id, email, hash, ipHash, password],
+  )
+  await seedDemoUser(id)
+  return { id, email, password }
+}
+
+export async function getOrCreateDemoUserForIp(
+  ipHash: string,
+): Promise<{ email: string; password: string }> {
+  const db     = await getAdapter()
+  const cutoff = new Date(Date.now() - DEMO_TTL_MS).toISOString()
+
+  const existing = await db.queryOne<{ email: string; demo_cleartext_pwd: string }>(
+    `SELECT email, demo_cleartext_pwd FROM users WHERE ip_hash = ? AND is_demo = 1 AND created_at > ?`,
+    [ipHash, cutoff],
+  )
+  if (existing) return { email: existing.email, password: existing.demo_cleartext_pwd }
+
+  const stale = await db.queryOne<{ id: string }>(
+    `SELECT id FROM users WHERE ip_hash = ? AND is_demo = 1`,
+    [ipHash],
+  )
+  if (stale) await deleteDemoUser(stale.id, db)
+
+  const { email, password } = await createFreshDemoForIp(ipHash, db)
+  return { email, password }
+}
+
+export async function resetDemoUser(
+  userId: string,
+  ipHash: string,
+): Promise<{ email: string; password: string }> {
+  const db = await getAdapter()
+  await deleteDemoUser(userId, db)
+  const { email, password } = await createFreshDemoForIp(ipHash, db)
+  return { email, password }
 }
