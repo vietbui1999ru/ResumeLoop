@@ -727,7 +727,7 @@ export async function seedDemoUser(userId: string): Promise<void> {
   // Default resume session — needed so /api/chat works without generating a resume first
   const defaultSessionId = `default:${userId}`
   await db.run(
-    `INSERT OR IGNORE INTO resume_sessions (id, name, data, user_id) VALUES (?, ?, ?, ?)`,
+    `INSERT INTO resume_sessions (id, name, data, user_id) VALUES (?, ?, ?, ?) ON CONFLICT (id) DO NOTHING`,
     [defaultSessionId, 'Default', DEMO_PROFILE_DATA, userId],
   )
 

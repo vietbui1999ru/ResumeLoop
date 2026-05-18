@@ -395,6 +395,12 @@ export class NeonAdapter implements DbAdapter {
     // Files exist in the Docker image on the first deploy after privatization;
     // subsequent deploys skip this because rows already exist.
     await this._seedSystemPrompts()
+    // Demo user per-IP columns (added with ip-based demo session feature)
+    await runSchema(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS ip_hash            TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS demo_cleartext_pwd TEXT;
+      CREATE INDEX IF NOT EXISTS idx_users_ip_hash ON users(ip_hash) WHERE is_demo = 1;
+    `)
     if (!isCloud()) await runSchema(NEON_DEMO_SEED)
     this.initialized = true
   }
