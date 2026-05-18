@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { getSession, updateSessionData } from '@/lib/sessions'
+import { getAdapter } from '@/lib/db-adapter'
 
 interface ProjectInput {
   id: string
@@ -58,6 +59,22 @@ export async function POST(req: Request) {
       upsertProject(activeMaster, newEntry)
       await updateSessionData(sessionId, JSON.stringify(activeMaster, null, 2), userId)
     }
+  }
+
+  // Also write to the active resume_profile so the config editor reflects the import
+  const db = await getAdapter()
+  const activeProfile = await db.queryOne<{ id: string; data: string }>(
+    'SELECT id, data FROM resume_profiles WHERE user_id = ? AND is_active = 1 LIMIT 1',
+    [userId],
+  )
+  if (activeProfile) {
+    let profileData: MasterData
+    try { profileData = JSON.parse(activeProfile.data) } catch { profileData = {} }
+    upsertProject(profileData, newEntry)
+    await db.run(
+      'UPDATE resume_profiles SET data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [JSON.stringify(profileData, null, 2), activeProfile.id],
+    )
   }
 
   return NextResponse.json({ ok: true, replaced })

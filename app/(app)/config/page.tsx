@@ -249,6 +249,208 @@ function DiffView({ current, backup, onRestore, onClose }: {
   )
 }
 
+// ── Candidate profile editor (form + AI modes) ────────────────────────────────
+
+interface CandidateProfile {
+  narrative?: string
+  self_assessment?: {
+    portrays_well?: string[]
+    known_gaps?: string[]
+    not_this?: string[]
+  }
+  target_posture?: {
+    primary_roles?: string[]
+    secondary_roles?: string[]
+    auth_urgency?: string
+    constraints?: string[]
+  }
+}
+
+function toLines(arr?: string[]): string { return (arr ?? []).join('\n') }
+function fromLines(s: string): string[] { return s.split('\n').map(l => l.trim()).filter(Boolean) }
+
+function CandidateProfileEditor({
+  initial, onApply, onClose,
+}: { initial: CandidateProfile | null; onApply: (p: CandidateProfile) => void; onClose: () => void }) {
+  const [mode, setMode] = useState<'form' | 'ai'>('form')
+
+  // Form state — one field per section
+  const [narrative,    setNarrative]    = useState(initial?.narrative ?? '')
+  const [portraysWell, setPortraysWell] = useState(toLines(initial?.self_assessment?.portrays_well))
+  const [knownGaps,    setKnownGaps]    = useState(toLines(initial?.self_assessment?.known_gaps))
+  const [notThis,      setNotThis]      = useState(toLines(initial?.self_assessment?.not_this))
+  const [primaryRoles, setPrimaryRoles] = useState(toLines(initial?.target_posture?.primary_roles))
+  const [secondaryRoles, setSecondaryRoles] = useState(toLines(initial?.target_posture?.secondary_roles))
+  const [authUrgency,  setAuthUrgency]  = useState(initial?.target_posture?.auth_urgency ?? '')
+  const [constraints,  setConstraints]  = useState(toLines(initial?.target_posture?.constraints))
+
+  // AI state
+  const [aiPrompt,     setAiPrompt]     = useState('')
+  const [aiLoading,    setAiLoading]    = useState(false)
+  const [aiError,      setAiError]      = useState('')
+  const [aiPreview,    setAiPreview]    = useState<CandidateProfile | null>(null)
+
+  const buildFromForm = (): CandidateProfile => ({
+    narrative,
+    self_assessment: {
+      portrays_well: fromLines(portraysWell),
+      known_gaps:    fromLines(knownGaps),
+      not_this:      fromLines(notThis),
+    },
+    target_posture: {
+      primary_roles:   fromLines(primaryRoles),
+      secondary_roles: fromLines(secondaryRoles),
+      auth_urgency:    authUrgency.trim() || undefined,
+      constraints:     fromLines(constraints),
+    },
+  })
+
+  const generate = async () => {
+    if (!aiPrompt.trim()) return
+    setAiLoading(true); setAiError(''); setAiPreview(null)
+    try {
+      const res = await fetch('/api/profile/candidate-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: aiPrompt }),
+      })
+      const data = await res.json()
+      if (!res.ok) { setAiError(data.error ?? 'Generation failed'); return }
+      setAiPreview(data.candidate_profile as CandidateProfile)
+    } catch (e) {
+      setAiError(String(e))
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const applyAiPreview = () => {
+    if (!aiPreview) return
+    onApply(aiPreview)
+  }
+
+  const tabCls = (m: 'form' | 'ai') =>
+    `text-xs px-3 py-1 rounded-sm transition-colors ${mode === m ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'}`
+
+  const fieldCls = 'w-full bg-zinc-950 border border-zinc-700 rounded px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-indigo-500 resize-none font-mono'
+
+  return (
+    <div className="border border-indigo-700/60 rounded-lg overflow-hidden bg-zinc-950">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800/80 border-b border-zinc-700">
+        <span className="text-2xs text-indigo-400 uppercase tracking-widest font-mono">candidate_profile</span>
+        <div className="ml-2 flex gap-1">
+          <button className={tabCls('form')} onClick={() => setMode('form')}>Form</button>
+          <button className={tabCls('ai')}   onClick={() => setMode('ai')}>AI Generate</button>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          {mode === 'form' && (
+            <button onClick={() => onApply(buildFromForm())}
+              className="text-xs px-2 py-1 bg-indigo-600 hover:bg-indigo-500 rounded">Apply</button>
+          )}
+          <button onClick={onClose} className="text-xs text-zinc-500 hover:text-zinc-300">Cancel</button>
+        </div>
+      </div>
+
+      {/* Form mode */}
+      {mode === 'form' && (
+        <div className="p-3 grid grid-cols-2 gap-3 text-xs">
+          <div className="col-span-2 space-y-1">
+            <label className="text-zinc-500 uppercase tracking-widest text-2xs">Narrative</label>
+            <textarea rows={3} value={narrative} onChange={e => setNarrative(e.target.value)}
+              placeholder="2–3 sentence professional summary" className={fieldCls} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-zinc-500 uppercase tracking-widest text-2xs">Portrays well <span className="normal-case">(one per line)</span></label>
+            <textarea rows={4} value={portraysWell} onChange={e => setPortraysWell(e.target.value)}
+              placeholder={"FastAPI + React deployments\nAI/LLM integration"} className={fieldCls} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-zinc-500 uppercase tracking-widest text-2xs">Known gaps <span className="normal-case">(one per line)</span></label>
+            <textarea rows={4} value={knownGaps} onChange={e => setKnownGaps(e.target.value)}
+              placeholder={"Limited enterprise Java\nNo published mobile app"} className={fieldCls} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-zinc-500 uppercase tracking-widest text-2xs">Not this <span className="normal-case">(one per line)</span></label>
+            <textarea rows={3} value={notThis} onChange={e => setNotThis(e.target.value)}
+              placeholder={"Do not pitch as PM\nDo not claim C++ prod"} className={fieldCls} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-zinc-500 uppercase tracking-widest text-2xs">Work auth</label>
+            <input type="text" value={authUrgency} onChange={e => setAuthUrgency(e.target.value)}
+              placeholder="Authorized to work in the US."
+              className="w-full bg-zinc-950 border border-zinc-700 rounded px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-indigo-500 font-mono" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-zinc-500 uppercase tracking-widest text-2xs">Primary roles <span className="normal-case">(one per line)</span></label>
+            <textarea rows={3} value={primaryRoles} onChange={e => setPrimaryRoles(e.target.value)}
+              placeholder={"Software Engineer (Full-Stack)\nBackend / API Engineer"} className={fieldCls} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-zinc-500 uppercase tracking-widest text-2xs">Secondary roles <span className="normal-case">(one per line)</span></label>
+            <textarea rows={3} value={secondaryRoles} onChange={e => setSecondaryRoles(e.target.value)}
+              placeholder={"SRE / DevOps Engineer"} className={fieldCls} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-zinc-500 uppercase tracking-widest text-2xs">Constraints <span className="normal-case">(one per line)</span></label>
+            <textarea rows={3} value={constraints} onChange={e => setConstraints(e.target.value)}
+              placeholder={"Remote-first preferred\nNo US Citizen / GC only roles"} className={fieldCls} />
+          </div>
+        </div>
+      )}
+
+      {/* AI Generate mode */}
+      {mode === 'ai' && (
+        <div className="p-3 space-y-3">
+          <p className="text-2xs text-zinc-500">Describe yourself: background, skills, target roles, constraints. The AI will generate the full profile structure.</p>
+          <textarea
+            rows={6}
+            value={aiPrompt}
+            onChange={e => setAiPrompt(e.target.value)}
+            placeholder={"M.S. CS student graduating Dec 2025. Strong in FastAPI, React, TypeScript, Docker. Research in ML/RL. Want full-stack or AI engineer roles. Remote preferred. OPT status, no sponsorship needed yet."}
+            className={fieldCls}
+          />
+          <div className="flex items-center gap-2">
+            <button onClick={() => void generate()} disabled={aiLoading || !aiPrompt.trim()}
+              className="text-xs px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded disabled:opacity-40">
+              {aiLoading ? 'Generating…' : 'Generate'}
+            </button>
+            {aiError && <span className="text-xs text-red-400">{aiError}</span>}
+          </div>
+
+          {aiPreview && (
+            <div className="border border-zinc-700 rounded p-3 space-y-2">
+              <p className="text-2xs text-zinc-400 uppercase tracking-widest">Preview</p>
+              {aiPreview.narrative && <p className="text-xs text-zinc-300 leading-relaxed">{aiPreview.narrative}</p>}
+              <div className="grid grid-cols-3 gap-3 text-2xs">
+                <div>
+                  <p className="text-green-500 mb-1 uppercase tracking-widest">Portrays well</p>
+                  {(aiPreview.self_assessment?.portrays_well ?? []).map((s, i) => <p key={i} className="text-zinc-400">· {s}</p>)}
+                </div>
+                <div>
+                  <p className="text-amber-500 mb-1 uppercase tracking-widest">Known gaps</p>
+                  {(aiPreview.self_assessment?.known_gaps ?? []).map((s, i) => <p key={i} className="text-zinc-400">· {s}</p>)}
+                </div>
+                <div>
+                  <p className="text-red-500 mb-1 uppercase tracking-widest">Not this</p>
+                  {(aiPreview.self_assessment?.not_this ?? []).map((s, i) => <p key={i} className="text-zinc-400">· {s}</p>)}
+                </div>
+              </div>
+              {aiPreview.target_posture?.primary_roles && (
+                <p className="text-2xs text-zinc-500">Roles: {aiPreview.target_posture.primary_roles.join(', ')}</p>
+              )}
+              <button onClick={applyAiPreview}
+                className="text-xs px-3 py-1.5 bg-green-700 hover:bg-green-600 rounded text-white">
+                Apply to Profile
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Backup panel ──────────────────────────────────────────────────────────────
 
 interface Backup { name: string; ts: string }
@@ -323,21 +525,6 @@ function BackupPanel({ file, currentContent, onRestored }: {
 }
 
 // ── Candidate profile summary card ───────────────────────────────────────────
-
-interface CandidateProfile {
-  narrative?: string
-  self_assessment?: {
-    portrays_well?: string[]
-    known_gaps?: string[]
-    not_this?: string[]
-  }
-  target_posture?: {
-    primary_roles?: string[]
-    secondary_roles?: string[]
-    auth_urgency?: string
-    constraints?: string[]
-  }
-}
 
 function CandidateProfileCard({ json, onEdit }: { json: string; onEdit?: () => void }) {
   let profile: CandidateProfile | null = null
@@ -443,8 +630,7 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
   const [monacoFailed, setMonacoFailed] = useState(false)
 
   const [showProfileSummaryEditor, setShowProfileSummaryEditor] = useState(false)
-  const [profileSummaryDraft, setProfileSummaryDraft] = useState('')
-  const [profileSummaryError, setProfileSummaryError] = useState('')
+  const [initialProfile,          setInitialProfile]           = useState<CandidateProfile | null>(null)
 
   const profileEditorRef = useRef<MonacoEditorNS.IStandaloneCodeEditor | null>(null)
   const monacoMountedRef = useRef(false)
@@ -487,26 +673,21 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
   const openProfileSummaryEditor = useCallback(() => {
     try {
       const parsed = JSON.parse(draft)
-      setProfileSummaryDraft(JSON.stringify(parsed.candidate_profile ?? {}, null, 2))
+      setInitialProfile(parsed.candidate_profile ?? null)
     } catch {
-      setProfileSummaryDraft('{}')
+      setInitialProfile(null)
     }
-    setProfileSummaryError('')
     setShowProfileSummaryEditor(v => !v)
   }, [draft])
 
-  const applyProfileSummaryEdit = useCallback(() => {
+  const applyProfileSummaryEdit = useCallback((updated: CandidateProfile) => {
     try {
-      const updated = JSON.parse(profileSummaryDraft)
-      const parsed  = JSON.parse(draft)
+      const parsed = JSON.parse(draft)
       parsed.candidate_profile = updated
       setDraft(JSON.stringify(parsed, null, 2))
       setShowProfileSummaryEditor(false)
-      setProfileSummaryError('')
-    } catch {
-      setProfileSummaryError('Invalid JSON — fix before applying')
-    }
-  }, [profileSummaryDraft, draft])
+    } catch { /* malformed draft — no-op */ }
+  }, [draft])
 
   const loadContent = useCallback(() => {
     setLoading(true)
@@ -567,29 +748,11 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
       <CandidateProfileCard json={draft} onEdit={openProfileSummaryEditor} />
 
       {showProfileSummaryEditor && (
-        <div className="border border-indigo-700/60 rounded-lg overflow-hidden bg-zinc-950">
-          <div className="flex items-center justify-between px-3 py-1.5 bg-zinc-800/80 border-b border-zinc-700">
-            <span className="text-2xs text-indigo-400 uppercase tracking-widest font-mono">candidate_profile</span>
-            <div className="flex items-center gap-2">
-              {profileSummaryError && <span className="text-xs text-red-400">{profileSummaryError}</span>}
-              <button
-                onClick={applyProfileSummaryEdit}
-                className="text-xs px-2 py-1 bg-indigo-600 hover:bg-indigo-500 rounded"
-              >Apply</button>
-              <button
-                onClick={() => setShowProfileSummaryEditor(false)}
-                className="text-xs text-zinc-500 hover:text-zinc-300"
-              >Cancel</button>
-            </div>
-          </div>
-          <textarea
-            value={profileSummaryDraft}
-            onChange={e => setProfileSummaryDraft(e.target.value)}
-            spellCheck={false}
-            rows={18}
-            className="w-full bg-zinc-950 text-zinc-300 text-xs font-mono p-3 resize-y focus:outline-none"
-          />
-        </div>
+        <CandidateProfileEditor
+          initial={initialProfile}
+          onApply={applyProfileSummaryEdit}
+          onClose={() => setShowProfileSummaryEditor(false)}
+        />
       )}
 
       {/* Two-panel editor */}

@@ -8,11 +8,11 @@ import {
 } from '@/lib/user-settings'
 import { buildModel } from '@/lib/ai-client'
 import { checkRateLimit, extractIp } from '@/lib/rate-limit'
+import { validateOllamaUrl } from '@/lib/ollama-url'
 
 // ── Input limits ──────────────────────────────────────────────────────────────
 const MAX_KEY_LEN   = 500
 const MAX_MODEL_LEN = 100
-const MAX_URL_LEN   = 200
 
 // ── Format validation ─────────────────────────────────────────────────────────
 const KEY_PATTERNS: Partial<Record<Provider, RegExp>> = {
@@ -32,42 +32,6 @@ function validateFormat(provider: Provider, key: string): string | null {
   if (pattern && !pattern.test(key)) return `Key format invalid for ${provider}`
   if (key.length < 20) return 'Key too short'
   return null
-}
-
-// ── SSRF guard for Ollama base_url ────────────────────────────────────────────
-// Blocks cloud metadata endpoints and only allows loopback + RFC-1918 private ranges.
-const BLOCKED_HOSTS = new Set([
-  '169.254.169.254',      // AWS EC2 / Azure IMDS
-  '169.254.170.2',        // AWS ECS metadata
-  '100.100.100.200',      // Alibaba Cloud metadata
-  'metadata.google.internal',
-  'metadata.internal',
-])
-
-function validateOllamaUrl(raw: string): string | null {
-  let u: URL
-  try { u = new URL(raw) } catch { return null }
-  if (u.protocol !== 'http:' && u.protocol !== 'https:') return null
-  if (raw.length > MAX_URL_LEN) return null
-
-  const host = u.hostname.toLowerCase()
-
-  // Block IPv6 link-local and IPv4-mapped addresses (bypass vectors not in BLOCKED_HOSTS)
-  if (/^fe80:/i.test(host) || /^::ffff:/i.test(host)) return null
-
-  // Block cloud metadata hosts
-  if (BLOCKED_HOSTS.has(host)) return null
-  if (host.includes('169.254.') || host.includes('100.100.')) return null
-
-  // Allow only loopback + private RFC-1918 ranges
-  if (host === 'localhost')             return raw
-  if (/^127\./.test(host))             return raw   // 127.0.0.0/8
-  if (/^::1$/.test(host))              return raw   // IPv6 loopback
-  if (/^192\.168\./.test(host))        return raw   // 192.168.0.0/16
-  if (/^10\./.test(host))              return raw   // 10.0.0.0/8
-  if (/^172\.(1[6-9]|2[0-9]|3[01])\./.test(host)) return raw  // 172.16.0.0/12
-
-  return null  // reject all other hosts (public IPs, external hostnames)
 }
 
 // ── Live key test ─────────────────────────────────────────────────────────────

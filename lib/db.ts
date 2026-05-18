@@ -39,22 +39,24 @@ export function getDb(): DB {
 export function initSchema(db: DB): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS jd_jobs (
-      id             TEXT PRIMARY KEY,
-      file_path      TEXT NOT NULL,
-      company        TEXT,
-      role_title     TEXT,
-      tags           TEXT,
-      visa_status    TEXT,
-      role_track     TEXT,
-      fit_pct        INTEGER,
-      raw_content    TEXT,
-      file_mtime     TEXT,
-      clipped_at     TEXT,
-      outreach_brief TEXT,
-      hidden         INTEGER NOT NULL DEFAULT 0,
-      apply_url      TEXT,
-      user_id        TEXT NOT NULL DEFAULT 'default',
-      scanned_at     DATETIME DEFAULT CURRENT_TIMESTAMP
+      id                TEXT PRIMARY KEY,
+      file_path         TEXT NOT NULL,
+      company           TEXT,
+      role_title        TEXT,
+      tags              TEXT,
+      visa_status       TEXT,
+      role_track        TEXT,
+      fit_pct           INTEGER,
+      raw_content       TEXT,
+      file_mtime        TEXT,
+      clipped_at        TEXT,
+      action            TEXT,
+      outreach_brief    TEXT,
+      hidden            INTEGER NOT NULL DEFAULT 0,
+      apply_url         TEXT,
+      application_case  TEXT,
+      user_id           TEXT NOT NULL DEFAULT 'default',
+      scanned_at        DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS jd_outputs (

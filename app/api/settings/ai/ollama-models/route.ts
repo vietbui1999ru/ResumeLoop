@@ -1,35 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-
-// Re-use the same SSRF allowlist logic as the main AI settings route.
-// Only loopback + RFC-1918 ranges allowed — no public IPs, no cloud metadata.
-const BLOCKED_HOSTS = new Set([
-  '169.254.169.254',
-  '169.254.170.2',
-  '100.100.100.200',
-  'metadata.google.internal',
-  'metadata.internal',
-])
-
-function validateOllamaUrl(raw: string): string | null {
-  let u: URL
-  try { u = new URL(raw) } catch { return null }
-  if (u.protocol !== 'http:' && u.protocol !== 'https:') return null
-  if (raw.length > 200) return null
-
-  const host = u.hostname.toLowerCase()
-  if (BLOCKED_HOSTS.has(host)) return null
-  if (host.includes('169.254.') || host.includes('100.100.')) return null
-
-  if (host === 'localhost')             return raw
-  if (/^127\./.test(host))             return raw
-  if (/^::1$/.test(host))              return raw
-  if (/^192\.168\./.test(host))        return raw
-  if (/^10\./.test(host))              return raw
-  if (/^172\.(1[6-9]|2[0-9]|3[01])\./.test(host)) return raw
-
-  return null
-}
+import { validateOllamaUrl } from '@/lib/ollama-url'
 
 interface OllamaModel {
   name:   string
