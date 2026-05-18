@@ -65,11 +65,16 @@ export async function GET(req: NextRequest) {
 
   // ── Users ───────────────────────────────────────────────────────────────────
 
+  // Use ISO timestamp arithmetic — compatible with both SQLite and Postgres.
+  const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString()
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+
   const [realUsers, demoUsers, activeDemos] = await Promise.all([
     db.queryOne<{ n: number }>(`SELECT COUNT(*) as n FROM users WHERE is_demo = 0`),
     db.queryOne<{ n: number }>(`SELECT COUNT(*) as n FROM users WHERE is_demo = 1`),
     db.queryOne<{ n: number }>(
-      `SELECT COUNT(*) as n FROM users WHERE is_demo = 1 AND created_at > datetime('now', '-12 hours')`
+      `SELECT COUNT(*) as n FROM users WHERE is_demo = 1 AND created_at > ?`,
+      [twelveHoursAgo],
     ),
   ])
 
@@ -131,8 +136,9 @@ export async function GET(req: NextRequest) {
     db.query<{ provider: string; feature: string; input: number; output: number }>(
       `SELECT provider, feature, SUM(input_tok) as input, SUM(output_tok) as output
        FROM ai_usage_log
-       WHERE created_at > datetime('now', '-24 hours')
-       GROUP BY provider, feature`
+       WHERE created_at > ?
+       GROUP BY provider, feature`,
+      [twentyFourHoursAgo],
     ),
   ])
 

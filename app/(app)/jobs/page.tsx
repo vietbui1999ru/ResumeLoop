@@ -444,12 +444,23 @@ export default function JobsPage() {
       </div>
 
       {/* ── Setup panel (new users with no folder configured) ──── */}
-      {jobsPathExists === false && jobs.length === 0 && (
+      {!IS_CLOUD && jobsPathExists === false && jobs.length === 0 && (
         <SetupPanel onComplete={() => { setJobsPathExists(true); reload() }} />
+      )}
+      {IS_CLOUD && !initialLoading && jobs.length === 0 && (
+        <div className="flex-1 flex items-center justify-center p-12">
+          <div className="text-center space-y-3 max-w-sm">
+            <p className="text-zinc-400 text-sm">No jobs yet.</p>
+            <p className="text-zinc-500 text-xs leading-relaxed">
+              Go to <strong className="text-zinc-300">Settings → Folders</strong> and select your Jobs folder,
+              then click <strong className="text-zinc-300">Scan</strong> above to import .md files.
+            </p>
+          </div>
+        </div>
       )}
 
       {/* ── Table ──────────────────────────────────────────────── */}
-      <div data-tour="jobs-table" className={`px-6 pt-4 pb-6 ${jobsPathExists === false && jobs.length === 0 ? 'hidden' : ''}`}>
+      <div data-tour="jobs-table" className={`px-6 pt-4 pb-6 ${(!IS_CLOUD && jobsPathExists === false && jobs.length === 0) ? 'hidden' : ''}`}>
         {initialLoading ? <JobsTableSkeleton /> : (
         <table className="w-full text-sm">
           <thead>
