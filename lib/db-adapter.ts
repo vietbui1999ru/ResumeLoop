@@ -307,6 +307,44 @@ export class NeonAdapter implements DbAdapter {
       await this.neonSql.query(stmt)
     }
   }
+  private async _seedSystemPrompts(): Promise<void> {
+    const { count } = (await this.queryOne<{ count: number }>(
+      `SELECT COUNT(*) AS count FROM system_prompts`,
+    )) ?? { count: 0 }
+    if (count > 0) return // already seeded
+
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const fs   = require('fs')   as typeof import('fs')
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const path = require('path') as typeof import('path')
+    const root = process.cwd()
+    const tryRead = (rel: string) => {
+      try { return fs.readFileSync(path.join(root, rel), 'utf8') } catch { return '' }
+    }
+
+    const atsGuide  = tryRead('docs/reference/ats-optimization-guidelines.md')
+    const claudeFull = tryRead('docs/reference/CLAUDE-full.md')
+    const atsSystem  = tryRead('docs/reference/ats-optimized-resume-system.md')
+    const specMatch  = tryRead('docs/reference/spec-job-match-resume-generator.md')
+
+    const seeds: Array<{ key: string; content: string }> = [
+      { key: 'reason',       content: [atsGuide, claudeFull].filter(Boolean).join('\n\n') },
+      { key: 'chat',         content: [atsSystem, specMatch].filter(Boolean).join('\n\n') },
+      { key: 'cover-letter', content: atsGuide },
+    ]
+
+    for (const { key, content } of seeds) {
+      if (!content) continue
+      const id = `${key}-v1`
+      await this.run(
+        `INSERT INTO system_prompts (id, prompt_key, version, content, is_active)
+         VALUES (?, ?, 1, ?, 1)
+         ON CONFLICT (prompt_key, version) DO NOTHING`,
+        [id, key, content],
+      )
+    }
+  }
+
   async initialize(): Promise<void> {
     if (this.initialized) return
     const runSchema = this.exec.bind(this)
@@ -353,6 +391,10 @@ export class NeonAdapter implements DbAdapter {
         UNIQUE (prompt_key, version)
       );
     `)
+    // Seed system_prompts from disk if the table is empty.
+    // Files exist in the Docker image on the first deploy after privatization;
+    // subsequent deploys skip this because rows already exist.
+    await this._seedSystemPrompts()
     if (!isCloud()) await runSchema(NEON_DEMO_SEED)
     this.initialized = true
   }
