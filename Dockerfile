@@ -16,6 +16,10 @@ RUN cd harness && npm ci
 
 # Copy source and build Next.js (produces .next/standalone)
 COPY . .
+# APP_MODE must be set at build time so NEXT_PUBLIC_APP_MODE is baked into the JS bundle.
+# Runtime secrets (ECS Secrets Manager) arrive too late for NEXT_PUBLIC_ vars.
+ARG APP_MODE=cloud
+ENV APP_MODE=${APP_MODE}
 RUN npm run build
 
 # ── Stage 2: runtime ──────────────────────────────────────────────────────────

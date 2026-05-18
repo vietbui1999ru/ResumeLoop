@@ -37,8 +37,23 @@ function isPublicPath(pathname: string): boolean {
   )
 }
 
+const MOBILE_UA_RE = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i
+
+function isMobile(ua: string | null): boolean {
+  if (!ua) return false
+  return MOBILE_UA_RE.test(ua)
+}
+
 export default auth((req: NextAuthRequest) => {
   const { pathname } = req.nextUrl
+
+  // Block mobile — desktop-only until mobile layout is implemented
+  if (pathname !== '/not-supported' && !pathname.startsWith('/api/') && !pathname.startsWith('/_next/')) {
+    const ua = req.headers.get('user-agent')
+    if (isMobile(ua)) {
+      return NextResponse.redirect(new URL('/not-supported', req.url))
+    }
+  }
 
   // CSRF guard: non-auth API mutations must originate from a safe origin.
   // Missing Origin is also rejected — legitimate browser fetches always send it.

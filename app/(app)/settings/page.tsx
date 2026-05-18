@@ -519,7 +519,7 @@ export default function SettingsPage() {
               <CloudFolderPicker
                 handleKey="jobs-folder"
                 label="Job Postings Folder"
-                hint="Select the folder on your computer containing .md job description files. Used by Scan."
+                hint="Select the folder on your computer containing .md job description files. Scan reads files from your browser — no upload to server."
                 onSelect={name => name && save({ jobs_path: name })}
               />
             </div>
