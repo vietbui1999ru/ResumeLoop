@@ -9,6 +9,9 @@ export interface DbAdapter {
   run(sql: string, params?: unknown[]): Promise<void>
   exec(sql: string): Promise<void>
   initialize(): Promise<void>
+  /** Run a sequence of statements atomically. SQLite uses a real transaction;
+   *  Neon HTTP runs them sequentially (best-effort — no true atomicity). */
+  runInTransaction(ops: Array<{ sql: string; params?: unknown[] }>): Promise<void>
 }
 
 // ── SQLite adapter (local mode) ───────────────────────────────────────────────
@@ -26,6 +29,14 @@ export class SqliteAdapter implements DbAdapter {
   }
   async exec(sql: string): Promise<void> {
     this.db.exec(sql)
+  }
+  async runInTransaction(ops: Array<{ sql: string; params?: unknown[] }>): Promise<void> {
+    const txn = this.db.transaction(() => {
+      for (const { sql, params = [] } of ops) {
+        this.db.prepare(sql).run(...params)
+      }
+    })
+    txn()
   }
   async initialize(): Promise<void> {
     // Schema init runs inside getDb() — no extra work needed
@@ -305,6 +316,13 @@ export class NeonAdapter implements DbAdapter {
     const stmts = sql.split(';').map(s => s.trim()).filter(Boolean)
     for (const stmt of stmts) {
       await this.neonSql.query(stmt)
+    }
+  }
+  async runInTransaction(ops: Array<{ sql: string; params?: unknown[] }>): Promise<void> {
+    // Neon HTTP (neon()) doesn't support multi-statement transactions.
+    // Run sequentially — best-effort. For true atomicity, switch to neonPool with a pooled connection.
+    for (const { sql, params = [] } of ops) {
+      await this.neonSql.query(translatePlaceholders(sql), params)
     }
   }
   private async _seedSystemPrompts(): Promise<void> {

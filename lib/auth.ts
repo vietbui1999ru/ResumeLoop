@@ -25,6 +25,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   callbacks: {
     ...authConfig.callbacks,
+    // Re-validate user state on every server-side auth() call.
+    // Catches deleted accounts and password changes without waiting for JWT expiry.
+    // Edge middleware uses auth.config.ts which skips this (no DB access on Edge).
+    async jwt({ token, user }) {
+      if (user) {
+        token.id     = user.id
+        token.isDemo = (user as { isDemo: boolean }).isDemo
+        return token
+      }
+      if (token.id) {
+        try {
+          const db = await getAdapter()
+          const row = await db.queryOne<{ deleted_at: string | null; password_changed_at: string | null }>(
+            `SELECT deleted_at, password_changed_at FROM users WHERE id = ?`,
+            [token.id as string],
+          )
+          if (!row || row.deleted_at) return null
+          if (row.password_changed_at && token.iat) {
+            const changedMs = new Date(row.password_changed_at).getTime()
+            if (changedMs > (token.iat as number) * 1000) return null
+          }
+        } catch {
+          // DB unavailable — allow existing token to continue (fail open)
+        }
+      }
+      return token
+    },
     async signIn({ user, account, profile }) {
       if (account?.type !== 'oauth') return true
 

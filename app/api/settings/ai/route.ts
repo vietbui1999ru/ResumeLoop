@@ -52,6 +52,9 @@ function validateOllamaUrl(raw: string): string | null {
 
   const host = u.hostname.toLowerCase()
 
+  // Block IPv6 link-local and IPv4-mapped addresses (bypass vectors not in BLOCKED_HOSTS)
+  if (/^fe80:/i.test(host) || /^::ffff:/i.test(host)) return null
+
   // Block cloud metadata hosts
   if (BLOCKED_HOSTS.has(host)) return null
   if (host.includes('169.254.') || host.includes('100.100.')) return null

@@ -1,6 +1,7 @@
 import path from 'path'
 import os from 'os'
 import { getAdapter } from './db-adapter'
+import { isCloud } from './app-mode'
 
 export interface AppSettings {
   jobs_path:     string
@@ -42,6 +43,8 @@ export function validateSafeDir(raw: string): string {
 }
 
 export async function getSetting<K extends keyof AppSettings>(key: K): Promise<string> {
+  // Cloud has no persistent local filesystem — always use env-based defaults
+  if (isCloud()) return DEFAULTS[key]
   const db = await getAdapter()
   const row = await db.queryOne<{ value: string }>(
     'SELECT value FROM app_settings WHERE key = ?',
@@ -51,6 +54,7 @@ export async function getSetting<K extends keyof AppSettings>(key: K): Promise<s
 }
 
 export async function setSetting<K extends keyof AppSettings>(key: K, value: string): Promise<void> {
+  if (isCloud()) return  // No-op in cloud — filesystem paths are meaningless on ECS
   if (value !== '') validateSafeDir(value)  // empty = clear optional setting, skip validation
   const db = await getAdapter()
   await db.run(

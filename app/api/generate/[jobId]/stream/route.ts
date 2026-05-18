@@ -21,6 +21,14 @@ export async function GET(
   const { jobId } = await params
   const sessionId = new URL(request.url).searchParams.get('sessionId') ?? 'default'
 
+  // Ownership check first — prevents probing whether a jobId exists via provider-error timing
+  const db = await getAdapter()
+  const jobExists = await db.queryOne<{ id: string }>(
+    'SELECT id FROM jd_jobs WHERE id = ? AND user_id = ?',
+    [jobId, userId],
+  )
+  if (!jobExists) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
   const provider = await getActiveProvider(userId)
   if (!provider) {
     return NextResponse.json(

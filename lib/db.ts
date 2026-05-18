@@ -448,7 +448,7 @@ export function initSchema(db: DB): void {
   if (!hasColumn(db, 'resume_profiles', 'persona_md'))
     db.exec(`ALTER TABLE resume_profiles ADD COLUMN persona_md TEXT`)
   if (!hasColumn(db, 'resume_profiles', 'updated_at'))
-    db.exec(`ALTER TABLE resume_profiles ADD COLUMN updated_at DATETIME DEFAULT NULL`)
+    db.exec(`ALTER TABLE resume_profiles ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`)
 
   // One-time cleanup: orphaned jd_outputs rows (user_id='default') whose job has been deleted.
   // These block demo-user job deletion via FK. Safe to run every init — deletes nothing if already clean.
@@ -480,7 +480,7 @@ function seedSystemPromptsFromDisk(db: DB): void {
   const coverLetterContent = '# Cover letter prompt is assembled dynamically in lib/cover-letter.ts'
 
   const insert = db.prepare(
-    `INSERT OR IGNORE INTO system_prompts (id, prompt_key, version, content, is_active) VALUES (?, ?, ?, ?, ?)`
+    `INSERT INTO system_prompts (id, prompt_key, version, content, is_active) VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`
   )
 
   if (reasonContent)   insert.run('sp-reason-v1',       'reason',       1, reasonContent,      1)

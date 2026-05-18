@@ -4,6 +4,10 @@ vi.mock('./db-adapter', () => ({ getAdapter: vi.fn() }))
 vi.mock('./jd-parser',  () => ({ parseJd:    vi.fn().mockReturnValue({ raw_content: '' }) }))
 vi.mock('./fit-scorer', () => ({ scoreJd:    vi.fn().mockReturnValue({ fit_pct: 80, role_track: 'genai', visa_status: 'proceed', action: 'apply' }) }))
 vi.mock('bcryptjs',     () => ({ default: { hash: vi.fn().mockResolvedValue('hashed') } }))
+vi.mock('./crypto',     () => ({
+  encrypt: vi.fn().mockResolvedValue('encrypted:pwd'),
+  decrypt: vi.fn().mockImplementation(async (v: string) => v === 'encrypted:pwd' ? 'secret' : v),
+}))
 
 import { getAdapter } from './db-adapter'
 import { getOrCreateDemoUserForIp, resetDemoUser } from './demo-seed'
@@ -12,9 +16,10 @@ const mockGetAdapter = vi.mocked(getAdapter)
 
 function makeMockDb() {
   return {
-    queryOne: vi.fn(),
-    query:    vi.fn().mockResolvedValue([]),
-    run:      vi.fn().mockResolvedValue(undefined),
+    queryOne:         vi.fn(),
+    query:            vi.fn().mockResolvedValue([]),
+    run:              vi.fn().mockResolvedValue(undefined),
+    runInTransaction: vi.fn().mockResolvedValue(undefined),
   }
 }
 
@@ -23,7 +28,8 @@ beforeEach(() => { vi.clearAllMocks() })
 describe('getOrCreateDemoUserForIp', () => {
   it('returns existing creds without inserting when active demo exists for ip_hash', async () => {
     const mockDb = makeMockDb()
-    mockDb.queryOne.mockResolvedValueOnce({ email: 'demo_abc@demo.local', demo_cleartext_pwd: 'secret' })
+    // demo_cleartext_pwd is stored encrypted; mock decrypt returns 'secret' for 'encrypted:pwd'
+    mockDb.queryOne.mockResolvedValueOnce({ email: 'demo_abc@demo.local', demo_cleartext_pwd: 'encrypted:pwd' })
     mockGetAdapter.mockResolvedValue(mockDb as any)
 
     const result = await getOrCreateDemoUserForIp('hash-111')
@@ -56,11 +62,11 @@ describe('getOrCreateDemoUserForIp', () => {
 
     await getOrCreateDemoUserForIp('hash-333')
 
-    const deleteCall = mockDb.run.mock.calls.find(
-      ([sql]: [string]) => sql.includes('DELETE FROM users') && sql.includes('id')
-    )
-    expect(deleteCall).toBeDefined()
-    expect(deleteCall![1]).toContain('old-id')
+    // deleteDemoUser uses runInTransaction — check that it was called with the old user id
+    expect(mockDb.runInTransaction).toHaveBeenCalledOnce()
+    const ops: Array<{ sql: string; params: unknown[] }> = mockDb.runInTransaction.mock.calls[0][0]
+    const deleteUsersOp = ops.find(o => o.sql.includes('DELETE FROM users') && o.sql.includes('id'))
+    expect(deleteUsersOp?.params).toContain('old-id')
   })
 })
 
@@ -72,11 +78,13 @@ describe('resetDemoUser', () => {
 
     const result = await resetDemoUser('old-id', 'hash-444')
 
-    const deleteUsersCall = mockDb.run.mock.calls.find(
-      ([sql]: [string]) => sql.includes('DELETE FROM users') && sql.includes('id')
-    )
-    expect(deleteUsersCall![1]).toContain('old-id')
+    // deleteDemoUser uses runInTransaction — verify the delete included old-id
+    expect(mockDb.runInTransaction).toHaveBeenCalledOnce()
+    const ops: Array<{ sql: string; params: unknown[] }> = mockDb.runInTransaction.mock.calls[0][0]
+    const deleteUsersOp = ops.find(o => o.sql.includes('DELETE FROM users') && o.sql.includes('id'))
+    expect(deleteUsersOp?.params).toContain('old-id')
 
+    // INSERT INTO users uses db.run (not transaction)
     const insertCall = mockDb.run.mock.calls.find(([sql]: [string]) => sql.includes('INSERT INTO users'))
     expect(insertCall![1]).toContain('hash-444')
 

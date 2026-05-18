@@ -62,7 +62,7 @@ function isCapacityError(err: unknown): boolean {
          msg.includes('rate limit') || msg.includes('429') || msg.includes('503')
 }
 
-export async function reasonForJob(rawContent: string, masterData?: string, userId = 'default'): Promise<ReasoningResult> {
+export async function reasonForJob(rawContent: string, masterData?: string, userId = 'default', signal?: AbortSignal): Promise<ReasoningResult> {
   const cfg          = await getActiveConfig(userId)
   const model        = await getModel(userId)
   const systemPrompt = await buildSystemPrompt(masterData)
@@ -88,7 +88,7 @@ export async function reasonForJob(rawContent: string, masterData?: string, user
       ;({ toolCalls, text, finishReason, usage } = await generateText({
         model,
         maxOutputTokens: 2048,
-        abortSignal: AbortSignal.timeout(60_000),
+        abortSignal: signal ? AbortSignal.any([signal, AbortSignal.timeout(60_000)]) : AbortSignal.timeout(60_000),
         system: systemPrompt,
         tools: {
           resume_decision: {
@@ -157,7 +157,7 @@ export async function reasonForJob(rawContent: string, masterData?: string, user
     } = await generateText({
       model,
       maxOutputTokens: 16384,
-      abortSignal: AbortSignal.timeout(120_000),
+      abortSignal: signal ? AbortSignal.any([signal, AbortSignal.timeout(120_000)]) : AbortSignal.timeout(120_000),
       system: systemPrompt,
       messages: [{
         role: 'user',

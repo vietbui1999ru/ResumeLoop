@@ -69,8 +69,8 @@ export async function checkRateLimitAsync(
         remaining: res.remaining,
         reset:     res.reset,
       }
-    } catch {
-      // Upstash unavailable — fall through to in-process limiter
+    } catch (err) {
+      console.error('[rate-limit] Upstash unavailable, falling back to local:', err)
     }
   }
   return localCheck(key, limit, windowMs)

@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto'
 import bcrypt from 'bcryptjs'
 import { getAdapter } from './db-adapter'
+import { encrypt, decrypt } from './crypto'
 import { parseJd } from './jd-parser'
 import { scoreJd } from './fit-scorer'
 
@@ -681,22 +682,24 @@ BizFlow is an equal opportunity employer.
 ]
 
 async function deleteDemoUser(userId: string, db: Awaited<ReturnType<typeof getAdapter>>): Promise<void> {
-  await db.run(`DELETE FROM outreach_items WHERE user_id = ?`, [userId])
-  await db.run(`DELETE FROM chat_messages  WHERE user_id = ?`, [userId])
-  // Delete outputs both by user_id AND by job_id — pre-multi-user DBs may have
-  // user_id='default' on outputs that FK-reference jobs owned by this user.
-  await db.run(`DELETE FROM jd_outputs WHERE job_id IN (SELECT id FROM jd_jobs WHERE user_id = ?)`, [userId])
-  await db.run(`DELETE FROM jd_outputs WHERE user_id = ?`, [userId])
-  await db.run(`DELETE FROM jd_metrics WHERE user_id = ?`, [userId])
-  await db.run(`DELETE FROM jd_jobs    WHERE user_id = ?`, [userId])
-  await db.run(`DELETE FROM resume_sessions            WHERE user_id = ?`, [userId])
-  await db.run(`DELETE FROM resume_profiles            WHERE user_id = ?`, [userId])
-  await db.run(`DELETE FROM user_settings              WHERE user_id = ?`, [userId])
-  await db.run(`DELETE FROM ai_usage_log               WHERE user_id = ?`, [userId])
-  await db.run(`DELETE FROM password_reset_tokens      WHERE user_id = ?`, [userId])
-  await db.run(`DELETE FROM email_verification_tokens  WHERE user_id = ?`, [userId])
-  await db.run(`DELETE FROM oauth_accounts             WHERE user_id = ?`, [userId])
-  await db.run(`DELETE FROM users                      WHERE id      = ?`, [userId])
+  // Delete in FK-safe order, wrapped in a transaction (atomic on SQLite; best-effort on Neon HTTP).
+  await db.runInTransaction([
+    { sql: `DELETE FROM outreach_items            WHERE user_id = ?`, params: [userId] },
+    { sql: `DELETE FROM chat_messages             WHERE user_id = ?`, params: [userId] },
+    // Delete outputs by job_id too — legacy rows may have user_id='default' with FK to these jobs.
+    { sql: `DELETE FROM jd_outputs WHERE job_id IN (SELECT id FROM jd_jobs WHERE user_id = ?)`, params: [userId] },
+    { sql: `DELETE FROM jd_outputs                WHERE user_id = ?`, params: [userId] },
+    { sql: `DELETE FROM jd_metrics                WHERE user_id = ?`, params: [userId] },
+    { sql: `DELETE FROM jd_jobs                   WHERE user_id = ?`, params: [userId] },
+    { sql: `DELETE FROM resume_sessions           WHERE user_id = ?`, params: [userId] },
+    { sql: `DELETE FROM resume_profiles           WHERE user_id = ?`, params: [userId] },
+    { sql: `DELETE FROM user_settings             WHERE user_id = ?`, params: [userId] },
+    { sql: `DELETE FROM ai_usage_log              WHERE user_id = ?`, params: [userId] },
+    { sql: `DELETE FROM password_reset_tokens     WHERE user_id = ?`, params: [userId] },
+    { sql: `DELETE FROM email_verification_tokens WHERE user_id = ?`, params: [userId] },
+    { sql: `DELETE FROM oauth_accounts            WHERE user_id = ?`, params: [userId] },
+    { sql: `DELETE FROM users                     WHERE id      = ?`, params: [userId] },
+  ])
 }
 
 export async function cleanupExpiredDemoUsers(): Promise<{ purged: number }> {
@@ -904,14 +907,15 @@ async function createFreshDemoForIp(
   ipHash: string,
   db: Awaited<ReturnType<typeof getAdapter>>,
 ): Promise<{ id: string; email: string; password: string }> {
-  const id       = randomUUID()
-  const email    = `demo_${id}@demo.local`
-  const password = randomUUID()
-  const hash     = await bcrypt.hash(password, 10)
+  const id            = randomUUID()
+  const email         = `demo_${id}@demo.local`
+  const password      = randomUUID()
+  const hash          = await bcrypt.hash(password, 10)
+  const encryptedPwd  = await encrypt(password)
   await db.run(
     `INSERT INTO users (id, email, password, is_demo, email_verified, ip_hash, demo_cleartext_pwd)
      VALUES (?, ?, ?, 1, 1, ?, ?)`,
-    [id, email, hash, ipHash, password],
+    [id, email, hash, ipHash, encryptedPwd],
   )
   await seedDemoUser(id)
   return { id, email, password }
@@ -927,7 +931,10 @@ export async function getOrCreateDemoUserForIp(
     `SELECT email, demo_cleartext_pwd FROM users WHERE ip_hash = ? AND is_demo = 1 AND created_at > ?`,
     [ipHash, cutoff],
   )
-  if (existing) return { email: existing.email, password: existing.demo_cleartext_pwd }
+  if (existing) {
+    const password = await decrypt(existing.demo_cleartext_pwd)
+    return { email: existing.email, password }
+  }
 
   const stale = await db.queryOne<{ id: string }>(
     `SELECT id FROM users WHERE ip_hash = ? AND is_demo = 1`,

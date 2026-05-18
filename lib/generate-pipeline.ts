@@ -82,7 +82,7 @@ export async function* runPipeline(jobId: string, sessionId = 'default', userId 
   yield emit({ stage: 'ai-reason', status: 'running', data: { workIds: resolvedWorkIds } })
   let decision: ReasoningResult
   try {
-    decision = await reasonForJob(job.raw_content, masterDataJson, userId)
+    decision = await reasonForJob(job.raw_content, masterDataJson, userId, signal)
   } catch (e) {
     const errMsg = String(e)
     console.error(`[pipeline] ai-reason failed: ${errMsg}`)
@@ -122,7 +122,8 @@ export async function* runPipeline(jobId: string, sessionId = 'default', userId 
       continue // captured — do not forward to SSE stream
     }
     yield emit(event)
-    if (event.status === 'fail') { logger.finish('failed'); return }
+    // validate:fail is non-terminal — fix-loop follows. Only build:fail and fix-loop:fail are terminal.
+    if (event.status === 'fail' && event.stage !== 'validate') { logger.finish('failed'); return }
   }
 
   if (!docxPath) { yield emit(errEvent('finalize', 'DOCX path not set after pipeline')); logger.finish('failed'); return }
@@ -424,15 +425,21 @@ function spawnAsync(cmd: string, args: string[], cwd: string, signal?: AbortSign
     }
     const out: string[] = [], errChunks: string[] = []
     const proc = spawn(cmd, args, { cwd })
-    const onAbort = () => { proc.kill('SIGTERM') }
+    let killTimer: ReturnType<typeof setTimeout> | null = null
+    const onAbort = () => {
+      proc.kill('SIGTERM')
+      killTimer = setTimeout(() => proc.kill('SIGKILL'), 5000)
+    }
     signal?.addEventListener('abort', onAbort, { once: true })
     proc.stdout.on('data', (d: Buffer) => out.push(d.toString()))
     proc.stderr.on('data', (d: Buffer) => errChunks.push(d.toString()))
     proc.on('close', code => {
+      if (killTimer) { clearTimeout(killTimer); killTimer = null }
       signal?.removeEventListener('abort', onAbort)
       resolve({ code: code ?? 1, stdout: out.join(''), stderr: errChunks.join('') })
     })
     proc.on('error', e => {
+      if (killTimer) { clearTimeout(killTimer); killTimer = null }
       signal?.removeEventListener('abort', onAbort)
       resolve({ code: 1, stdout: out.join(''), stderr: e.message })
     })

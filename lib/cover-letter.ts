@@ -30,7 +30,7 @@ export async function streamCoverLetter(ctx: CoverLetterContext, userId = 'defau
   Promise.resolve(result.usage).then(async usage => {
     const cfg = await getActiveConfig(userId)
     if (cfg) await logAiUsage(userId, cfg.provider, cfg.model, 'cover-letter', usage.inputTokens ?? 0, usage.outputTokens ?? 0)
-  }).catch(() => {})
+  }).catch(err => console.warn('[cover-letter] usage log failed:', err))
 
   return result
 }
