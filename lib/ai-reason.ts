@@ -51,7 +51,10 @@ export async function reasonForJob(rawContent: string, masterData?: string, user
         inputSchema: DECISION_SCHEMA,
       },
     },
-    toolChoice: { type: 'tool', toolName: 'resume_decision' },
+    // 'required' = must call any tool. Equivalent to forcing resume_decision since it's
+    // the only tool defined, and is supported by all providers (Gemini, OpenAI, Anthropic).
+    // { type: 'tool', toolName: '...' } is Anthropic-specific and breaks Gemini.
+    toolChoice: 'required',
     messages: [{ role: 'user', content: `Job Description:\n\n${rawContent}` }],
   })
 
