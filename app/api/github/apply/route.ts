@@ -30,12 +30,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
   }
 
-  const { project, sessionId = 'default' } = await req.json() as { project?: ProjectInput; sessionId?: string }
+  let body: { project?: ProjectInput; sessionId?: string }
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
+  const { project, sessionId = 'default' } = body
+
   if (!project?.id || !project.bullets?.length) {
     return NextResponse.json({ error: 'project with id and bullets required' }, { status: 400 })
   }
   if (!/^[a-z0-9_-]{1,40}$/.test(project.id)) {
     return NextResponse.json({ error: 'project.id must be lowercase alphanumeric, dashes/underscores, max 40 chars' }, { status: 400 })
+  }
+  if (typeof project.name !== 'string' || project.name.length > 80 || /[\x00-\x1f]/.test(project.name)) {
+    return NextResponse.json({ error: 'project.name must be a string ≤80 chars with no control characters' }, { status: 400 })
+  }
+  if (typeof project.short_stack !== 'string' || project.short_stack.length > 60 || /[\x00-\x1f]/.test(project.short_stack)) {
+    return NextResponse.json({ error: 'project.short_stack must be a string ≤60 chars with no control characters' }, { status: 400 })
   }
   if (!Array.isArray(project.bullets) || project.bullets.some(b => typeof b !== 'string' || b.length > 116)) {
     return NextResponse.json({ error: 'bullets must be strings each ≤116 chars' }, { status: 400 })

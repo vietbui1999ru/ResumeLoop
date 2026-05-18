@@ -169,7 +169,7 @@ export async function POST(req: Request) {
             const toolCallJson = toolCalls?.length
               ? JSON.stringify(toolCalls.map(c => ({
                   type: 'tool-call', toolCallId: c.toolCallId, toolName: c.toolName,
-                  args: 'input' in c ? c.input : {},
+                  input: 'input' in c ? c.input : {},
                 })))
               : null
             await db.run(
@@ -179,7 +179,7 @@ export async function POST(req: Request) {
             if (toolResults?.length) {
               const resultsJson = JSON.stringify(toolResults.map(r => ({
                 type: 'tool-result', toolCallId: r.toolCallId, toolName: r.toolName,
-                result: 'output' in r ? String(r.output) : '',
+                output: 'output' in r ? String(r.output) : '',
               })))
               await db.run(
                 'INSERT INTO chat_messages (id, session_id, role, content, tool_calls, user_id) VALUES (?, ?, ?, ?, ?, ?)',

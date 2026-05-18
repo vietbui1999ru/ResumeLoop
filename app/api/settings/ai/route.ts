@@ -58,7 +58,7 @@ async function testKey(provider: Provider, apiKey: string, model: string, baseUr
       return 'Model not found for this provider — check the model name'
     if (msg.includes('econnrefused') || msg.includes('fetch failed'))
       return 'Could not connect to provider — check the URL and that the service is running'
-    return `Provider test failed — ${raw.slice(0, 120)}`
+    return 'Provider test failed — check your key, model name, and base URL'
   }
 }
 

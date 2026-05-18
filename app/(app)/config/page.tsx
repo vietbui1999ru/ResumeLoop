@@ -266,56 +266,83 @@ interface CandidateProfile {
   }
 }
 
-function toLines(arr?: string[]): string { return (arr ?? []).join('\n') }
-function fromLines(s: string): string[] { return s.split('\n').map(l => l.trim()).filter(Boolean) }
+// Per-item list editor — avoids the delimiter-collision bug of textarea-per-array
+function ListField({ label, items, onChange, placeholder }: {
+  label: string; items: string[]; onChange: (v: string[]) => void; placeholder?: string
+}) {
+  const inputCls = 'flex-1 bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-300 focus:outline-none focus:border-indigo-500 font-mono'
+  return (
+    <div className="space-y-1">
+      <label className="text-zinc-500 uppercase tracking-widest text-2xs">{label}</label>
+      <div className="space-y-1">
+        {items.map((item, i) => (
+          <div key={i} className="flex gap-1">
+            <input
+              type="text" value={item}
+              onChange={e => { const next = [...items]; next[i] = e.target.value; onChange(next) }}
+              placeholder={placeholder}
+              className={inputCls}
+            />
+            <button onClick={() => onChange(items.filter((_, j) => j !== i))}
+              className="text-zinc-600 hover:text-red-400 px-1 text-xs">×</button>
+          </div>
+        ))}
+        <button onClick={() => onChange([...items, ''])}
+          className="text-2xs text-zinc-600 hover:text-zinc-400">+ add</button>
+      </div>
+    </div>
+  )
+}
 
 function CandidateProfileEditor({
   initial, onApply, onClose,
 }: { initial: CandidateProfile | null; onApply: (p: CandidateProfile) => void; onClose: () => void }) {
   const [mode, setMode] = useState<'form' | 'ai'>('form')
 
-  // Form state — one field per section
-  const [narrative,    setNarrative]    = useState(initial?.narrative ?? '')
-  const [portraysWell, setPortraysWell] = useState(toLines(initial?.self_assessment?.portrays_well))
-  const [knownGaps,    setKnownGaps]    = useState(toLines(initial?.self_assessment?.known_gaps))
-  const [notThis,      setNotThis]      = useState(toLines(initial?.self_assessment?.not_this))
-  const [primaryRoles, setPrimaryRoles] = useState(toLines(initial?.target_posture?.primary_roles))
-  const [secondaryRoles, setSecondaryRoles] = useState(toLines(initial?.target_posture?.secondary_roles))
-  const [authUrgency,  setAuthUrgency]  = useState(initial?.target_posture?.auth_urgency ?? '')
-  const [constraints,  setConstraints]  = useState(toLines(initial?.target_posture?.constraints))
+  // Form state — arrays stored directly, no \n-delimiter serialization
+  const [narrative,      setNarrative]      = useState(initial?.narrative ?? '')
+  const [portraysWell,   setPortraysWell]   = useState<string[]>(initial?.self_assessment?.portrays_well ?? [])
+  const [knownGaps,      setKnownGaps]      = useState<string[]>(initial?.self_assessment?.known_gaps ?? [])
+  const [notThis,        setNotThis]        = useState<string[]>(initial?.self_assessment?.not_this ?? [])
+  const [primaryRoles,   setPrimaryRoles]   = useState<string[]>(initial?.target_posture?.primary_roles ?? [])
+  const [secondaryRoles, setSecondaryRoles] = useState<string[]>(initial?.target_posture?.secondary_roles ?? [])
+  const [authUrgency,    setAuthUrgency]    = useState(initial?.target_posture?.auth_urgency ?? '')
+  const [constraints,    setConstraints]    = useState<string[]>(initial?.target_posture?.constraints ?? [])
 
   // AI state
-  const [aiPrompt,     setAiPrompt]     = useState('')
-  const [aiLoading,    setAiLoading]    = useState(false)
-  const [aiError,      setAiError]      = useState('')
-  const [aiPreview,    setAiPreview]    = useState<CandidateProfile | null>(null)
+  const [aiPrompt,  setAiPrompt]  = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError,   setAiError]   = useState('')
+  const [aiPreview, setAiPreview] = useState<CandidateProfile | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+
+  const nonEmpty = (arr: string[]) => arr.map(s => s.trim()).filter(Boolean)
 
   const buildFromForm = (): CandidateProfile => ({
     narrative,
     self_assessment: {
-      portrays_well: fromLines(portraysWell),
-      known_gaps:    fromLines(knownGaps),
-      not_this:      fromLines(notThis),
+      portrays_well: nonEmpty(portraysWell),
+      known_gaps:    nonEmpty(knownGaps),
+      not_this:      nonEmpty(notThis),
     },
     target_posture: {
-      primary_roles:   fromLines(primaryRoles),
-      secondary_roles: fromLines(secondaryRoles),
+      primary_roles:   nonEmpty(primaryRoles),
+      secondary_roles: nonEmpty(secondaryRoles),
       auth_urgency:    authUrgency.trim() || undefined,
-      constraints:     fromLines(constraints),
+      constraints:     nonEmpty(constraints),
     },
   })
 
   // Populate form fields from a CandidateProfile — used when AI result is applied to form
   const populateForm = (p: CandidateProfile) => {
     setNarrative(p.narrative ?? '')
-    setPortraysWell(toLines(p.self_assessment?.portrays_well))
-    setKnownGaps(toLines(p.self_assessment?.known_gaps))
-    setNotThis(toLines(p.self_assessment?.not_this))
-    setPrimaryRoles(toLines(p.target_posture?.primary_roles))
-    setSecondaryRoles(toLines(p.target_posture?.secondary_roles))
+    setPortraysWell(p.self_assessment?.portrays_well ?? [])
+    setKnownGaps(p.self_assessment?.known_gaps ?? [])
+    setNotThis(p.self_assessment?.not_this ?? [])
+    setPrimaryRoles(p.target_posture?.primary_roles ?? [])
+    setSecondaryRoles(p.target_posture?.secondary_roles ?? [])
     setAuthUrgency(p.target_posture?.auth_urgency ?? '')
-    setConstraints(toLines(p.target_posture?.constraints))
+    setConstraints(p.target_posture?.constraints ?? [])
   }
 
   const generate = async () => {
@@ -386,42 +413,18 @@ function CandidateProfileEditor({
             <textarea rows={3} value={narrative} onChange={e => setNarrative(e.target.value)}
               placeholder="2–3 sentence professional summary" className={fieldCls} />
           </div>
-          <div className="space-y-1">
-            <label className="text-zinc-500 uppercase tracking-widest text-2xs">Portrays well <span className="normal-case">(one per line)</span></label>
-            <textarea rows={4} value={portraysWell} onChange={e => setPortraysWell(e.target.value)}
-              placeholder={"FastAPI + React deployments\nAI/LLM integration"} className={fieldCls} />
-          </div>
-          <div className="space-y-1">
-            <label className="text-zinc-500 uppercase tracking-widest text-2xs">Known gaps <span className="normal-case">(one per line)</span></label>
-            <textarea rows={4} value={knownGaps} onChange={e => setKnownGaps(e.target.value)}
-              placeholder={"Limited enterprise Java\nNo published mobile app"} className={fieldCls} />
-          </div>
-          <div className="space-y-1">
-            <label className="text-zinc-500 uppercase tracking-widest text-2xs">Not this <span className="normal-case">(one per line)</span></label>
-            <textarea rows={3} value={notThis} onChange={e => setNotThis(e.target.value)}
-              placeholder={"Do not pitch as PM\nDo not claim C++ prod"} className={fieldCls} />
-          </div>
+          <ListField label="Portrays well" items={portraysWell} onChange={setPortraysWell} placeholder="FastAPI + React deployments" />
+          <ListField label="Known gaps"    items={knownGaps}    onChange={setKnownGaps}    placeholder="Limited enterprise Java" />
+          <ListField label="Not this"      items={notThis}      onChange={setNotThis}       placeholder="Do not pitch as PM" />
           <div className="space-y-1">
             <label className="text-zinc-500 uppercase tracking-widest text-2xs">Work auth</label>
             <input type="text" value={authUrgency} onChange={e => setAuthUrgency(e.target.value)}
               placeholder="Authorized to work in the US."
               className="w-full bg-zinc-950 border border-zinc-700 rounded px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-indigo-500 font-mono" />
           </div>
-          <div className="space-y-1">
-            <label className="text-zinc-500 uppercase tracking-widest text-2xs">Primary roles <span className="normal-case">(one per line)</span></label>
-            <textarea rows={3} value={primaryRoles} onChange={e => setPrimaryRoles(e.target.value)}
-              placeholder={"Software Engineer (Full-Stack)\nBackend / API Engineer"} className={fieldCls} />
-          </div>
-          <div className="space-y-1">
-            <label className="text-zinc-500 uppercase tracking-widest text-2xs">Secondary roles <span className="normal-case">(one per line)</span></label>
-            <textarea rows={3} value={secondaryRoles} onChange={e => setSecondaryRoles(e.target.value)}
-              placeholder={"SRE / DevOps Engineer"} className={fieldCls} />
-          </div>
-          <div className="space-y-1">
-            <label className="text-zinc-500 uppercase tracking-widest text-2xs">Constraints <span className="normal-case">(one per line)</span></label>
-            <textarea rows={3} value={constraints} onChange={e => setConstraints(e.target.value)}
-              placeholder={"Remote-first preferred\nNo US Citizen / GC only roles"} className={fieldCls} />
-          </div>
+          <ListField label="Primary roles"   items={primaryRoles}   onChange={setPrimaryRoles}   placeholder="Software Engineer (Full-Stack)" />
+          <ListField label="Secondary roles" items={secondaryRoles} onChange={setSecondaryRoles} placeholder="SRE / DevOps Engineer" />
+          <ListField label="Constraints"     items={constraints}    onChange={setConstraints}    placeholder="Remote-first preferred" />
         </div>
       )}
 
@@ -669,6 +672,7 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
 
   const [showProfileSummaryEditor, setShowProfileSummaryEditor] = useState(false)
   const [initialProfile,          setInitialProfile]           = useState<CandidateProfile | null>(null)
+  const [profileEditorKey,        setProfileEditorKey]         = useState(0)
 
   const profileEditorRef = useRef<MonacoEditorNS.IStandaloneCodeEditor | null>(null)
   const monacoMountedRef = useRef(false)
@@ -715,6 +719,7 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
     } catch {
       setInitialProfile(null)
     }
+    setProfileEditorKey(k => k + 1)  // force remount so stale form state is discarded
     setShowProfileSummaryEditor(v => !v)
   }, [draft])
 
@@ -787,6 +792,7 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
 
       {showProfileSummaryEditor && (
         <CandidateProfileEditor
+          key={profileEditorKey}
           initial={initialProfile}
           onApply={applyProfileSummaryEdit}
           onClose={() => setShowProfileSummaryEditor(false)}
