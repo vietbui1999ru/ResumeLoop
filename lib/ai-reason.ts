@@ -38,7 +38,7 @@ const DECISION_SCHEMA = jsonSchema<ReasoningResult>({
 
 export async function reasonForJob(rawContent: string, masterData?: string, userId = 'default'): Promise<ReasoningResult> {
   const model        = await getModel(userId)
-  const systemPrompt = buildSystemPrompt(masterData)
+  const systemPrompt = await buildSystemPrompt(masterData)
 
   const { toolCalls, usage } = await generateText({
     model,

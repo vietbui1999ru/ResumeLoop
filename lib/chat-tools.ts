@@ -6,12 +6,11 @@ import { getSession } from './sessions'
 
 const ROOT = process.cwd()
 
+// Proprietary prompt files (ats-optimization-guidelines, CLAUDE-full, ats-optimized-resume-system,
+// spec-job-match-resume-generator) are intentionally excluded — they live in system_prompts DB
+// and must never be readable or editable via the chat tool interface.
 export const FILE_MAP: Record<string, string> = {
   master_resume_data: path.join(ROOT, 'pipeline', 'master_resume_data.json'),
-  claude_full:        path.join(ROOT, 'docs', 'reference', 'CLAUDE-full.md'),
-  ats_guidelines:     path.join(ROOT, 'docs', 'reference', 'ats-optimization-guidelines.md'),
-  ats_system:         path.join(ROOT, 'docs', 'reference', 'ats-optimized-resume-system.md'),
-  spec:               path.join(ROOT, 'CLAUDE.md'),
 }
 
 export type FileKey = keyof typeof FILE_MAP

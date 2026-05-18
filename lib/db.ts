@@ -1,4 +1,5 @@
 import Database, { type Database as DB } from 'better-sqlite3'
+import fs from 'fs'
 import path from 'path'
 import { isCloud } from './app-mode'
 
@@ -189,6 +190,16 @@ export function initSchema(db: DB): void {
       source_path    TEXT,
       created_at     TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS system_prompts (
+      id         TEXT PRIMARY KEY,
+      prompt_key TEXT NOT NULL,
+      version    INTEGER NOT NULL DEFAULT 1,
+      content    TEXT NOT NULL,
+      is_active  INTEGER NOT NULL DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (prompt_key, version)
     );
   `)
 
@@ -399,4 +410,65 @@ export function initSchema(db: DB): void {
     if (!demoExists) db.prepare(`INSERT INTO users (id, email, password, is_demo) VALUES (?, ?, ?, 1)`)
       .run('demo-user', 'demo@demo.com', '$2b$10$p/KLnbVfAXylbVN9Eonw/emuhlarCDbTI4P5CZchZET/5zEAd1hmW')
   }
+
+  // Migrate: add system_prompts table for existing DBs created before this column was added
+  const hasSystemPrompts = (db.prepare(`SELECT COUNT(*) as c FROM sqlite_master WHERE type='table' AND name='system_prompts'`).get() as { c: number }).c > 0
+  if (!hasSystemPrompts) db.exec(`
+    CREATE TABLE system_prompts (
+      id         TEXT PRIMARY KEY,
+      prompt_key TEXT NOT NULL,
+      version    INTEGER NOT NULL DEFAULT 1,
+      content    TEXT NOT NULL,
+      is_active  INTEGER NOT NULL DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (prompt_key, version)
+    )
+  `)
+
+  // Seed system_prompts from disk files if table is empty (local dev only)
+  // In production, content is seeded via NeonAdapter.initialize() or a one-time migration.
+  seedSystemPromptsFromDisk(db)
+
+  // Migrate resume_profiles: add kind, source, persona_md, updated_at columns
+  if (!hasColumn(db, 'resume_profiles', 'kind'))
+    db.exec(`ALTER TABLE resume_profiles ADD COLUMN kind TEXT NOT NULL DEFAULT 'custom'`)
+  if (!hasColumn(db, 'resume_profiles', 'source'))
+    db.exec(`ALTER TABLE resume_profiles ADD COLUMN source TEXT NOT NULL DEFAULT 'upload'`)
+  if (!hasColumn(db, 'resume_profiles', 'persona_md'))
+    db.exec(`ALTER TABLE resume_profiles ADD COLUMN persona_md TEXT`)
+  if (!hasColumn(db, 'resume_profiles', 'updated_at'))
+    db.exec(`ALTER TABLE resume_profiles ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`)
+}
+
+// Seed system_prompts from disk files when the table is empty.
+// Skips silently if any rows already exist (already seeded) or if files are missing (production).
+function seedSystemPromptsFromDisk(db: DB): void {
+  const count = (db.prepare(`SELECT COUNT(*) as c FROM system_prompts`).get() as { c: number }).c
+  if (count > 0) return
+
+  const ROOT = process.cwd()
+
+  function tryRead(filePath: string): string {
+    try { return fs.readFileSync(filePath, 'utf8') } catch { return '' }
+  }
+
+  const atsGuidelines = tryRead(path.join(ROOT, 'docs', 'reference', 'ats-optimization-guidelines.md'))
+  const claudeFull    = tryRead(path.join(ROOT, 'docs', 'reference', 'CLAUDE-full.md'))
+  const atsSystem     = tryRead(path.join(ROOT, 'docs', 'reference', 'ats-optimized-resume-system.md'))
+  const spec          = tryRead(path.join(ROOT, 'docs', 'reference', 'spec-job-match-resume-generator.md'))
+
+  // 'reason' = ats-optimization-guidelines + CLAUDE-full (mirrors buildSystemPrompt() read order)
+  const reasonContent      = [atsGuidelines, claudeFull].filter(Boolean).join('\n\n')
+  // 'chat'   = ats-optimized-resume-system + spec-job-match-resume-generator
+  const chatContent        = [atsSystem, spec].filter(Boolean).join('\n\n')
+  // 'cover-letter' has no external file — buildPrompt() in cover-letter.ts is self-contained.
+  const coverLetterContent = '# Cover letter prompt is assembled dynamically in lib/cover-letter.ts'
+
+  const insert = db.prepare(
+    `INSERT OR IGNORE INTO system_prompts (id, prompt_key, version, content, is_active) VALUES (?, ?, ?, ?, ?)`
+  )
+
+  if (reasonContent)   insert.run('sp-reason-v1',       'reason',       1, reasonContent,      1)
+  if (chatContent)     insert.run('sp-chat-v1',          'chat',         1, chatContent,        1)
+  insert.run('sp-cover-letter-v1', 'cover-letter', 1, coverLetterContent, 1)
 }

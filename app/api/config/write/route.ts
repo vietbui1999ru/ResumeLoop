@@ -6,13 +6,10 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 
-// buildv2.js is excluded — it is executed by node and must not be writable via HTTP
+// buildv2.js is excluded — it is executed by node and must not be writable via HTTP.
+// Proprietary prompt files are stored in system_prompts DB — never editable via this route.
 const ALLOWED: Record<string, string> = {
-  'master_resume_data.json':           PATHS.pipeline.masterData,
-  'ats-optimized-resume-system.md':    PATHS.docs.atsSystem,
-  'ats-optimization-guidelines.md':    PATHS.docs.atsGuidelines,
-  'CLAUDE-full.md':                    PATHS.docs.claudeFull,
-  'spec-job-match-resume-generator.md': PATHS.docs.spec,
+  'master_resume_data.json': PATHS.pipeline.masterData,
 }
 
 export async function POST(req: Request) {

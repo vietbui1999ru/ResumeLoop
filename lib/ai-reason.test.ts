@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 
 // Mock all external deps before importing the module under test
-vi.mock('./prompt-context', () => ({ buildSystemPrompt: () => 'system prompt' }))
+vi.mock('./prompt-context', () => ({ buildSystemPrompt: async () => 'system prompt' }))
 vi.mock('./ai-client',      () => ({ getModel: vi.fn().mockResolvedValue({ modelId: 'mock' }) }))
 vi.mock('./user-settings',  () => ({ getActiveConfig: vi.fn().mockResolvedValue(null) }))
 vi.mock('./ai-usage',       () => ({ logAiUsage: vi.fn().mockResolvedValue(undefined) }))

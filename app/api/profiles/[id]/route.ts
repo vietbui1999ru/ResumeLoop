@@ -11,8 +11,8 @@ export async function GET(_req: Request, { params }: Ctx) {
   const { id } = await params
 
   const db = await getAdapter()
-  const profile = await db.queryOne<{ id: string; name: string; data: string; is_active: number }>(
-    'SELECT id, name, data, is_active FROM resume_profiles WHERE id = ? AND user_id = ?',
+  const profile = await db.queryOne<{ id: string; name: string; data: string; is_active: number; persona_md: string | null }>(
+    'SELECT id, name, data, is_active, persona_md FROM resume_profiles WHERE id = ? AND user_id = ?',
     [id, userId],
   )
   if (!profile) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -25,11 +25,11 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const userId = session.user.id
   const { id } = await params
 
-  const body = await req.json() as { name?: string; data?: string; set_active?: boolean }
+  const body = await req.json() as { name?: string; data?: string; set_active?: boolean; persona_md?: string }
   const db = await getAdapter()
 
-  const existing = await db.queryOne<{ id: string }>(
-    'SELECT id FROM resume_profiles WHERE id = ? AND user_id = ?',
+  const existing = await db.queryOne<{ id: string; kind: string }>(
+    'SELECT id, kind FROM resume_profiles WHERE id = ? AND user_id = ?',
     [id, userId],
   )
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -50,6 +50,18 @@ export async function PATCH(req: Request, { params }: Ctx) {
     await db.run('UPDATE resume_profiles SET data = ? WHERE id = ? AND user_id = ?', [body.data, id, userId])
   }
 
+  if (body.persona_md !== undefined) {
+    if (body.persona_md !== null && body.persona_md.length > 4000) {
+      return NextResponse.json({ error: 'persona_md exceeds 4000 character limit' }, { status: 400 })
+    }
+    const { sanitizePersonaMd } = await import('@/lib/sanitize-persona')
+    const sanitized = body.persona_md ? sanitizePersonaMd(body.persona_md) : null
+    await db.run(
+      'UPDATE resume_profiles SET persona_md = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?',
+      [sanitized, id, userId],
+    )
+  }
+
   return NextResponse.json({ ok: true })
 }
 
@@ -64,11 +76,15 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   const count = (await db.query<{ c: number }>('SELECT COUNT(*) as c FROM resume_profiles WHERE user_id = ?', [userId]))[0]?.c ?? 0
   if (count <= 1) return NextResponse.json({ error: 'Cannot delete the only profile' }, { status: 400 })
 
-  const profile = await db.queryOne<{ is_active: number }>(
-    'SELECT is_active FROM resume_profiles WHERE id = ? AND user_id = ?',
+  const profile = await db.queryOne<{ is_active: number; kind: string }>(
+    'SELECT is_active, kind FROM resume_profiles WHERE id = ? AND user_id = ?',
     [id, userId],
   )
   if (!profile) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  if (profile.kind === 'default') {
+    return NextResponse.json({ error: 'Cannot delete the default profile' }, { status: 400 })
+  }
 
   await db.run('DELETE FROM resume_profiles WHERE id = ? AND user_id = ?', [id, userId])
 

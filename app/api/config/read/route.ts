@@ -4,12 +4,9 @@ import { auth } from '@/lib/auth'
 import { PATHS } from '@/lib/paths'
 
 // buildv2.js is a server-executed script — never expose via HTTP read.
+// Proprietary prompt files are stored in system_prompts DB — never exposed via this route.
 const ALLOWED: Record<string, string> = {
-  'master_resume_data.json':           PATHS.pipeline.masterData,
-  'ats-optimized-resume-system.md':    PATHS.docs.atsSystem,
-  'ats-optimization-guidelines.md':    PATHS.docs.atsGuidelines,
-  'CLAUDE-full.md':                    PATHS.docs.claudeFull,
-  'spec-job-match-resume-generator.md': PATHS.docs.spec,
+  'master_resume_data.json': PATHS.pipeline.masterData,
 }
 
 export async function GET(req: NextRequest) {

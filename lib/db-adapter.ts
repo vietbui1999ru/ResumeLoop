@@ -192,7 +192,21 @@ export const NEON_SCHEMA = `
     name       TEXT NOT NULL,
     data       TEXT NOT NULL,
     is_active  INTEGER NOT NULL DEFAULT 0,
+    kind       TEXT NOT NULL DEFAULT 'custom',
+    source     TEXT NOT NULL DEFAULT 'upload',
+    persona_md TEXT,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS system_prompts (
+    id         TEXT PRIMARY KEY,
+    prompt_key TEXT NOT NULL,
+    version    INTEGER NOT NULL DEFAULT 1,
+    content    TEXT NOT NULL,
+    is_active  INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (prompt_key, version)
   );
 `
 
@@ -320,6 +334,25 @@ export class NeonAdapter implements DbAdapter {
     `)
     await runSchema(NEON_DROP_USER_ID_DEFAULTS)
     await runSchema(NEON_SOFT_DELETE_MIGRATION)
+    // Migrate resume_profiles: new columns for persona and kind tracking
+    await runSchema(`
+      ALTER TABLE resume_profiles ADD COLUMN IF NOT EXISTS kind       TEXT NOT NULL DEFAULT 'custom';
+      ALTER TABLE resume_profiles ADD COLUMN IF NOT EXISTS source     TEXT NOT NULL DEFAULT 'upload';
+      ALTER TABLE resume_profiles ADD COLUMN IF NOT EXISTS persona_md TEXT;
+      ALTER TABLE resume_profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP;
+    `)
+    // system_prompts table for existing Neon DBs
+    await runSchema(`
+      CREATE TABLE IF NOT EXISTS system_prompts (
+        id         TEXT PRIMARY KEY,
+        prompt_key TEXT NOT NULL,
+        version    INTEGER NOT NULL DEFAULT 1,
+        content    TEXT NOT NULL,
+        is_active  INTEGER NOT NULL DEFAULT 1,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (prompt_key, version)
+      );
+    `)
     if (!isCloud()) await runSchema(NEON_DEMO_SEED)
     this.initialized = true
   }
