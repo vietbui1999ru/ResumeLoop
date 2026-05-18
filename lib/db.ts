@@ -369,6 +369,11 @@ export function initSchema(db: DB): void {
     db.exec(`ALTER TABLE users ADD COLUMN password_changed_at DATETIME`)
   if (!hasColumn(db, 'users', 'deleted_at'))
     db.exec(`ALTER TABLE users ADD COLUMN deleted_at DATETIME`)
+  if (!hasColumn(db, 'users', 'ip_hash'))
+    db.exec(`ALTER TABLE users ADD COLUMN ip_hash TEXT`)
+  if (!hasColumn(db, 'users', 'demo_cleartext_pwd'))
+    db.exec(`ALTER TABLE users ADD COLUMN demo_cleartext_pwd TEXT`)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_users_ip_hash ON users(ip_hash) WHERE is_demo = 1`)
 
   // Migrate: allow empty password for OAuth-only accounts
   // (password column already exists; DEFAULT '' is set on new tables above)
