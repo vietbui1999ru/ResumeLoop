@@ -18,6 +18,7 @@ const GenerationPanel = dynamic(() => import('@/components/GenerationPanel'), { 
 const ReasoningModal  = dynamic(() => import('@/components/ReasoningModal'),  { ssr: false })
 const SetupPanel      = dynamic(() => import('@/components/SetupPanel').then(m => ({ default: m.SetupPanel })), { ssr: false })
 const JobImportGuide  = dynamic(() => import('@/components/JobImportGuide').then(m => ({ default: m.JobImportGuide })), { ssr: false })
+const PasteJobModal   = dynamic(() => import('@/components/PasteJobModal').then(m => ({ default: m.PasteJobModal })), { ssr: false })
 
 const ACTION_COLORS: Record<string, string> = {
   '0-Saved':        'text-zinc-400',
@@ -134,6 +135,7 @@ export default function JobsPage() {
   const [sort, setSort] = useState<{ col: SortCol; dir: SortDir }>({ col: 'clipped_at', dir: 'desc' })
   const [jobsPathExists, setJobsPathExists] = useState<boolean | null>(null)
   const [showImportGuide, setShowImportGuide] = useState(false)
+  const [showPasteModal, setShowPasteModal]   = useState(false)
   // True only during the initial page load — shows skeleton rows in tbody.
   // Filter-change re-fetches keep the current rows visible (no skeleton flash).
   const [initialLoading, setInitialLoading] = useState(true)
@@ -364,6 +366,13 @@ export default function JobsPage() {
                 {scanStatus}
               </span>
             )}
+            <button
+              onClick={() => setShowPasteModal(true)}
+              className="text-sm px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded transition-colors text-zinc-300"
+              title="Paste a job posting (.md format)"
+            >
+              Paste
+            </button>
             <div data-tour="scan-btn" className="relative inline-block">
               <button onClick={scan} className="text-sm px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 rounded transition-colors">
                 Scan
@@ -760,6 +769,12 @@ export default function JobsPage() {
       )}
 
       {showImportGuide && <JobImportGuide onClose={() => setShowImportGuide(false)} />}
+      {showPasteModal && (
+        <PasteJobModal
+          onClose={() => setShowPasteModal(false)}
+          onAdded={() => reload()}
+        />
+      )}
     </div>
   )
 }

@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
+import { revalidateTag, revalidatePath } from 'next/cache'
 import { auth } from '@/lib/auth'
 import { getAdapter } from '@/lib/db-adapter'
 import { isCloud } from '@/lib/app-mode'
+import { parseJd } from '@/lib/jd-parser'
+import { scoreJd } from '@/lib/fit-scorer'
 
 const BASE_COLS = `
   j.id, j.company, j.role_title, j.role_track, j.fit_pct, j.visa_status,
@@ -77,4 +80,54 @@ export async function GET(req: Request) {
   }
 
   return NextResponse.json(jobs)
+}
+
+export async function POST(req: Request) {
+  const session = await auth()
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const userId = session.user.id
+
+  const body = await req.json() as { content?: string }
+  const content = (body.content ?? '').trim()
+  if (!content) return NextResponse.json({ error: 'content is required' }, { status: 400 })
+  if (content.length > 200_000) return NextResponse.json({ error: 'content too large (200 KB max)' }, { status: 400 })
+
+  const parsed = parseJd('pasted.md', content)
+  if (!parsed.company || parsed.company === 'Unknown') {
+    return NextResponse.json({ error: 'Could not detect company — make sure you paste the full .md file including frontmatter' }, { status: 422 })
+  }
+
+  const { role_track, fit_pct } = scoreJd(parsed.raw_content)
+  const now = new Date().toISOString()
+
+  const db = await getAdapter()
+
+  const upsertSql = isCloud()
+    ? `
+        INSERT INTO jd_jobs (id, file_path, company, role_title, tags, visa_status, action, role_track, fit_pct, raw_content, file_mtime, clipped_at, apply_url, user_id, scanned_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP)
+        ON CONFLICT (id) DO NOTHING
+      `
+    : `
+        INSERT OR IGNORE INTO jd_jobs (id, file_path, company, role_title, tags, visa_status, action, role_track, fit_pct, raw_content, file_mtime, clipped_at, apply_url, user_id, scanned_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      `
+
+  await db.run(upsertSql, [
+    parsed.id, 'pasted', parsed.company, parsed.role_title,
+    parsed.tags, parsed.visa_status, parsed.action ?? '0-Saved',
+    role_track, fit_pct, parsed.raw_content,
+    now, parsed.clipped_at ?? now, parsed.apply_url, userId,
+  ])
+
+  revalidateTag(`metrics-${userId}`)
+  revalidatePath('/')
+
+  return NextResponse.json({
+    id: parsed.id,
+    company: parsed.company,
+    role_title: parsed.role_title,
+    fit_pct,
+    visa_status: parsed.visa_status,
+  }, { status: 201 })
 }
