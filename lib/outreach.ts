@@ -89,7 +89,7 @@ export async function updateOutreachItem(
   const sets = cols.map(c => `${c} = ?`).join(', ')
   const vals = cols.map(c => patch[c] ?? null)
   await db.run(
-    `UPDATE outreach_items SET ${sets}, updated_at = datetime('now') WHERE id = ? AND job_id = ? AND user_id = ?`,
+    `UPDATE outreach_items SET ${sets}, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND job_id = ? AND user_id = ?`,
     [...vals, id, jobId, userId],
   )
   return getOutreachItem(id, jobId, userId)

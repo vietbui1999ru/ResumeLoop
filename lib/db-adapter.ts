@@ -37,7 +37,7 @@ export class SqliteAdapter implements DbAdapter {
 //   DATETIME → TIMESTAMPTZ
 //   INTEGER PRIMARY KEY auto-increment → BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY
 //   Other TEXT / INTEGER types unchanged (compatible)
-const NEON_SCHEMA = `
+export const NEON_SCHEMA = `
   CREATE TABLE IF NOT EXISTS jd_jobs (
     id             TEXT PRIMARY KEY,
     file_path      TEXT NOT NULL,
@@ -182,8 +182,8 @@ const NEON_SCHEMA = `
     linkedin_draft TEXT,
     email_draft    TEXT,
     source_path    TEXT,
-    created_at     TEXT NOT NULL DEFAULT NOW(),
-    updated_at     TEXT NOT NULL DEFAULT NOW()
+    created_at     TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
 
   CREATE TABLE IF NOT EXISTS resume_profiles (
@@ -263,7 +263,7 @@ function translatePlaceholders(sql: string): string {
   return result
 }
 
-class NeonAdapter implements DbAdapter {
+export class NeonAdapter implements DbAdapter {
   private neonSql: NeonQueryFn
   private initialized = false
 
