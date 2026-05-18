@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto'
 import bcrypt from 'bcryptjs'
 import { getAdapter } from './db-adapter'
+import { isCloud } from './app-mode'
 
 /**
  * Delete all user data in dependency order, then the user row.
@@ -48,9 +49,12 @@ export async function createUser(email: string, password: string): Promise<strin
   const id   = randomUUID()
   const hash = await bcrypt.hash(password, 12)
   const db   = await getAdapter()
+  // Cloud mode requires email verification before login. Self-hosted has no email system,
+  // so auto-verify immediately to avoid permanent lockout after signup.
+  const emailVerified = isCloud() ? 0 : 1
   await db.run(
-    `INSERT INTO users (id, email, password) VALUES (?, ?, ?)`,
-    [id, email.toLowerCase().trim(), hash],
+    `INSERT INTO users (id, email, password, email_verified) VALUES (?, ?, ?, ?)`,
+    [id, email.toLowerCase().trim(), hash, emailVerified],
   )
   return id
 }
