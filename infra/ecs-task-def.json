@@ -30,7 +30,7 @@
         },
         {
           "name": "AUTH_URL",
-          "value": "https://fh7gi2vfe2.execute-api.us-east-1.amazonaws.com"
+          "value": "https://resumeloop.me"
         }
       ],
       "secrets": [
