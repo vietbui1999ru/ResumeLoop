@@ -47,10 +47,10 @@ export default function PdfViewer({ url }: Props) {
   )
 
   return (
-    <embed
+    <iframe
       src={blobUrl}
-      type="application/pdf"
-      className="absolute inset-0 w-full h-full"
+      title="Resume PDF"
+      className="absolute inset-0 w-full h-full border-0"
     />
   )
 }

@@ -440,20 +440,36 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
   const [saving, setSaving]       = useState(false)
   const [status, setStatus]       = useState('')
   const [showBackups, setShowBackups] = useState(false)
+  const [monacoFailed, setMonacoFailed] = useState(false)
 
   const [showProfileSummaryEditor, setShowProfileSummaryEditor] = useState(false)
   const [profileSummaryDraft, setProfileSummaryDraft] = useState('')
   const [profileSummaryError, setProfileSummaryError] = useState('')
 
   const profileEditorRef = useRef<MonacoEditorNS.IStandaloneCodeEditor | null>(null)
+  const monacoMountedRef = useRef(false)
 
   // Rebuild source map whenever draft changes — used for preview → Monaco jumps
   const sourceMap = useMemo(() => {
     try { return jsonSourceMap(draft) } catch { return null }
   }, [draft])
 
+  // Detect Monaco load failure via timeout — fires if onMount never called
+  useEffect(() => {
+    if (loading) return
+    const t = setTimeout(() => {
+      if (!monacoMountedRef.current) {
+        console.warn('[Monaco] load timeout — falling back to textarea editor')
+        setMonacoFailed(true)
+      }
+    }, 8000)
+    return () => clearTimeout(t)
+  }, [loading])
+
   const onProfileEditorMount = useCallback((ed: MonacoEditorNS.IStandaloneCodeEditor) => {
+    monacoMountedRef.current = true
     profileEditorRef.current = ed
+    console.log('[Monaco] mounted, profile id:', ed.getId())
   }, [])
 
   const jumpToJsonPath = useCallback((path: string) => {
@@ -595,6 +611,18 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
                 }`} />
               ))}
             </div>
+          ) : monacoFailed ? (
+            <div className="flex flex-col flex-1 min-h-0">
+              <p className="text-xs text-amber-400 px-3 py-1 shrink-0">
+                Monaco failed to load (CSP or network) — using plain editor
+              </p>
+              <textarea
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                spellCheck={false}
+                className="flex-1 bg-zinc-950 text-zinc-300 text-xs font-mono p-3 resize-none focus:outline-none"
+              />
+            </div>
           ) : (
             <MonacoEditor
               height="100%"
@@ -603,6 +631,15 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
               value={draft}
               onChange={v => setDraft(v ?? '')}
               onMount={onProfileEditorMount}
+              loading={
+                <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm">
+                  Loading editor…
+                </div>
+              }
+              beforeMount={monaco => {
+                console.log('[Monaco] beforeMount — init starting')
+                monaco.editor.defineTheme('vs-dark', { base: 'vs-dark', inherit: true, rules: [], colors: {} })
+              }}
               options={{
                 minimap: { enabled: false },
                 fontSize: 14,

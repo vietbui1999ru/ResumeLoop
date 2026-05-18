@@ -514,7 +514,7 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) 
                           applyUrlSaving={applyUrlSaving}
                         />
                       )}
-                      {id === 'pdf' && <PdfPanel jobId={jobId} hasPdf={!!output?.pdf_path} />}
+                      {id === 'pdf' && <PdfPanel jobId={jobId} hasPdf={!!output?.pdf_path} hasDocx={!!output} />}
                       {id === 'reasoning' && <ReasoningPanel reasoning={output?.reasoning ?? null} loading={outputLoading} />}
                       {id === 'cover' && (
                         <CoverPanel
@@ -728,11 +728,18 @@ function JdPanel({ job, tags, localTags, onTagToggle, output, outputLoading, onG
 
 // ── PDF Panel ─────────────────────────────────────────────────────────────────
 
-function PdfPanel({ jobId, hasPdf }: { jobId: string; hasPdf: boolean }) {
+function PdfPanel({ jobId, hasPdf, hasDocx }: { jobId: string; hasPdf: boolean; hasDocx: boolean }) {
+  if (!hasDocx) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm px-4 text-center">
+        Generate a DOCX resume first — PDF preview requires a generated resume for this job.
+      </div>
+    )
+  }
   if (!hasPdf) {
     return (
       <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm px-4 text-center">
-        No PDF available. Generate a resume first.
+        PDF not yet generated. It will appear here automatically after the next resume generation.
       </div>
     )
   }
