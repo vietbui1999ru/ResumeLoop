@@ -124,7 +124,7 @@ ${readme}`
         inputSchema: SUMMARIZE_SCHEMA,
       },
     },
-    toolChoice: { type: 'tool', toolName: 'summarize_repo' },
+    toolChoice: 'required',
     messages: [{ role: 'user', content: userPrompt }],
   })
 

@@ -7,6 +7,7 @@ import { getAnthropicClient } from '@/lib/ai-client'
 import { getProviderConfig } from '@/lib/user-settings'
 import { auth } from '@/lib/auth'
 import { checkRateLimitBucket } from '@/lib/rate-limit'
+import { ensureDefaultSession } from '@/lib/sessions'
 
 const BASE_SYSTEM_PROMPT = `You are a resume profile editor for Quoc-Viet Bui.
 
@@ -161,18 +162,21 @@ export async function POST(req: Request) {
   if (message.length > 10_000)
     return NextResponse.json({ error: 'message too long (max 10 000 chars)' }, { status: 400 })
 
+  // Ensure default session exists, then resolve 'default' to the per-user ID.
+  await ensureDefaultSession(userId)
   const db = await getAdapter()
+  const realSessionId = sessionId === 'default' ? `default:${userId}` : sessionId
 
   const sess = await db.queryOne<{ id: string }>(
     'SELECT id FROM resume_sessions WHERE id = ? AND user_id = ?',
-    [sessionId, userId],
+    [realSessionId, userId],
   )
   if (!sess) return NextResponse.json({ error: 'Session not found' }, { status: 404 })
 
   const msgId = crypto.randomUUID()
   await db.run(
     'INSERT INTO chat_messages (id, session_id, role, content, user_id) VALUES (?, ?, ?, ?, ?)',
-    [msgId, sessionId, 'user', message, userId],
+    [msgId, realSessionId, 'user', message, userId],
   )
 
   const encoder = new TextEncoder()
@@ -186,7 +190,7 @@ export async function POST(req: Request) {
         try {
           client = await getAnthropicClient(userId)
         } catch {
-          send({ type: 'error', message: 'Failed to initialize AI client' })
+          send({ type: 'error', message: 'Chat requires an Anthropic (Claude) API key. Go to Settings → AI Provider to add one.' })
           controller.close()
           return
         }
@@ -197,14 +201,14 @@ export async function POST(req: Request) {
         while (loopCount < MAX_TURNS) {
           loopCount++
 
-          const history = await loadHistory(db, sessionId, userId)
+          const history = await loadHistory(db, realSessionId, userId)
           const messages = buildMessages(history)
 
           const { assistantText, toolBlocks, toolResults } = await runStream(
             client,
             messages,
             send,
-            sessionId,
+            realSessionId,
             userId,
             systemPrompt,
             db,
@@ -217,7 +221,7 @@ export async function POST(req: Request) {
             'INSERT INTO chat_messages (id, session_id, role, content, tool_calls, user_id) VALUES (?, ?, ?, ?, ?, ?)',
             [
               assistantId,
-              sessionId,
+              realSessionId,
               'assistant',
               assistantText || null,
               cleanBlocks.length ? JSON.stringify(cleanBlocks) : null,
@@ -232,7 +236,7 @@ export async function POST(req: Request) {
           const toolMsgId = crypto.randomUUID()
           await db.run(
             'INSERT INTO chat_messages (id, session_id, role, content, tool_calls, user_id) VALUES (?, ?, ?, ?, ?, ?)',
-            [toolMsgId, sessionId, 'tool', null, JSON.stringify(toolResults), userId],
+            [toolMsgId, realSessionId, 'tool', null, JSON.stringify(toolResults), userId],
           )
         }
 
