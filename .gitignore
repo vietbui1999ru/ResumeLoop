@@ -39,6 +39,8 @@ tsconfig.tsbuildinfo
 # Generated screenshots
 *.png
 .playwright-mcp
+.obsidian
+.superpowers
 
 # AWS — never commit these
 infra/.env
