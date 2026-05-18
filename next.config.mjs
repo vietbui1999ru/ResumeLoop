@@ -4,6 +4,7 @@ const nextConfig = {
   serverExternalPackages: ["better-sqlite3"],
   env: {
     AUTH_TRUST_HOST: "true",
+    NEXT_PUBLIC_APP_MODE: process.env.APP_MODE ?? "local",
   },
   async headers() {
     return [

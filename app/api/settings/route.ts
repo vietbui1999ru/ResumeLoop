@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import fs from 'fs'
 import { auth } from '@/lib/auth'
 import { getAllSettings, setSetting } from '@/lib/settings'
+import { isCloud } from '@/lib/app-mode'
 
 export async function GET() {
   const session = await auth()
@@ -10,6 +11,7 @@ export async function GET() {
   const settings = await getAllSettings()
   return NextResponse.json({
     ...settings,
+    is_cloud:             isCloud(),
     jobs_path_exists:     fs.existsSync(settings.jobs_path),
     output_path_exists:   fs.existsSync(settings.output_path),
     outreach_path_exists: settings.outreach_path ? fs.existsSync(settings.outreach_path) : false,

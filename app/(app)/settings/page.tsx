@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { signOut } from 'next-auth/react'
 import { Skeleton } from '@/components/Skeleton'
+import { CloudFolderPicker } from '@/components/CloudFolderPicker'
 import { FONT_SIZES, type FontSize, applyFontSize, isValidFontSize, FONT_SIZE_KEY, FONT_SIZE_LABELS } from '@/lib/font-size'
 
 // ── AI Provider types ────────────────────────────────────────────────────────
@@ -277,6 +278,7 @@ interface Settings {
   jobs_path_exists:     boolean
   output_path_exists:   boolean
   outreach_path_exists: boolean
+  is_cloud:             boolean
 }
 
 // ── Font size preference ──────────────────────────────────────────────────────
@@ -511,28 +513,61 @@ export default function SettingsPage() {
       <div className="space-y-3">
         <h2 className="text-xs font-semibold text-zinc-500 uppercase">Folder Paths</h2>
 
-        <div data-tour="jobs-folder">
-          <FolderPicker
-            label="Job Postings Folder"
-            hint="Folder containing .md job description files. Used by Scan."
-            value={settings.jobs_path}
-            onChange={p => save({ jobs_path: p })}
-          />
-        </div>
+        {settings.is_cloud ? (
+          <>
+            <div data-tour="jobs-folder">
+              <CloudFolderPicker
+                handleKey="jobs-folder"
+                label="Job Postings Folder"
+                hint="Select the folder on your computer containing .md job description files. Used by Scan."
+                onSelect={name => name && save({ jobs_path: name })}
+              />
+            </div>
 
-        <FolderPicker
-          label="Resume Output Folder"
-          hint="Where generated .docx resume files are saved."
-          value={settings.output_path}
-          onChange={p => save({ output_path: p })}
-        />
+            <CloudFolderPicker
+              handleKey="output-folder"
+              label="Resume Output Folder"
+              hint="Select the folder on your computer where generated .docx resume files are saved."
+              onSelect={name => name && save({ output_path: name })}
+            />
 
-        <FolderPicker
-          label="Outreach Folder"
-          hint="Optional — folder of networking/contact .md files (Obsidian clippings). The outreach picker in each job modal defaults here."
-          value={settings.outreach_path}
-          onChange={p => save({ outreach_path: p })}
-        />
+            <CloudFolderPicker
+              handleKey="outreach-folder"
+              label="Outreach Folder"
+              hint="Optional — folder of networking/contact .md files (Obsidian clippings). The outreach picker in each job modal defaults here."
+              onSelect={name => name && save({ outreach_path: name })}
+            />
+
+            <p className="text-xs text-zinc-500">
+              Folder access is managed via your browser. Grant access once — the browser remembers it across page reloads.
+            </p>
+          </>
+        ) : (
+          <>
+            <div data-tour="jobs-folder">
+              <FolderPicker
+                label="Job Postings Folder"
+                hint="Folder containing .md job description files. Used by Scan."
+                value={settings.jobs_path}
+                onChange={p => save({ jobs_path: p })}
+              />
+            </div>
+
+            <FolderPicker
+              label="Resume Output Folder"
+              hint="Where generated .docx resume files are saved."
+              value={settings.output_path}
+              onChange={p => save({ output_path: p })}
+            />
+
+            <FolderPicker
+              label="Outreach Folder"
+              hint="Optional — folder of networking/contact .md files (Obsidian clippings). The outreach picker in each job modal defaults here."
+              value={settings.outreach_path}
+              onChange={p => save({ outreach_path: p })}
+            />
+          </>
+        )}
       </div>
 
       <div data-tour="ai-settings" className="space-y-3">
@@ -540,31 +575,33 @@ export default function SettingsPage() {
         <AIProviderSection />
       </div>
 
-      <div className="space-y-2">
-        <h2 className="text-xs font-semibold text-zinc-500 uppercase">Status</h2>
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-zinc-400">Jobs folder</span>
-            <span className={settings.jobs_path_exists ? 'text-green-400' : 'text-red-400'}>
-              {settings.jobs_path_exists ? '✓ found' : '✗ not found'}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-zinc-400">Output folder</span>
-            <span className={settings.output_path_exists ? 'text-green-400' : 'text-amber-400'}>
-              {settings.output_path_exists ? '✓ found' : '⚠ will be created on first build'}
-            </span>
-          </div>
-          {settings.outreach_path && (
+      {!settings.is_cloud && (
+        <div className="space-y-2">
+          <h2 className="text-xs font-semibold text-zinc-500 uppercase">Status</h2>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-zinc-400">Outreach folder</span>
-              <span className={settings.outreach_path_exists ? 'text-green-400' : 'text-red-400'}>
-                {settings.outreach_path_exists ? '✓ found' : '✗ not found'}
+              <span className="text-zinc-400">Jobs folder</span>
+              <span className={settings.jobs_path_exists ? 'text-green-400' : 'text-red-400'}>
+                {settings.jobs_path_exists ? '✓ found' : '✗ not found'}
               </span>
             </div>
-          )}
+            <div className="flex justify-between">
+              <span className="text-zinc-400">Output folder</span>
+              <span className={settings.output_path_exists ? 'text-green-400' : 'text-amber-400'}>
+                {settings.output_path_exists ? '✓ found' : '⚠ will be created on first build'}
+              </span>
+            </div>
+            {settings.outreach_path && (
+              <div className="flex justify-between">
+                <span className="text-zinc-400">Outreach folder</span>
+                <span className={settings.outreach_path_exists ? 'text-green-400' : 'text-red-400'}>
+                  {settings.outreach_path_exists ? '✓ found' : '✗ not found'}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <p className="text-xs text-zinc-400">
         Paths are stored in the database and override <code>.env.local</code> values.

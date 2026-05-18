@@ -1,5 +1,8 @@
 'use client'
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+
+const IS_CLOUD = process.env.NEXT_PUBLIC_APP_MODE === 'cloud'
+
 import { extractAllTags, parseTags } from '@/lib/tag-filter'
 import { PIPELINE_TAGS } from '@/lib/pipeline-tags'
 import dynamic from 'next/dynamic'
@@ -271,8 +274,44 @@ export default function JobsPage() {
 
   const scan = async () => {
     setScanStatus('Scanning…')
+
+    if (IS_CLOUD) {
+      try {
+        const { loadHandle, readMdFiles, checkPermission, requestPermission } = await import('@/lib/cloud-fs')
+        const handle = await loadHandle('jobs-folder')
+        if (!handle) {
+          setScanStatus('No folder selected — go to Settings and select your Jobs folder.')
+          setTimeout(() => setScanStatus(''), 5000)
+          return
+        }
+        const perm = await checkPermission(handle)
+        if (perm !== 'granted') {
+          const ok = await requestPermission(handle)
+          if (!ok) {
+            setScanStatus('Folder permission denied.')
+            setTimeout(() => setScanStatus(''), 4000)
+            return
+          }
+        }
+        const files = await readMdFiles(handle)
+        const res = await fetch('/api/batch/scan/files', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ files }),
+        })
+        const data = await res.json() as { processed?: number; error?: string }
+        setScanStatus(res.ok ? `↑ ${data.processed ?? 0} imported` : `✗ ${data.error ?? 'scan failed'}`)
+        if (res.ok) reload()
+      } catch (e) {
+        setScanStatus(`✗ ${(e as Error).message}`)
+      }
+      setTimeout(() => setScanStatus(''), 4000)
+      return
+    }
+
+    // Local mode: server-side scan
     const res  = await fetch('/api/batch/scan', { method: 'POST' })
-    const data = await res.json()
+    const data = await res.json() as { scanned?: number; error?: string }
     setScanStatus(res.ok ? `↑ ${data.scanned} new` : `✗ ${data.error ?? 'scan failed'}`)
     if (res.ok) reload()
     setTimeout(() => setScanStatus(''), 4000)
