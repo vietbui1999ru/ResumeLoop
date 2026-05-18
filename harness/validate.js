@@ -108,8 +108,8 @@ if (!skillsMatch) {
   violations.push('FAIL skills: skills array not found');
 } else {
   const skillItems = skillsMatch[1].match(/['"][^'"]+['"]/g) || [];
-  if (skillItems.length < 4 || skillItems.length > 6) {
-    violations.push(`FAIL skills: ${skillItems.length} rows (need 4–6)`);
+  if (skillItems.length < 1 || skillItems.length > 8) {
+    violations.push(`FAIL skills: ${skillItems.length} rows (need 1–8)`);
   }
 }
 

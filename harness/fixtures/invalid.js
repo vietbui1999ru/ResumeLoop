@@ -80,10 +80,6 @@ build({
     },
   ],
 
-  // VIOLATION 4: only 3 skills rows (need 4–6)
-  skills: [
-    'Languages: Python · Go · TypeScript · Ruby · Bash · SQL · Rust',
-    'Backend: FastAPI · PostgreSQL · Redis · REST · gRPC · Docker · Kubernetes',
-    'Systems: Linux · goroutines · channels · multithreaded design · IEEE 802.3',
-  ],
+  // VIOLATION 4: empty skills array (need 1–8)
+  skills: [],
 });
