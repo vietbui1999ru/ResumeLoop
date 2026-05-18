@@ -738,6 +738,7 @@ export default function JobsPage() {
           ref={uploadRef}
           type="file"
           accept=".md"
+          aria-label="Upload markdown job files"
           multiple
           className="hidden"
           onChange={e => {
