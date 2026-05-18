@@ -4,6 +4,7 @@ import { signOut } from 'next-auth/react'
 import { Skeleton } from '@/components/Skeleton'
 import { CloudFolderPicker } from '@/components/CloudFolderPicker'
 import { FONT_SIZES, type FontSize, applyFontSize, isValidFontSize, FONT_SIZE_KEY, FONT_SIZE_LABELS } from '@/lib/font-size'
+import { JobImportGuide } from '@/components/JobImportGuide'
 
 // ── AI Provider types ────────────────────────────────────────────────────────
 type Provider = 'anthropic' | 'openai' | 'google' | 'groq' | 'openrouter' | 'ollama'
@@ -458,6 +459,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState('')
+  const [showImportGuide, setShowImportGuide] = useState(false)
 
   useEffect(() => {
     fetch('/api/settings')
@@ -523,6 +525,12 @@ export default function SettingsPage() {
                 onSelect={name => name && save({ jobs_path: name })}
               />
             </div>
+            <button
+              onClick={() => setShowImportGuide(true)}
+              className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors -mt-1"
+            >
+              How to clip job listings with Obsidian Web Clipper →
+            </button>
 
             <CloudFolderPicker
               handleKey="output-folder"
@@ -552,6 +560,12 @@ export default function SettingsPage() {
                 onChange={p => save({ jobs_path: p })}
               />
             </div>
+            <button
+              onClick={() => setShowImportGuide(true)}
+              className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors -mt-1"
+            >
+              How to clip job listings with Obsidian Web Clipper →
+            </button>
 
             <FolderPicker
               label="Resume Output Folder"
@@ -616,6 +630,8 @@ export default function SettingsPage() {
           Sign out
         </button>
       </div>
+
+      {showImportGuide && <JobImportGuide onClose={() => setShowImportGuide(false)} />}
     </div>
   )
 }

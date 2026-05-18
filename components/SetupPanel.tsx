@@ -1,6 +1,7 @@
 'use client'
 import { useState, useCallback, useEffect } from 'react'
 import { useTourContext } from '@/contexts/TourContext'
+import { JobImportGuide } from '@/components/JobImportGuide'
 
 type Provider = 'anthropic' | 'openai' | 'google' | 'groq' | 'openrouter' | 'ollama'
 
@@ -158,6 +159,7 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
   const [aiError, setAiError]     = useState('')
   const [saving, setSaving]       = useState(false)
   const [scanStatus, setScanStatus] = useState('')
+  const [showImportGuide, setShowImportGuide] = useState(false)
 
   // Load existing paths so the picker shows current values
   useEffect(() => {
@@ -220,6 +222,20 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
           </div>
           <h2 className="text-xl font-semibold text-white">Set up ResumeLoop</h2>
           <p className="text-sm text-zinc-400 mt-1">Three things and you&apos;re scanning jobs.</p>
+        </div>
+
+        {/* Import guide callout */}
+        <div className="mb-4 flex items-center justify-between bg-zinc-900/60 border border-zinc-800 rounded-xl px-4 py-3">
+          <div>
+            <p className="text-xs font-medium text-zinc-300">Don&apos;t have .md job files yet?</p>
+            <p className="text-xs text-zinc-500">Use Obsidian Web Clipper to save jobs from any listing page</p>
+          </div>
+          <button
+            onClick={() => setShowImportGuide(true)}
+            className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors whitespace-nowrap ml-4"
+          >
+            How to →
+          </button>
         </div>
 
         {/* Steps */}
@@ -305,6 +321,8 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
           )}
         </div>
       </div>
+
+      {showImportGuide && <JobImportGuide onClose={() => setShowImportGuide(false)} />}
     </div>
   )
 }

@@ -17,6 +17,7 @@ const JobDetailModal  = dynamic(() => import('@/components/JobDetailModal'),  { 
 const GenerationPanel = dynamic(() => import('@/components/GenerationPanel'), { ssr: false })
 const ReasoningModal  = dynamic(() => import('@/components/ReasoningModal'),  { ssr: false })
 const SetupPanel      = dynamic(() => import('@/components/SetupPanel').then(m => ({ default: m.SetupPanel })), { ssr: false })
+const JobImportGuide  = dynamic(() => import('@/components/JobImportGuide').then(m => ({ default: m.JobImportGuide })), { ssr: false })
 
 const ACTION_COLORS: Record<string, string> = {
   '0-Saved':        'text-zinc-400',
@@ -132,6 +133,7 @@ export default function JobsPage() {
 
   const [sort, setSort] = useState<{ col: SortCol; dir: SortDir }>({ col: 'clipped_at', dir: 'desc' })
   const [jobsPathExists, setJobsPathExists] = useState<boolean | null>(null)
+  const [showImportGuide, setShowImportGuide] = useState(false)
   // True only during the initial page load — shows skeleton rows in tbody.
   // Filter-change re-fetches keep the current rows visible (no skeleton flash).
   const [initialLoading, setInitialLoading] = useState(true)
@@ -474,12 +476,23 @@ export default function JobsPage() {
       )}
       {IS_CLOUD && !initialLoading && jobs.length === 0 && (
         <div className="flex-1 flex items-center justify-center p-12">
-          <div className="text-center space-y-3 max-w-sm">
-            <p className="text-zinc-400 text-sm">No jobs yet.</p>
-            <p className="text-zinc-500 text-xs leading-relaxed">
-              Go to <strong className="text-zinc-300">Settings → Folders</strong> and select your Jobs folder,
-              then click <strong className="text-zinc-300">Scan</strong> above to import .md files.
-            </p>
+          <div className="text-center space-y-4 max-w-sm">
+            <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-600/30 text-xl">
+              📋
+            </div>
+            <div className="space-y-1">
+              <p className="text-zinc-300 text-sm font-medium">No jobs yet</p>
+              <p className="text-zinc-500 text-xs leading-relaxed">
+                Go to <strong className="text-zinc-300">Settings → Folders</strong> and select your Jobs folder,
+                then click <strong className="text-zinc-300">Scan</strong> above to import .md files.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowImportGuide(true)}
+              className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+            >
+              How to clip job listings into .md files →
+            </button>
           </div>
         </div>
       )}
@@ -745,6 +758,8 @@ export default function JobsPage() {
           )}
         </div>
       )}
+
+      {showImportGuide && <JobImportGuide onClose={() => setShowImportGuide(false)} />}
     </div>
   )
 }
