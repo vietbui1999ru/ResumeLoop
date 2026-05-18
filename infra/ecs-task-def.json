@@ -85,6 +85,10 @@
         {
           "name": "GITHUB_CLIENT_SECRET",
           "valueFrom": "arn:aws:secretsmanager:us-east-1:985526967036:secret:resumeloop/prod/GITHUB_CLIENT_SECRET-8bpKSi"
+        },
+        {
+          "name": "LOGS_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:985526967036:secret:resumeloop/prod/LOGS_API_KEY-AxHLpq"
         }
       ],
       "logConfiguration": {
