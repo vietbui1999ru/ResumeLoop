@@ -25,7 +25,16 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (isS3Key(row.pdf_path)) {
     const url = await getPresignedUrl(row.pdf_path)
     if (!url) return NextResponse.json({ error: 'Could not generate preview URL' }, { status: 500 })
-    return NextResponse.redirect(url)
+    // Proxy bytes through server — browser fetch() cannot follow cross-origin S3 redirects (CORS)
+    const s3Res = await fetch(url)
+    if (!s3Res.ok) return NextResponse.json({ error: 'Could not fetch PDF from storage' }, { status: 502 })
+    return new Response(s3Res.body, {
+      headers: {
+        'Content-Type':        'application/pdf',
+        'Content-Disposition': 'inline; filename="resume.pdf"',
+        'Cache-Control':       'private, max-age=300',
+      },
+    })
   }
 
   if (!row.pdf_path.endsWith('.pdf')) {
