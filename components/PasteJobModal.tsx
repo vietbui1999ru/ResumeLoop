@@ -103,7 +103,7 @@ export function PasteJobModal({ onClose, onAdded }: { onClose: () => void; onAdd
             ref={textareaRef}
             value={content}
             onChange={e => { setContent(e.target.value); setError('') }}
-            placeholder={`---\ncreated: 2026-05-18\ntitle: "Software Engineer"\nCompany: Anthropic\nAction: "0-Saved"\nsource: "https://boards.greenhouse.io/..."\ntags:\n  - jobs\n  - un-resume\n---\n\nJob description goes here…`}
+            placeholder={`---\ncreated: 2026-05-18\ntitle: "Software Engineer"\nCompany: Anthropic\nAction: "0-Saved"\nsource: "https://boards.greenhouse.io/..."\ndescription: "Join Anthropic as a Software Engineer…"\npublished: 2026-05-01\ntags:\n  - clippings\n  - jobs\n  - un-resume\n  - un-cover-letter\noutreach:\nnotes:\n---\n\nJob description goes here…`}
             className="w-full h-64 text-xs font-mono bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-zinc-200 placeholder:text-zinc-600 resize-none focus:outline-none focus:border-indigo-500 transition-colors"
             spellCheck={false}
           />

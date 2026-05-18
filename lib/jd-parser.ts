@@ -124,15 +124,26 @@ export function parseJd(filePath: string, content: string): JdJob {
 
   const sourceUrl = fm.source != null ? String(fm.source).trim() : null
 
+  // Strip Obsidian Web Clipper schema comment block embedded at the end of clipped files
+  const cleanBody = body.replace(/<!--[\s\S]*?-->/g, '').trim()
+
+  // fm.description = page meta description from {{description}} template variable.
+  // Include it when non-empty and not an un-substituted template literal — it often
+  // contains the job summary or visa language that improves scoring.
+  const fmDesc = typeof fm.description === 'string' && fm.description.trim() && !fm.description.includes('{{')
+    ? fm.description.trim() : ''
+
+  const raw_content = [fmDesc, cleanBody].filter(Boolean).join('\n\n')
+
   return {
     id,
     file_path: filePath,
     company,
     role_title,
     tags: JSON.stringify(tags),
-    visa_status: detectVisa(body),
+    visa_status: detectVisa(raw_content),
     action: fm.Action != null && (VALID_ACTIONS as readonly string[]).includes(String(fm.Action)) ? String(fm.Action) : null,
-    raw_content: body,
+    raw_content,
     clipped_at: parseClippedAt(fm as Record<string, unknown>),
     apply_url: sourceUrl || null,
   }
