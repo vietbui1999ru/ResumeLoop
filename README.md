@@ -16,6 +16,7 @@ Live at **[resumeloop.me](https://resumeloop.me)** · [Try Demo](https://resumel
 - **Chat** with your resume data to refine bullet points and add new projects
 - **Outreach** — import LinkedIn/alumni contact files per job, get AI contact summaries and draft emails + LinkedIn messages
 - **Sessions** — maintain multiple resume profile variants (e.g. one for systems roles, one for GenAI)
+- **Personal info** — edit name, phone, location, LinkedIn, portfolio, and work authorization directly from the account page; writes into the active resume profile's `contact` block
 
 ## Quick Start
 
@@ -68,56 +69,133 @@ Push to `main` → GitHub Actions builds, pushes to ECR, deploys to ECS, verifie
 
 ## Auth
 
-- **Credentials** — email + password (bcrypt)
+- **Credentials** — email + bcrypt (cost 10); password strength enforced at signup
 - **OAuth** — Google and GitHub (configure via `GOOGLE_CLIENT_ID/SECRET`, `GITHUB_CLIENT_ID/SECRET`)
-- **Demo** — one-click, no account; demo users are purged daily via `/api/cron/cleanup-demo`
+- **Demo** — per-IP sessions; same IP gets the same demo account back on return; reset button wipes and re-creates; auto-purged every 6 hours via in-process cron (`instrumentation.node.ts`)
+- **Rate limiting** — login: 10 attempts/min per IP + 20/hr per email; demo creation: 30/min per IP; demo reset: 3/hr per IP; global API: 300 req/min per IP
 - Desktop only — mobile browsers are redirected to a "not supported" page
 
-## Docs
+## Security
 
-| Page | Contents |
+| Layer | Mechanism |
 |---|---|
-| [`docs/features.md`](docs/features.md) | Every feature in detail |
-| [`docs/architecture.md`](docs/architecture.md) | System design, data flow, key files |
-| [`docs/database.md`](docs/database.md) | Full schema reference, migrations, useful queries |
-| [`docs/ai-providers.md`](docs/ai-providers.md) | Per-provider setup (Anthropic, OpenAI, Gemini, Groq, OpenRouter, Ollama) |
-| [`docs/deploy.md`](docs/deploy.md) | Docker, AWS ECS Fargate deployment |
+| Passwords | bcrypt (cost 10) |
+| Demo passwords | AES-256-GCM encryption at rest (`lib/crypto.ts`); key from `ENCRYPTION_KEY` env var |
+| Auth rate limiting | Token bucket via Upstash Redis (cloud) / in-process Map fallback (local) |
+| Global API rate limit | 300 req/min per IP in `middleware.ts` before any route handler runs |
+| Content Security Policy | `default-src 'self'`; `frame-ancestors 'none'`; `object-src 'none'` via `next.config.mjs` |
+| Account purge | Deletes all DB rows + S3 objects under `outputs/<userId>/` in a single operation |
+| `/api/fs` route | Disabled in cloud mode — returns 403 to prevent server-side filesystem access |
+| Session tokens | NextAuth v5 JWT; `AUTH_TRUST_HOST` for proxy environments |
+| SQL injection | Parameterized queries throughout; `translatePlaceholders()` converts `?` → `$N` for Postgres |
+| User isolation | Every query filters by `user_id`; DB-level index on `(user_id, ...)` for all data tables |
+
+## Architecture
+
+```
+Request
+  └─ middleware.ts          global rate limit → mobile redirect → auth guard
+       └─ Next.js App Router
+            ├─ app/(app)/   authenticated pages (jobs, chat, config, account, outreach)
+            └─ app/api/     REST routes
+
+Data layer
+  ├─ lib/db-adapter.ts      DbAdapter interface (query / queryOne / run / runInTransaction)
+  ├─ lib/db.ts              SqliteAdapter + schema + migrations (local mode)
+  └─ lib/db-adapter.ts      NeonAdapter — translatePlaceholders(?→$N) + idempotent initialize()
+
+Generation pipeline
+  lib/generate-pipeline.ts
+    preflight → lib/ai-reason.ts (select bullets) → pipeline/buildv2.js (DOCX)
+    → LibreOffice (PDF) → lib/storage.ts (S3 or local) → finalize
+```
+
+### Dual-mode database
+
+The same `DbAdapter` interface runs on SQLite locally and Neon Postgres in production. Key details:
+
+- `translatePlaceholders()` rewrites SQLite `?` positional params to Postgres `$1, $2, ...` at query time
+- `NeonAdapter.initialize()` is idempotent — all schema changes use `CREATE IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`
+- SQLite migrations use `pragma_table_info` guards (`hasColumn()`) instead
+- FTS5 full-text search is SQLite-only; the cloud path uses `ILIKE` (guarded by `isCloud()`)
+- `runInTransaction` wraps multiple statements atomically on SQLite; best-effort sequential on Neon HTTP
+
+## Testing
+
+Tests run with **Vitest** in Node environment. No browser or DOM environment is configured — all tests are pure TypeScript.
+
+```bash
+npm test          # run all tests once
+npm test -- --watch   # watch mode
+```
+
+### Patterns
+
+**DB-level tests** (`lib/*.test.ts`) — spin up an in-memory SQLite DB via `initSchema`, wrap it in `SqliteAdapter`, and test data invariants directly. No mocks. Fast.
+
+```typescript
+const db = new Database(':memory:')
+initSchema(db)
+const adapter = new SqliteAdapter(db)
+// ... insert rows, assert queries
+```
+
+**API route tests** (`app/api/**/*.test.ts`) — mock `@/lib/auth` and `@/lib/db-adapter` with `vi.mock`, call the exported handler function directly, assert on response status and captured `db.run` call arguments.
+
+```typescript
+vi.mock('@/lib/auth',       () => ({ auth: vi.fn() }))
+vi.mock('@/lib/db-adapter', () => ({ getAdapter: vi.fn() }))
+// ...
+const res = await POST(makeRequest({ ... }), makeCtx())
+expect(res.status).toBe(200)
+```
+
+**Coverage areas**: demo user lifecycle, profile CRUD and isolation, fit scoring, AI reasoning pipeline, generate pipeline, rate limiting, schema migrations, API route auth guards (401/403/404), contact patch, demo reset.
 
 ## Tech Stack
 
 - **Next.js 14** App Router + TypeScript
 - **Vercel AI SDK** — multi-provider LLM abstraction (Anthropic, OpenAI, Google, Groq, OpenRouter, Ollama)
 - **SQLite** (local via `better-sqlite3`) / **Neon Postgres** (cloud) — same `DbAdapter` interface
-- **NextAuth v5** — credential auth + OAuth (Google, GitHub) + session management
+- **NextAuth v5** — credentials + OAuth (Google, GitHub) + JWT session management
+- **Upstash Redis** — rate limiting in cloud mode (token bucket); in-process Map fallback locally
 - **LibreOffice headless** — DOCX → PDF conversion
-- **gray-matter** — YAML frontmatter parsing for JD files
 - **docx** — programmatic DOCX generation
-- **AWS ECS Fargate + ALB** — production hosting
+- **gray-matter** — YAML frontmatter parsing for JD files
+- **AWS ECS Fargate + ALB** — production hosting; S3 for resume file storage
+- **Vitest** — unit + integration tests
 
 ## Key Files
 
 | File | Purpose |
 |---|---|
-| `master_resume_data.json` | Single source of truth for all bullets, projects, work experience, skills |
-| `buildv2.js` | DOCX generation engine |
+| `pipeline/master_resume_data.json` | Single source of truth for all bullets, projects, work experience, skills |
+| `pipeline/buildv2.js` | DOCX generation engine |
 | `lib/generate-pipeline.ts` | End-to-end resume generation (preflight → ai-reason → build → validate → pdf → finalize) |
 | `lib/ai-client.ts` | `getModel(userId)` — resolves active provider + model from DB |
-| `lib/db-adapter.ts` | `DbAdapter` interface + `SqliteAdapter` + `NeonAdapter` |
-| `lib/jd-parser.ts` | Parses JD frontmatter, extracts company/role/tags/visa/clip date |
-| `infra/setup-alb.sh` | One-shot ALB provisioning script (run once; wires ECS → ALB → API Gateway) |
-| `CLAUDE.md` | Candidate profile, hard constraints, role-track table |
+| `lib/db-adapter.ts` | `DbAdapter` interface + `SqliteAdapter` + `NeonAdapter` with `translatePlaceholders()` |
+| `lib/db.ts` | SQLite schema init, `hasColumn()` migration guards, FTS5 triggers |
+| `lib/crypto.ts` | AES-256-GCM encrypt/decrypt for sensitive fields at rest |
+| `lib/rate-limit.ts` | Token bucket rate limiter — Upstash Redis (cloud) or in-process Map (local) |
+| `lib/demo-seed.ts` | Per-IP demo user lifecycle: create, reuse, reset, purge |
+| `lib/auth.ts` | NextAuth config — credentials + OAuth, rate-limited login, session callbacks |
+| `lib/storage.ts` | S3 upload/download/delete for resume files; local disk fallback |
+| `instrumentation.node.ts` | In-process cron — runs demo cleanup every 6 hours at server startup |
+| `middleware.ts` | Global rate limit + mobile redirect + auth guard |
+| `infra/setup-alb.sh` | One-shot ALB provisioning script |
+| `CLAUDE.md` | Candidate profile, hard constraints, role-track table (agentic context) |
 
 ## By the numbers
 
 | Metric | Count |
 |---|---|
-| TypeScript files | 172 |
-| Lines of code (TS/TSX) | ~18,800 |
-| API routes | 51 |
-| React components | 23 |
-| Lib modules | 42 |
-| Test files | 31 |
+| TypeScript files | 183 |
+| Lines of code (TS/TSX) | ~20,200 |
+| API routes | 52 |
+| React components | 25 |
+| Lib modules | 43 |
+| Test files | 34 |
 | npm dependencies | 51 (34 prod + 17 dev) |
-| Job descriptions in corpus | 609 |
-| Git commits | 217 |
-| Project age | ~4 weeks |
+| Job descriptions in corpus | 578 |
+| Git commits | 230 |
+| Project age | ~5 weeks |
