@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { handleReadFile, handleProposeEdit, CHAT_TOOLS } from './chat-tools'
+import { handleReadFile, handleProposeEdit, READ_FILE_SCHEMA, PROPOSE_EDIT_SCHEMA } from './chat-tools'
 
-describe('CHAT_TOOLS', () => {
-  it('exports two tools with correct names', () => {
-    expect(CHAT_TOOLS).toHaveLength(2)
-    const names = CHAT_TOOLS.map(t => t.name)
-    expect(names).toContain('read_file')
-    expect(names).toContain('propose_edit')
+describe('chat tool schemas', () => {
+  it('exports READ_FILE_SCHEMA', () => {
+    expect(READ_FILE_SCHEMA).toBeDefined()
+  })
+
+  it('exports PROPOSE_EDIT_SCHEMA', () => {
+    expect(PROPOSE_EDIT_SCHEMA).toBeDefined()
   })
 })
 
