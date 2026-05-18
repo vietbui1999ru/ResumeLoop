@@ -44,7 +44,11 @@ function BulletsPreview({ json, onJump }: { json: string; onJump?: (path: string
 
   const experience = parsed.experience ?? []
   const projects   = parsed.projects ?? []
-  const skills     = parsed.skills ?? []
+  // skills can be string[] (legacy) or Record<string, string> (current format)
+  const rawSkills  = parsed.skills ?? []
+  const skills: string[] = Array.isArray(rawSkills)
+    ? rawSkills as string[]
+    : Object.values(rawSkills as Record<string, string>)
   const allEmpty   = experience.length === 0 && projects.length === 0 && skills.length === 0
 
   if (allEmpty) {

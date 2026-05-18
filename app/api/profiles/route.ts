@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     try {
       data = fs.readFileSync(PATHS.pipeline.masterData, 'utf8')
     } catch {
-      data = JSON.stringify({ data: { work: [], projects: [], skills: [] } }, null, 2)
+      data = JSON.stringify({ experience: [], projects: [], skills: {} }, null, 2)
     }
   }
 

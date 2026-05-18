@@ -3,10 +3,14 @@ import { getAdapter } from './db-adapter'
 
 const DEMO_TTL_MS = 12 * 60 * 60 * 1000
 
-// Generic redacted profile — no real personal data
+// Generic redacted profile — no real personal data.
+// Schema matches pipeline/master_resume_data.json:
+//   experience[].bullets = Record<variant, string[]> (genai/systems/fullstack/sre)
+//   projects[].bullets   = string[]
+//   skills               = Record<variant, string> (one comma-dot string per variant)
 const DEMO_PROFILE_DATA = JSON.stringify({
   candidate_profile: {
-    narrative: 'M.S. CS candidate with a B.S. in Computer Science. Built production web services, contributed to open-source infrastructure tooling, and published ML research. Currently focused on full-stack engineering and AI-assisted developer tools.',
+    narrative: 'M.S. CS candidate with production experience in full-stack web services, open-source infrastructure tooling, and ML research. Currently focused on full-stack engineering and AI-assisted developer tools.',
     self_assessment: {
       portrays_well: [
         'Full-stack production deployments (FastAPI/React, TypeScript/Next.js)',
@@ -27,17 +31,12 @@ const DEMO_PROFILE_DATA = JSON.stringify({
   _meta: {
     version: '2.3',
     updated: '2025-01-01',
-    format: 'plain-text. Bullet formula: "Built A doing B using C, which produced D". Buzzwords front-loaded.',
-    positioning: 'Software engineer with production deployments and research publications.',
+    format: 'Bullet formula: "Built A doing B using C, which produced D". Impact mandatory.',
     usage: 'Demo profile — generic data for demonstration purposes only.',
     bullet_rules: [
       'Max 116 chars WITH spaces — hard limit',
       'Lead with varied non-repeated action verbs',
       'IMPACT IS MANDATORY: every bullet must answer "so what?"',
-    ],
-    tagline_rules: [
-      'AVOID generic "experienced in Tech1, Tech2" — use value-oriented format',
-      'GOOD: "Backend Engineer building REST APIs in Python with cloud automation"',
     ],
   },
   contact: {
@@ -48,97 +47,172 @@ const DEMO_PROFILE_DATA = JSON.stringify({
     linkedin: 'linkedin.com/in/alexchen',
     portfolio: 'github.com/alexchen',
   },
-  data: {
-    work: [
-      {
-        id: 'startup',
-        bullets: [
-          'Built REST API platform in FastAPI serving 50k req/day, reducing p99 latency 40% via async query batching',
-          'Automated CI/CD pipeline with GitHub Actions + Docker, cutting deploy time from 45 min to 8 min',
+  experience: [
+    {
+      id: 'startup',
+      title: 'Software Engineer',
+      company: 'Acme Startup',
+      location: 'San Francisco, CA (Remote)',
+      dates: 'Jan 2024 – Present',
+      bullets: {
+        genai: [
+          'Built LLM-powered document processing pipeline using LangChain + OpenAI API, cutting manual review time 70%',
+          'Automated CI/CD pipeline with GitHub Actions + Docker, reducing deploy time from 45 min to 8 min',
           'Designed PostgreSQL schema for multi-tenant SaaS product, onboarding 12 enterprise customers in Q2',
           'Shipped React dashboard with real-time WebSocket updates, increasing user engagement 28% per analytics',
           'Wrote integration test suite (pytest + Testcontainers) covering 87% of API surface, blocking 3 prod regressions',
         ],
-      },
-      {
-        id: 'university',
-        bullets: [
-          'Published ML research on adversarial robustness of RL agents at IEEE KSE 2024 as 2nd author',
-          'Implemented formal verification of security protocols in Coq, proving 14 invariants over state machines',
-          'Mentored 40+ undergraduates in Data Structures and Algorithms, improving pass rate 18% over two semesters',
-          'Built PyTorch DQN agent solving custom maze environments, achieving 94% success rate after 500k steps',
-          'Contributed 8 merged PRs to open-source ML framework, adding gradient-checkpointing for memory efficiency',
+        systems: [
+          'Built REST API platform in FastAPI serving 50k req/day, reducing p99 latency 40% via async query batching',
+          'Automated CI/CD pipeline with GitHub Actions + Docker, reducing deploy time from 45 min to 8 min',
+          'Designed PostgreSQL schema for multi-tenant SaaS product, onboarding 12 enterprise customers in Q2',
+          'Shipped Go event bus handling 10k events/sec with <5ms p99 latency using goroutines and channel pipelines',
+          'Wrote integration test suite (pytest + Testcontainers) covering 87% of API surface, blocking 3 prod regressions',
+        ],
+        fullstack: [
+          'Built REST API platform in FastAPI serving 50k req/day, reducing p99 latency 40% via async query batching',
+          'Automated CI/CD pipeline with GitHub Actions + Docker, reducing deploy time from 45 min to 8 min',
+          'Designed PostgreSQL schema for multi-tenant SaaS product, onboarding 12 enterprise customers in Q2',
+          'Shipped React dashboard with real-time WebSocket updates, increasing user engagement 28% per analytics',
+          'Wrote integration test suite (pytest + Testcontainers) covering 87% of API surface, blocking 3 prod regressions',
+        ],
+        sre: [
+          'Automated CI/CD pipeline with GitHub Actions + Docker, reducing deploy time from 45 min to 8 min',
+          'Deployed services on AWS ECS with Terraform IaC, achieving 99.9% uptime over a 90-day production window',
+          'Configured Prometheus + Grafana alerting stack, catching 2 latency regressions before they reached customers',
+          'Shipped Go event bus handling 10k events/sec with <5ms p99 latency using goroutines and channel pipelines',
+          'Wrote integration test suite (pytest + Testcontainers) covering 87% of API surface, blocking 3 prod regressions',
         ],
       },
-      {
-        id: 'internship',
-        bullets: [
+    },
+    {
+      id: 'university',
+      title: 'Research Assistant / Teaching Assistant',
+      company: 'State University',
+      location: 'Dayton, OH',
+      dates: 'Aug 2022 – Dec 2023',
+      bullets: {
+        genai: [
+          'Published ML research on adversarial robustness of RL agents at IEEE KSE 2024 as 2nd author',
+          'Built PyTorch DQN agent solving custom maze environments, achieving 94% success rate after 500k steps',
+          'Implemented data preprocessing pipeline in Python + NumPy, reducing training set noise by 31%',
+          'Mentored 40+ undergraduates in Data Structures, improving pass rate 18% over two semesters',
+          'Contributed 8 merged PRs to open-source ML framework, adding gradient-checkpointing for memory efficiency',
+        ],
+        systems: [
+          'Implemented formal verification of security protocols in Coq, proving 14 invariants over state machines',
+          'Built Go CLI tooling for batch experiment runs, cutting researcher setup time from 2 hours to 10 minutes',
+          'Developed CUDA kernel for parallelized matrix ops, reducing training wall-time 3× on NVIDIA A100',
+          'Mentored 40+ undergraduates in Data Structures, improving pass rate 18% over two semesters',
+          'Contributed 8 merged PRs to open-source ML framework, adding gradient-checkpointing for memory efficiency',
+        ],
+        fullstack: [
+          'Published ML research on adversarial robustness of RL agents at IEEE KSE 2024 as 2nd author',
+          'Built PyTorch DQN agent solving custom maze environments, achieving 94% success rate after 500k steps',
+          'Implemented data preprocessing pipeline in Python + NumPy, reducing training set noise by 31%',
+          'Mentored 40+ undergraduates in Data Structures, improving pass rate 18% over two semesters',
+          'Contributed 8 merged PRs to open-source ML framework, adding gradient-checkpointing for memory efficiency',
+        ],
+        sre: [
+          'Built Go CLI tooling for batch experiment runs, cutting researcher setup time from 2 hours to 10 minutes',
+          'Developed CUDA kernel for parallelized matrix ops, reducing training wall-time 3× on NVIDIA A100',
+          'Contributed 8 merged PRs to open-source ML framework, adding gradient-checkpointing for memory efficiency',
+          'Implemented formal verification of security protocols in Coq, proving 14 invariants over state machines',
+          'Mentored 40+ undergraduates in Data Structures, improving pass rate 18% over two semesters',
+        ],
+      },
+    },
+    {
+      id: 'internship',
+      title: 'Software Engineering Intern',
+      company: 'Tech Corp',
+      location: 'Chicago, IL',
+      dates: 'May 2022 – Aug 2022',
+      bullets: {
+        genai: [
+          'Migrated legacy Python 2 ETL pipeline to Python 3 + Airflow DAGs, eliminating 4 manual cron jobs',
+          'Containerized 3 backend services with Docker Compose, enabling reproducible local dev for 8-person team',
+          'Built internal Python SDK wrapping OpenAI API with retry logic, adopted by 3 product teams in 2 weeks',
+          'Wrote Terraform modules for AWS ECS + RDS provisioning, reducing infra setup time from 2 days to 30 min',
+        ],
+        systems: [
           'Developed Go microservice for real-time event processing, handling 10k events/sec with <5ms p99 latency',
           'Migrated legacy Python 2 ETL pipeline to Python 3 + Airflow DAGs, eliminating 4 manual cron jobs',
           'Containerized 3 backend services with Docker Compose, enabling reproducible local dev for 8-person team',
           'Wrote Terraform modules for AWS ECS + RDS provisioning, reducing infra setup time from 2 days to 30 min',
         ],
-      },
-    ],
-    projects: [
-      {
-        id: 'api_platform',
-        name: 'API Platform',
-        short_stack: 'FastAPI · React · PostgreSQL · Docker',
-        url: 'github.com/alexchen/api-platform',
-        date: 'Jan 2025',
-        bullets: [
-          'Built multi-tenant REST API with FastAPI, JWT auth, and role-based access control for 3 permission tiers',
-          'Deployed on AWS ECS with Terraform IaC, achieving 99.9% uptime over 90-day production window',
-          'Implemented React admin dashboard with Recharts analytics, giving PMs self-serve access to usage metrics',
+        fullstack: [
+          'Migrated legacy Python 2 ETL pipeline to Python 3 + Airflow DAGs, eliminating 4 manual cron jobs',
+          'Containerized 3 backend services with Docker Compose, enabling reproducible local dev for 8-person team',
+          'Built internal React component library, reducing front-end duplication across 5 internal dashboards',
+          'Wrote Terraform modules for AWS ECS + RDS provisioning, reducing infra setup time from 2 days to 30 min',
+        ],
+        sre: [
+          'Developed Go microservice for real-time event processing, handling 10k events/sec with <5ms p99 latency',
+          'Containerized 3 backend services with Docker Compose, enabling reproducible local dev for 8-person team',
+          'Wrote Terraform modules for AWS ECS + RDS provisioning, reducing infra setup time from 2 days to 30 min',
+          'Configured Prometheus alerting for 3 services, cutting mean time to detection from 15 min to under 2 min',
         ],
       },
-      {
-        id: 'llm_assistant',
-        name: 'LLM Code Assistant',
-        short_stack: 'TypeScript · LangChain · Next.js · OpenAI',
-        url: 'github.com/alexchen/llm-assistant',
-        date: 'Nov 2024',
-        bullets: [
-          'Engineered RAG pipeline with LangChain + pgvector, reducing hallucination rate 62% on domain-specific queries',
-          'Built streaming Next.js frontend with real-time token rendering, cutting perceived response latency by 1.8s',
-          'Added tool-use layer allowing agent to query live APIs, enabling answers requiring up-to-date external data',
-        ],
-      },
-      {
-        id: 'infra_dashboard',
-        name: 'Homelab Infra Dashboard',
-        short_stack: 'Prometheus · Grafana · Terraform · Ansible',
-        url: 'github.com/alexchen/homelab',
-        date: 'Sep 2024',
-        bullets: [
-          'Provisioned 3-node Proxmox cluster with Terraform + Ansible, hosting 12 self-managed services at home',
-          'Built Grafana alerting stack with 18 custom dashboards, catching 2 disk failures before data loss occurred',
-          'Configured WireGuard VPN + VLAN segmentation, isolating IoT devices from primary network for security',
-        ],
-      },
-      {
-        id: 'mobile_app',
-        name: 'iOS Fitness Tracker',
-        short_stack: 'SwiftUI · SwiftData · HealthKit · async/await',
-        url: 'github.com/alexchen/fitness-tracker',
-        date: 'Aug 2024',
-        bullets: [
-          'Built SwiftUI fitness tracking app with HealthKit integration, syncing workouts across 3 Apple devices',
-          'Implemented offline-first SwiftData persistence, keeping data available with zero network dependency',
-          'Shipped Core ML model for rep counting via accelerometer data, achieving 91% accuracy on test set',
-        ],
-      },
-    ],
-    skills: [
-      'Python · FastAPI · Go · TypeScript · Swift · Java',
-      'React · Next.js · SwiftUI · Tailwind CSS · REST · GraphQL',
-      'PostgreSQL · Redis · SQLite · pgvector · BigQuery',
-      'Docker · Terraform · Ansible · AWS ECS · GitHub Actions · Prometheus',
-      'PyTorch · LangChain · OpenAI API · Coq · Git · Linux',
-    ],
+    },
+  ],
+  projects: [
+    {
+      id: 'api_platform',
+      name: 'API Platform',
+      short_stack: 'FastAPI · React · PostgreSQL · Docker',
+      url: 'github.com/alexchen/api-platform',
+      date: 'Jan 2025',
+      bullets: [
+        'Built multi-tenant REST API with FastAPI, JWT auth, and role-based access control for 3 permission tiers',
+        'Deployed on AWS ECS with Terraform IaC, achieving 99.9% uptime over 90-day production window',
+        'Implemented React admin dashboard with Recharts analytics, giving PMs self-serve access to usage metrics',
+      ],
+    },
+    {
+      id: 'llm_assistant',
+      name: 'LLM Code Assistant',
+      short_stack: 'TypeScript · LangChain · Next.js · OpenAI',
+      url: 'github.com/alexchen/llm-assistant',
+      date: 'Nov 2024',
+      bullets: [
+        'Engineered RAG pipeline with LangChain + pgvector, reducing hallucination rate 62% on domain-specific queries',
+        'Built streaming Next.js frontend with real-time token rendering, cutting perceived response latency by 1.8s',
+        'Added tool-use layer allowing agent to query live APIs, enabling answers requiring up-to-date external data',
+      ],
+    },
+    {
+      id: 'infra_dashboard',
+      name: 'Homelab Infra Dashboard',
+      short_stack: 'Prometheus · Grafana · Terraform · Ansible',
+      url: 'github.com/alexchen/homelab',
+      date: 'Sep 2024',
+      bullets: [
+        'Provisioned 3-node Proxmox cluster with Terraform + Ansible, hosting 12 self-managed services at home',
+        'Built Grafana alerting stack with 18 custom dashboards, catching 2 disk failures before data loss occurred',
+        'Configured WireGuard VPN + VLAN segmentation, isolating IoT devices from primary network for security',
+      ],
+    },
+    {
+      id: 'mobile_app',
+      name: 'iOS Fitness Tracker',
+      short_stack: 'SwiftUI · SwiftData · HealthKit · async/await',
+      url: 'github.com/alexchen/fitness-tracker',
+      date: 'Aug 2024',
+      bullets: [
+        'Built SwiftUI fitness tracking app with HealthKit integration, syncing workouts across 3 Apple devices',
+        'Implemented offline-first SwiftData persistence, keeping data available with zero network dependency',
+        'Shipped Core ML model for rep counting via accelerometer data, achieving 91% accuracy on test set',
+      ],
+    },
+  ],
+  skills: {
+    genai: 'Python · FastAPI · TypeScript · LangChain · OpenAI API · React · Next.js · PostgreSQL · Docker · GitHub Actions',
+    systems: 'Go · Python · TypeScript · Docker · Terraform · Ansible · AWS ECS · Prometheus · Grafana · PostgreSQL · Linux',
+    fullstack: 'TypeScript · React · Next.js · Python · FastAPI · PostgreSQL · Redis · Docker · GitHub Actions · Tailwind CSS',
+    sre: 'Go · Docker · Terraform · Ansible · Prometheus · Grafana · AWS ECS · GitHub Actions · Python · Linux · k8s',
   },
-})
+}, null, 2)
 
 // 10 demo jobs seeded for every ephemeral demo user
 const DEMO_JOBS = [
@@ -281,8 +355,8 @@ export async function seedDemoUser(userId: string): Promise<void> {
     await db.run(
       `INSERT INTO jd_jobs
          (id, file_path, company, role_title, tags, visa_status, role_track, fit_pct,
-          raw_content, action, user_id, scanned_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+          raw_content, action, hidden, user_id, scanned_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, CURRENT_TIMESTAMP)`,
       [
         jobId,
         `demo/${job.company.toLowerCase().replace(/\s+/g, '-')}.md`,

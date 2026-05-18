@@ -9,12 +9,19 @@ interface Props {
   onSelect: (folderName: string | null) => void
 }
 
+// File System Access API is Chromium-only — Firefox and Safari don't support it.
+function isFsaSupported(): boolean {
+  return typeof window !== 'undefined' && 'showDirectoryPicker' in window
+}
+
 export function CloudFolderPicker({ handleKey, label, hint, onSelect }: Props) {
   const [folderName, setFolderName] = useState<string | null>(null)
   const [perm, setPerm]             = useState<'granted' | 'prompt' | 'denied' | null>(null)
   const [loading, setLoading]       = useState(true)
+  const [supported]                 = useState(() => isFsaSupported())
 
   useEffect(() => {
+    if (!supported) { setLoading(false); return }
     loadHandle(handleKey)
       .then(async handle => {
         if (!handle) { setLoading(false); return }
@@ -26,7 +33,7 @@ export function CloudFolderPicker({ handleKey, label, hint, onSelect }: Props) {
       .catch(() => {})
       .finally(() => setLoading(false))
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handleKey]) // intentionally omit onSelect — stable callback, re-running on every parent render would re-trigger IDB on every keystroke
+  }, [handleKey, supported]) // intentionally omit onSelect — stable callback
 
   const selectFolder = useCallback(async () => {
     try {
@@ -50,6 +57,24 @@ export function CloudFolderPicker({ handleKey, label, hint, onSelect }: Props) {
   }, [handleKey, onSelect, selectFolder])
 
   if (loading) return null
+
+  if (!supported) {
+    return (
+      <div className="bg-zinc-900 border border-amber-700/50 rounded-lg p-4 space-y-2">
+        <div>
+          <p className="text-sm font-medium text-zinc-200">{label}</p>
+          <p className="text-xs text-zinc-500 mt-0.5">{hint}</p>
+        </div>
+        <div className="flex items-start gap-2 text-xs text-amber-300 bg-amber-950/40 border border-amber-700/40 rounded px-3 py-2">
+          <span className="shrink-0 mt-0.5">⚠</span>
+          <span>
+            Local folder access requires Chrome or Edge — this browser does not support the File System Access API.
+            To import jobs, switch to Chrome/Edge or use the cloud upload option.
+          </span>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-3">
