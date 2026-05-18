@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { version } from '@/package.json'
+import { isCloud } from '@/lib/app-mode'
+import { getAdapter } from '@/lib/db-adapter'
 import { getDb } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
@@ -8,9 +10,15 @@ export async function GET() {
   const checks: Record<string, 'ok' | 'error'> = {}
 
   try {
-    getDb().prepare('SELECT 1').get()
+    if (isCloud()) {
+      const db = await getAdapter()
+      await db.query('SELECT 1')
+    } else {
+      getDb().prepare('SELECT 1').get()
+    }
     checks.db = 'ok'
-  } catch {
+  } catch (e) {
+    console.error('[health] db check failed:', e)
     checks.db = 'error'
   }
 
