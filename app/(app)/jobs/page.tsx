@@ -483,8 +483,8 @@ export default function JobsPage() {
           <div className="text-center space-y-3 max-w-sm">
             <p className="text-zinc-400 text-sm">No jobs yet.</p>
             <p className="text-zinc-500 text-xs leading-relaxed">
-              Click <strong className="text-zinc-300">Scan</strong> to upload one or more <strong className="text-zinc-300">.md</strong> files.
-              In Chrome/Edge, you can optionally connect a Jobs folder in <strong className="text-zinc-300">Settings</strong> for repeat scans without re-uploading.
+              Click <strong className="text-zinc-300">Scan</strong> to import jobs.
+              In Chrome/Edge, a connected Jobs folder in <strong className="text-zinc-300">Settings</strong> scans automatically; otherwise you can upload <strong className="text-zinc-300">.md</strong> files.
             </p>
           </div>
         </div>
