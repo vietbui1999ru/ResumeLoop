@@ -46,11 +46,14 @@ infra/*.tfstate
 infra/*.tfstate.backup
 .terraform/
 
-# Proprietary AI prompts — stored in system_prompts DB, not tracked in git
+# Proprietary reference docs — not tracked in git
 docs/reference/ats-optimization-guidelines.md
 docs/reference/CLAUDE-full.md
 docs/reference/ats-optimized-resume-system.md
 docs/reference/spec-job-match-resume-generator.md
+docs/reference/ai-reasoning.md
+docs/reference/api-reference.md
+docs/reference/ats-research-article.md
 
 # Demo resume files — stored in S3, not tracked in git
 docs/reference/*.docx
