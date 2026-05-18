@@ -719,7 +719,14 @@ export async function seedDemoUser(userId: string): Promise<void> {
     [profileId, userId, 'Demo Profile — Alex Chen', DEMO_PROFILE_DATA],
   )
 
-  let wefunderJobId: string | null = null
+  // Default resume session — needed so /api/chat works without generating a resume first
+  const defaultSessionId = `default:${userId}`
+  await db.run(
+    `INSERT OR IGNORE INTO resume_sessions (id, name, data, user_id) VALUES (?, ?, ?, ?)`,
+    [defaultSessionId, 'Default', DEMO_PROFILE_DATA, userId],
+  )
+
+  const outputJobIds: Record<string, string> = {}
   for (const { filePath, content } of DEMO_JOB_MARKDOWNS) {
     const parsed = parseJd(filePath, content)
     const scored = scoreJd(parsed.raw_content)
@@ -747,23 +754,111 @@ export async function seedDemoUser(userId: string): Promise<void> {
       ],
     )
 
-    if (parsed.company === 'Wefunder') wefunderJobId = jobId
+    if (['Wefunder', 'Coinbase', 'Crusoe Energy'].includes(parsed.company)) {
+      outputJobIds[parsed.company] = jobId
+    }
   }
 
-  // Seed a sample output on the highest-fit job so Output History isn't empty
-  if (wefunderJobId) {
+  // ── Fake outputs, cases, and outreach ──────────────────────────────────────
+
+  if (outputJobIds['Wefunder']) {
+    const jobId = outputJobIds['Wefunder']
     await db.run(
       `INSERT INTO jd_outputs
-         (id, job_id, docx_path, pdf_path, variant, tagline, user_id, built_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+         (id, job_id, session_id, docx_path, pdf_path, variant, tagline,
+          projects_used, work_ids_used, reasoning, cover_letter, user_id, built_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
       [
-        randomUUID(),
-        wefunderJobId,
-        's3:demo/JohnDoe_DemoResume.docx',
-        's3:demo/JohnDoe_DemoResume.pdf',
+        randomUUID(), jobId, defaultSessionId,
+        's3:demo/AlexChen_Wefunder_Resume.docx',
+        's3:demo/AlexChen_Wefunder_Resume.pdf',
         'genai',
         'Full-Stack Engineer building product-first features with React and Python',
+        JSON.stringify(['MRR Dashboard', 'ObsidianTasks', 'CalAI']),
+        JSON.stringify(['startup', 'techcorp', 'research']),
+        `## Track\nGenAI / AI Engineer — strong keyword overlap on LLMs, agent tooling, and FastAPI.\n\n## Work Experience\nSelected genai variant across all three roles to emphasize Python, AI integration, and product delivery. Startup bullets highlight LLM pipeline work; TechCorp covers full-stack velocity.\n\n## Projects\nMRR Dashboard (FastAPI + React data product), ObsidianTasks (agent orchestrator with Claude API), CalAI (LangChain + Calendar API integration). Together they demonstrate end-to-end AI product delivery.\n\n## Tagline\n"Full-Stack Engineer building product-first features with React and Python" — scoped to Wefunder's stack signal (React, Python, data-driven product).\n\n## Skills\nLeading with Python · FastAPI · LangChain, followed by React · TypeScript · PostgreSQL, then Docker · GitHub Actions · AWS to match the infra signals in the JD.`,
+        `Dear Wefunder Hiring Team,\n\nI'm excited to apply for the Full-Stack Engineer role at Wefunder. Your mission of democratizing startup investment aligns closely with my interest in building products that expand access to capital markets.\n\nIn my current role at Acme Startup, I built an LLM-powered analytics pipeline in Python and FastAPI that reduced reporting latency by 60% and served 200+ daily active investors. I also led a React dashboard migration that improved page load by 40%. These projects gave me direct experience with the data-intensive, product-first development culture I see in Wefunder's engineering blog.\n\nI'd love to bring this experience to Wefunder's platform team. Happy to discuss how my background fits your roadmap.\n\nBest,\nAlex Chen`,
         userId,
+      ],
+    )
+    await db.run(
+      `UPDATE jd_jobs SET application_case = ? WHERE id = ? AND user_id = ?`,
+      [
+        `## Company Overview\nWefunder is the leading equity crowdfunding platform, enabling retail investors to back early-stage startups. Raised $75M Series B in 2023. Engineering team of ~20, known for rapid product iteration.\n\n## Role Fit\n**Strengths**: FastAPI/React stack matches exactly. Prior LLM pipeline work maps to their data-science feature roadmap. Full-stack delivery cadence (2-week sprints) aligns with demonstrated velocity.\n**Watch-outs**: No prior fintech compliance experience — highlight audit-trail work in MRR Dashboard.\n\n## Outreach Angle\nReference their recent "Founder Stories" blog post series — shows genuine product empathy. Mention the dashboard migration case study as a concrete signal of product-first thinking.`,
+        jobId, userId,
+      ],
+    )
+    await db.run(
+      `INSERT INTO outreach_items
+         (id, job_id, user_id, kind, raw_markdown, role, notes,
+          linkedin_draft, email_draft, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
+      [
+        randomUUID(), jobId, userId, 'person',
+        `# Priya Sharma\n**Title**: Engineering Manager, Platform\n**Company**: Wefunder\n**LinkedIn**: linkedin.com/in/priyasharma-wefunder\n**Email**: priya@wefunder.com\n\nLeads the platform team. Previously at Stripe (Payments Infra). Posts regularly about API design and data quality.`,
+        'Engineering Manager',
+        'Spoke at a16z fintech summit 2024. Mentioned hiring senior full-stack in Q1.',
+        `Hi Priya, I came across your talk at the a16z fintech summit and your post on idempotency in payment APIs — really thoughtful take. I'm applying for the Full-Stack Engineer role at Wefunder and would love to hear how the platform team thinks about API design at your scale. Would a 15-min chat work this week?`,
+        `Subject: Full-Stack Engineer Application — Alex Chen\n\nHi Priya,\n\nI'm applying for the Full-Stack Engineer role at Wefunder. Your recent a16z talk on payment API design resonated with a challenge I solved at Acme Startup — rebuilding our webhook retry system to be fully idempotent.\n\nI've attached my resume and would love to chat about how my FastAPI + React background maps to your platform roadmap.\n\nBest,\nAlex Chen | alex.chen@example.com`,
+        'not_contacted',
+      ],
+    )
+  }
+
+  if (outputJobIds['Coinbase']) {
+    const jobId = outputJobIds['Coinbase']
+    await db.run(
+      `INSERT INTO jd_outputs
+         (id, job_id, session_id, docx_path, pdf_path, variant, tagline,
+          projects_used, work_ids_used, reasoning, cover_letter, user_id, built_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [
+        randomUUID(), jobId, defaultSessionId,
+        's3:demo/AlexChen_Coinbase_Resume.docx',
+        's3:demo/AlexChen_Coinbase_Resume.pdf',
+        'systems',
+        'Backend Engineer building distributed ledger services with Go and PostgreSQL',
+        JSON.stringify(['EthSwitch', 'MRR Dashboard', 'Homelab']),
+        JSON.stringify(['startup', 'techcorp', 'research']),
+        `## Track\nBackend / API Engineer (systems variant) — Coinbase JD emphasizes Go, distributed systems, and financial data integrity.\n\n## Work Experience\nSystems variant surfaces Go experience, concurrency patterns, and infrastructure ownership. TechCorp bullets highlight SLA ownership and incident response cadence.\n\n## Projects\nEthSwitch (Go IEEE 802.3 networking, concurrency), MRR Dashboard (financial data integrity, Stripe API), Homelab (Proxmox + k8s self-hosted infra). Maps cleanly to Coinbase's backend scale story.\n\n## Tagline\nPositioned on distributed systems + financial data — the two pillars Coinbase engineering cares about most.\n\n## Skills\nGo · Python · PostgreSQL lead; Docker · Kubernetes · Terraform in second row to signal cloud-native maturity.`,
+        `Dear Coinbase Engineering Team,\n\nI'm writing to express my interest in the Backend Engineer role on the Exchange Infrastructure team. Coinbase's commitment to building financial infrastructure for the open economy aligns with my background in high-reliability distributed systems.\n\nMy most relevant project is EthSwitch — a Go-based Ethernet switch implementing IEEE 802.3 with full concurrency via goroutines and channels. I also operate a 3-node Proxmox homelab running Kubernetes, Prometheus, and Grafana, which gave me practical experience with the observability patterns your SRE team uses at scale.\n\nI'd welcome the opportunity to discuss how my systems background fits Coinbase's infrastructure roadmap.\n\nBest regards,\nAlex Chen`,
+        userId,
+      ],
+    )
+    await db.run(
+      `UPDATE jd_jobs SET application_case = ? WHERE id = ? AND user_id = ?`,
+      [
+        `## Company Overview\nCoinbase is the leading US crypto exchange (~$200B+ annual volume). Engineering org of ~1,000. Backend team owns the exchange matching engine, custody APIs, and financial reporting pipeline.\n\n## Role Fit\n**Strengths**: Go experience via EthSwitch; financial data integrity demonstrated in MRR Dashboard (Stripe reconciliation). Homelab infra maps to their k8s-heavy backend.\n**Watch-outs**: No prior crypto/blockchain domain experience — frame as "financial systems" angle instead.\n\n## Outreach Angle\nCoinbase engineers blog heavily on reliability and incident culture. Reference a specific post — shows genuine engineering curiosity beyond the crypto hype.`,
+        jobId, userId,
+      ],
+    )
+  }
+
+  if (outputJobIds['Crusoe Energy']) {
+    const jobId = outputJobIds['Crusoe Energy']
+    await db.run(
+      `INSERT INTO jd_outputs
+         (id, job_id, session_id, docx_path, pdf_path, variant, tagline,
+          projects_used, work_ids_used, reasoning, cover_letter, user_id, built_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [
+        randomUUID(), jobId, defaultSessionId,
+        's3:demo/AlexChen_Crusoe_Resume.docx',
+        's3:demo/AlexChen_Crusoe_Resume.pdf',
+        'genai',
+        'ML Engineer deploying GPU-accelerated workloads on cloud infrastructure',
+        JSON.stringify(['Jetson', 'maze_drl', 'MRR Dashboard']),
+        JSON.stringify(['startup', 'research', 'techcorp']),
+        `## Track\nML Engineer — Crusoe builds climate-friendly cloud GPU infrastructure for AI training.\n\n## Work Experience\nGenAI variant emphasizes Python, PyTorch, CUDA experience. Research role bullets highlight GPU kernel work and ML training pipelines.\n\n## Projects\nJetson (NVIDIA CUDA + MIPI edge inference), maze_drl (PyTorch DQN training), MRR Dashboard (data pipeline). Demonstrates end-to-end ML from training to edge deployment.\n\n## Tagline\n"ML Engineer deploying GPU-accelerated workloads" — maps to Crusoe's core value proposition of sustainable GPU compute.\n\n## Skills\nPython · PyTorch · CUDA lead; FastAPI · Docker · GitHub Actions second row; Prometheus · Grafana for MLOps observability.`,
+        `Dear Crusoe Energy Team,\n\nI'm applying for the ML Engineer role at Crusoe. Your mission of repurposing stranded energy for sustainable compute resonates deeply — I've followed your work on flare gas utilization since your Series B announcement.\n\nMy NVIDIA Jetson project is directly relevant: I built a real-time inference pipeline using CUDA and PyTorch that processed MIPI CSI-2 camera streams at 30fps on edge hardware. This gave me hands-on experience with the GPU memory management and kernel optimization challenges your team faces at datacenter scale.\n\nI'd love to discuss how my ML infrastructure background aligns with Crusoe's compute platform roadmap.\n\nBest,\nAlex Chen`,
+        userId,
+      ],
+    )
+    await db.run(
+      `UPDATE jd_jobs SET application_case = ? WHERE id = ? AND user_id = ?`,
+      [
+        `## Company Overview\nCrusoe Energy repurposes otherwise-wasted energy (flare gas, excess renewable) to power GPU compute clusters for AI training. Series C ($500M), 200+ employees. Engineering team owns the cluster orchestration, GPU scheduling, and customer-facing MLOps tooling.\n\n## Role Fit\n**Strengths**: CUDA/PyTorch hands-on experience; Homelab k8s background maps to cluster ops; edge inference experience is differentiating.\n**Watch-outs**: No prior cloud provider experience at scale — emphasize adaptability and infra-from-scratch mindset.\n\n## Outreach Angle\nCrusoe's CTO posts on sustainable AI infrastructure. Reference the flare gas → compute whitepaper — shows you understand the business thesis, not just the tech stack.`,
+        jobId, userId,
       ],
     )
   }

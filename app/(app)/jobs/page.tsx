@@ -259,6 +259,31 @@ export default function JobsPage() {
     }
   }, [reload, setRowError])
 
+  const [editingTitleId, setEditingTitleId] = useState<string | null>(null)
+  const [editingTitleVal, setEditingTitleVal] = useState('')
+
+  const startTitleEdit = useCallback((jobId: string, current: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditingTitleId(jobId)
+    setEditingTitleVal(current)
+  }, [])
+
+  const commitTitleEdit = useCallback(async () => {
+    if (!editingTitleId || !editingTitleVal.trim()) { setEditingTitleId(null); return }
+    const jobId = editingTitleId
+    const title = editingTitleVal.trim()
+    setEditingTitleId(null)
+    setJobs(prev => prev.map(j => j.id === jobId ? { ...j, role_title: title } : j))
+    const res = await fetch(`/api/jobs/${jobId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role_title: title }),
+    })
+    if (!res.ok) {
+      reload()
+      setRowError(jobId, 'Title save failed')
+    }
+  }, [editingTitleId, editingTitleVal, reload, setRowError])
+
   const visible = useMemo(() => {
     return [...jobs].sort((a, b) => {
       const va = jobSortVal(a, sort.col)
@@ -512,7 +537,26 @@ export default function JobsPage() {
                     {/* Role + track badge + pipeline tag dots */}
                     <td className="py-3 pr-4">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-zinc-300">{job.role_title}</span>
+                        {editingTitleId === job.id ? (
+                          <input
+                            autoFocus
+                            value={editingTitleVal}
+                            onChange={e => setEditingTitleVal(e.target.value)}
+                            onBlur={commitTitleEdit}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') { e.preventDefault(); void commitTitleEdit() }
+                              if (e.key === 'Escape') setEditingTitleId(null)
+                            }}
+                            onClick={e => e.stopPropagation()}
+                            className="text-zinc-200 bg-zinc-800 border border-indigo-500 rounded px-1.5 py-0.5 text-sm outline-none min-w-0 w-48"
+                          />
+                        ) : (
+                          <span
+                            className="text-zinc-300 cursor-text hover:text-zinc-100"
+                            title="Double-click to edit title"
+                            onDoubleClick={e => startTitleEdit(job.id, job.role_title, e)}
+                          >{job.role_title}</span>
+                        )}
                         {job.role_track && (
                           <span className="text-2xs px-1.5 py-0.5 bg-zinc-800 border border-zinc-700/80 text-zinc-500 rounded font-mono leading-none">
                             {job.role_track}
