@@ -350,6 +350,7 @@ export async function seedDemoUser(userId: string): Promise<void> {
     [profileId, userId, 'Demo Profile — Alex Chen', DEMO_PROFILE_DATA],
   )
 
+  let wefunderJobId: string | null = null
   for (const job of DEMO_JOBS) {
     const jobId = randomUUID()
     await db.run(
@@ -368,6 +369,25 @@ export async function seedDemoUser(userId: string): Promise<void> {
         job.fit_pct,
         job.raw_content,
         job.action,
+        userId,
+      ],
+    )
+    if (job.company === 'Wefunder') wefunderJobId = jobId
+  }
+
+  // Seed a sample output on the highest-fit job so Output History isn't empty
+  if (wefunderJobId) {
+    await db.run(
+      `INSERT INTO jd_outputs
+         (id, job_id, docx_path, pdf_path, variant, tagline, user_id, built_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [
+        randomUUID(),
+        wefunderJobId,
+        's3:demo/JohnDoe_DemoResume.docx',
+        's3:demo/JohnDoe_DemoResume.pdf',
+        'genai',
+        'Full-Stack Engineer building product-first features with React and Python',
         userId,
       ],
     )

@@ -56,5 +56,39 @@ export async function createUser(email: string, password: string): Promise<strin
     `INSERT INTO users (id, email, password, email_verified) VALUES (?, ?, ?, ?)`,
     [id, email.toLowerCase().trim(), hash, emailVerified],
   )
+  await seedWelcomeOutput(id, db)
   return id
+}
+
+/** Seed a sample job + output so new users see a non-empty Output History. */
+async function seedWelcomeOutput(userId: string, db: Awaited<ReturnType<typeof getAdapter>>): Promise<void> {
+  const jobId    = randomUUID()
+  const outputId = randomUUID()
+  try {
+    await db.run(
+      `INSERT INTO jd_jobs
+         (id, file_path, company, role_title, tags, role_track, fit_pct, raw_content, action, hidden, user_id, scanned_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, CURRENT_TIMESTAMP)`,
+      [
+        jobId, 'sample/wefunder.md', 'Wefunder', 'Full Stack Product Engineer',
+        JSON.stringify(['sample']),
+        'Software Engineer / Full-Stack', 88,
+        'Sample job — Full Stack Product Engineer at Wefunder. React, Python, PostgreSQL.',
+        '1-Applied', userId,
+      ],
+    )
+    await db.run(
+      `INSERT INTO jd_outputs
+         (id, job_id, docx_path, pdf_path, variant, tagline, user_id, built_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [
+        outputId, jobId,
+        's3:demo/JohnDoe_DemoResume.docx',
+        's3:demo/JohnDoe_DemoResume.pdf',
+        'genai',
+        'Full-Stack Engineer building product-first features with React and Python',
+        userId,
+      ],
+    )
+  } catch { /* non-fatal — don't block signup if sample seed fails */ }
 }

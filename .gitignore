@@ -51,3 +51,7 @@ docs/reference/ats-optimization-guidelines.md
 docs/reference/CLAUDE-full.md
 docs/reference/ats-optimized-resume-system.md
 docs/reference/spec-job-match-resume-generator.md
+
+# Demo resume files — stored in S3, not tracked in git
+docs/reference/*.docx
+docs/reference/*.pdf
