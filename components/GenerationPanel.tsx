@@ -59,6 +59,7 @@ export default function GenerationPanel({
 
   const startedRef      = useRef<Set<string>>(new Set())
   const abortFnsRef     = useRef<Map<string, () => void>>(new Map())
+  const evtSourcesRef   = useRef<Map<string, EventSource>>(new Map())
   const onDoneRef       = useRef(onDone)
   const onErrorRef      = useRef(onError)
   const onStageRef      = useRef(onStageUpdate)
@@ -70,6 +71,13 @@ export default function GenerationPanel({
     onStageRef.current = onStageUpdate
     onCloseRef.current = onClose
   })
+
+  useEffect(() => {
+    return () => {
+      evtSourcesRef.current.forEach(es => es.close())
+      evtSourcesRef.current.clear()
+    }
+  }, [])
 
   // Detect new IDs appended to queue and start them
   useEffect(() => {
@@ -102,9 +110,11 @@ export default function GenerationPanel({
 
   async function runJob(jobId: string) {
     const evtSource = new EventSource(`/api/generate/${jobId}/stream?sessionId=${sessionId}`)
+    evtSourcesRef.current.set(jobId, evtSource)
 
     abortFnsRef.current.set(jobId, () => {
       evtSource.close()
+      evtSourcesRef.current.delete(jobId)
       updateProgress(jobId, { aborted: true, done: true })
       abortFnsRef.current.delete(jobId)
       onDoneRef.current(jobId)
@@ -134,6 +144,7 @@ export default function GenerationPanel({
           updateProgress(jobId, { done: true, outputId: event.data.outputId as string })
           setCollapsedJobs(prev => new Set(prev).add(jobId))  // auto-collapse on success
           abortFnsRef.current.delete(jobId)
+          evtSourcesRef.current.delete(jobId)
           onDoneRef.current(jobId)
           evtSource.close()
           resolve()
@@ -143,13 +154,14 @@ export default function GenerationPanel({
           updateProgress(jobId, { failed: true, done: true })
           // stay expanded on failure — do NOT add to collapsedJobs
           abortFnsRef.current.delete(jobId)
+          evtSourcesRef.current.delete(jobId)
           onErrorRef.current(jobId, (event.data.message as string) ?? event.stage)
           evtSource.close()
           resolve()
         }
       }
 
-      evtSource.onerror = () => { evtSource.close(); resolve() }
+      evtSource.onerror = () => { evtSource.close(); evtSourcesRef.current.delete(jobId); resolve() }
     })
   }
 
@@ -212,6 +224,7 @@ export default function GenerationPanel({
 
   return (
     <motion.div
+      data-tour="generation-panel"
       initial={{ y: '100%', opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: '100%', opacity: 0 }}

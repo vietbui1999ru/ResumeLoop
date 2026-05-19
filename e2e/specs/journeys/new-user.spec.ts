@@ -19,7 +19,7 @@ test.describe('New user journey', () => {
     await page.getByRole('button', { name: 'Create account' }).click()
 
     // Step 5: Wait for redirect to account page
-    await expect(page).toHaveURL('http://localhost:3000/account')
+    await page.waitForURL(/\/account$/)
 
     // Step 6: Assert account personal info section is visible
     await expect(page.locator('[data-tour="account-personal-info"]')).toBeVisible()
@@ -59,8 +59,10 @@ Build scalable systems using Python and Go. Experience with distributed systems 
 
     await page.locator('[aria-label="Paste job posting"] textarea').fill(jobPosting)
 
-    // Step 14: Click add job button
+    // Step 14: Click add job button — wait for API response before asserting
+    const addJobResponse = page.waitForResponse('**/api/jobs')
     await page.getByRole('button', { name: 'Add job' }).click()
+    await addJobResponse
 
     // Step 15: Wait for modal to close
     await expect(page.locator('[aria-label="Paste job posting"]')).toBeHidden()
@@ -80,8 +82,10 @@ Build scalable systems using Python and Go. Experience with distributed systems 
     // Step 18: Mock the stream
     await mockStream(page)
 
-    // Step 19: Click generate button
+    // Step 19: Click generate button — wait for SSE stream before asserting panel
+    const streamResponse = page.waitForResponse('**/api/generate/**/stream')
     await page.locator('[data-tour="generate-btn"]').click()
+    await streamResponse
 
     // Step 20: Assert generation panel is visible
     await expect(page.locator('[data-tour="generation-panel"]')).toBeVisible()
