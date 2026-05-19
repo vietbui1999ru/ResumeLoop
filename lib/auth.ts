@@ -35,19 +35,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // not the UUID set on the user object inside signIn.  The signIn callback
       // already created/linked the row, so the lookup here always succeeds.
       if (account?.type === 'oauth') {
-        try {
-          const db = await getAdapter()
-          const linked = await db.queryOne<{ user_id: string }>(
-            `SELECT user_id FROM oauth_accounts WHERE provider = ? AND provider_account_id = ?`,
-            [account.provider, account.providerAccountId],
-          )
-          token.id     = linked?.user_id ?? user?.id
-          token.isDemo = (user as { isDemo?: boolean })?.isDemo ?? false
-        } catch {
-          // DB unavailable — fall back to whatever signIn set on user.id
-          token.id     = user?.id
-          token.isDemo = (user as { isDemo?: boolean })?.isDemo ?? false
+        const db = await getAdapter()
+        const linked = await db.queryOne<{ user_id: string }>(
+          `SELECT user_id FROM oauth_accounts WHERE provider = ? AND provider_account_id = ?`,
+          [account.provider, account.providerAccountId],
+        )
+        if (!linked?.user_id) {
+          // signIn should have inserted the oauth_account row; if it's missing,
+          // returning null forces re-login rather than storing Google's sub as user ID,
+          // which would silently create a broken session (all API calls 401).
+          return null
         }
+        token.id     = linked.user_id
+        token.isDemo = (user as { isDemo?: boolean })?.isDemo ?? false
         return token
       }
 
@@ -106,7 +106,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (!dbUser) {
         const newId = randomUUID()
         await db.run(
-          `INSERT INTO users (id, email, password, email_verified) VALUES (?, ?, ?, 1)`,
+          `INSERT INTO users (id, email, password, email_verified) VALUES (?, ?, ?, ?)`,
           [newId, email, '', 1],
         )
         dbUser = { id: newId, is_demo: 0 }
