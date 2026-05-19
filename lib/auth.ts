@@ -34,7 +34,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // jwt callback reflects the provider's profile.sub (e.g. Google's numeric ID),
       // not the UUID set on the user object inside signIn.  The signIn callback
       // already created/linked the row, so the lookup here always succeeds.
-      if (account?.type === 'oauth') {
+      if (account?.type === 'oauth' || account?.type === 'oidc') {
         const db = await getAdapter()
         const linked = await db.queryOne<{ user_id: string }>(
           `SELECT user_id FROM oauth_accounts WHERE provider = ? AND provider_account_id = ?`,
@@ -76,7 +76,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token
     },
     async signIn({ user, account, profile }) {
-      if (account?.type !== 'oauth') return true
+      if (account?.type !== 'oauth' && account?.type !== 'oidc') return true
 
       const email = user.email?.toLowerCase()
       if (!email) return false
