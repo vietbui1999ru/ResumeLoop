@@ -49,8 +49,7 @@ test.describe('Sign up', () => {
     const submitButton = page.getByRole('button', { name: 'Create account' })
     await submitButton.click()
 
-    // Wait for error state — either error text or button to become enabled again (loading cleared)
-    await expect(page.locator('p.text-red-400')).toBeVisible()
+    await expect(page.getByText('Email already registered')).toBeVisible()
   })
 })
 
