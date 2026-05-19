@@ -4,12 +4,10 @@ import path from 'path'
 import { auth } from '@/lib/auth'
 import { PATHS } from '@/lib/paths'
 
+// Proprietary docs (CLAUDE-full.md, ats-*.md, spec-*.md) are seeded into the DB on startup
+// and must not be downloadable via HTTP. Only the user's own resume data is exposed here.
 const ALLOWED: Record<string, string> = {
-  'master_resume_data.json':            PATHS.pipeline.masterData,
-  'ats-optimized-resume-system.md':     PATHS.docs.atsSystem,
-  'ats-optimization-guidelines.md':     PATHS.docs.atsGuidelines,
-  'CLAUDE-full.md':                     PATHS.docs.claudeFull,
-  'spec-job-match-resume-generator.md': PATHS.docs.spec,
+  'master_resume_data.json': PATHS.pipeline.masterData,
 }
 
 function listBackups(filePath: string) {

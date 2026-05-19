@@ -1,47 +1,30 @@
 {
-  "candidate_profile": {
-    "narrative": "M.S. CS candidate with production experience in full-stack web services, open-source infrastructure tooling, and ML research. Currently focused on full-stack engineering and AI-assisted developer tools.",
-    "self_assessment": {
-      "portrays_well": [
-        "Full-stack production deployments (FastAPI/React, TypeScript/Next.js)",
-        "AI/LLM integration — OpenAI API, LangChain, agent tooling",
-        "Cloud infrastructure — Docker, Terraform, CI/CD pipelines",
-        "Research credibility — IEEE publication, formal methods coursework"
-      ],
-      "known_gaps": [
-        "Limited enterprise Java/Spring experience",
-        "No published mobile app yet"
-      ],
-      "not_this": [
-        "Do not pitch as PM or TPM",
-        "Do not claim C++ production expertise"
-      ]
-    },
-    "target_posture": {
-      "primary_roles": [
-        "Software Engineer (Full-Stack)",
-        "Backend / API Engineer",
-        "GenAI / AI Engineer"
-      ],
-      "secondary_roles": [
-        "SRE / DevOps Engineer",
-        "Platform Engineer"
-      ],
-      "auth_urgency": "Authorized to work in the US.",
-      "constraints": [
-        "Remote-first preferred"
-      ]
-    }
-  },
   "_meta": {
-    "version": "2.4",
-    "updated": "2025-01-01",
-    "format": "Bullet formula: \"Built A doing B using C, which produced D\". Impact mandatory.",
-    "usage": "v2.4: generated scripts pass title/company/location/dates inline — WORK_META no longer needed. All bullets pre-validated at 116 chars max.",
+    "version": "2.3",
+    "updated": "2026-01-01",
+    "format": "plain-text. Bullet formula: 'Built A doing B using C, which produced D — quantify D'. Buzzwords front-loaded. No professional summary. No new-grad language.",
+    "positioning": "Software engineer with production deployments, open-source contributions, and research publications. Builds API platforms, AI workflows, and cloud infrastructure.",
+    "usage": "v2.3: use data.work=[{id,bullets[]}] in build scripts. Work IDs: job1|job2|job3|job4. All bullets pre-validated at 116 chars max. Do NOT add bullets outside this file without running validate.py.",
     "bullet_rules": [
-      "Max 116 chars WITH spaces — hard limit",
-      "Lead with varied non-repeated action verbs",
-      "IMPACT IS MANDATORY: every bullet must answer \"so what?\""
+      "Max 116 chars WITH spaces — hard limit, guaranteed 1-line at 11pt Calibri, Letter, 0.5in margins",
+      "Tagline max 76 chars WITH spaces — hard limit, 1-line at 12pt Calibri",
+      "Project header (name + ' | ' + stack + GitHub + date) max 116 chars — hard limit",
+      "Lead with varied non-repeated action verbs — no two bullets in one resume should start with the same verb",
+      "Lead with the most ATS-important keyword or tool",
+      "IMPACT IS MANDATORY: every bullet must answer 'so what?' — add before/after, time saved, % improvement, or business outcome. Activity-only bullets (no outcome) are disallowed.",
+      "BUSINESS CONTEXT: at least 1 bullet per work experience should explain WHY the work mattered — what did the team/user/business gain? Not just what was built, but the consequence.",
+      "ACTIVITY-ONLY RED FLAGS — always rewrite: 'Collaborated with...', 'Participated in...', 'Assisted with...', 'Worked on...' unless followed by a concrete quantified outcome.",
+      "Research bullets: state PURPOSE + ACHIEVEMENT + IMPACT — no fabrication",
+      "Do not fabricate stack items, metrics, or features not actually built",
+      "Bullets should tell a story a non-technical HM can understand",
+      "Use short_stack field for project header (3-4 most ATS-important techs, ≤40 chars)"
+    ],
+    "tagline_rules": [
+      "AVOID generic 'experienced in Tech1, Tech2, Tech3, Tech4' — it differentiates nothing",
+      "USE value-oriented format: '{Job Title} building {what} with {tech}' or '{Job Title} — {achievement/differentiator}'",
+      "GOOD: 'Software Engineer building REST APIs in Python and Go with cloud automation' (73c)",
+      "GOOD: 'Backend Engineer — 4+ prod features/sprint; FastAPI, distributed systems' (71c)",
+      "BAD: 'Software Engineer experienced in Python, REST APIs, Go, and Cloud Services' (generic, no proof)"
     ]
   },
   "contact": {
@@ -50,290 +33,565 @@
     "location": "San Francisco, CA",
     "email": "alex.chen@example.com",
     "linkedin": "https://linkedin.com/in/alexchen",
-    "portfolio": "https://github.com/alexchen",
+    "portfolio": "https://alexchen.dev",
     "work_auth": "Authorized to work in the US."
   },
+  "tagline_note": "DO NOT use 'experienced in Tech1, Tech2, Tech3, Tech4' — that is generic and differentiates nothing. Use a VALUE-ORIENTED format: '{Job Title} building {what you build} with {tech1} and {tech2}' OR '{Job Title} — {brief proof-point or differentiator}'. Keep exact job title from JD. ≤76 chars. Never use 'graduate' or 'new grad' language.",
   "education": [
     {
-      "line": "State University – Master of Science in Computer Science",
-      "dates": "Aug. 2022 – Dec. 2024"
+      "display": "State University – Master of Science in Computer Science",
+      "dates": "Aug. 2022 – Dec. 2024",
+      "notes": "Research: adversarial RL robustness (published, NSF-funded) + formal verification of program security"
     },
     {
-      "line": "Example College – B.S. Computer Science & Applied Mathematics",
-      "dates": "Aug. 2018 – May. 2022"
+      "display": "Liberal Arts College – B.A. Applied Mathematics & Computer Science",
+      "dates": "Aug. 2018 – May 2022"
     }
   ],
   "experience": [
     {
-      "id": "startup",
-      "title": "Software Engineer",
-      "company": "Acme Startup",
-      "location": "San Francisco, CA (Remote)",
-      "dates": "Jan. 2024 – Present",
-      "actual_work": "Full-stack feature development and DevOps automation for a B2B SaaS product",
-      "tools_used": [
-        "Python",
-        "FastAPI",
-        "React",
-        "TypeScript",
-        "PostgreSQL",
-        "Docker",
-        "GitHub Actions",
-        "Terraform",
-        "OpenAI API"
-      ],
+      "id": "job2",
+      "title": "Research Software Engineer",
+      "company": "SimLab Foundation",
+      "location": "Remote, US",
+      "dates": "Jul. 2024 – Present",
+      "actual_work": "Building Python data pipelines for scientific simulation analysis; developing React dashboards and FastAPI microservices for simulation validation",
+      "tools_used": "Python, React, FastAPI, Docker, GitHub Actions, WebSocket, NumPy",
       "bullets": {
-        "genai": [
-          "Built LLM-powered document processing pipeline using LangChain + OpenAI API, cutting manual review time 70%",
-          "Automated CI/CD pipeline with GitHub Actions + Docker, reducing deploy time from 45 min to 8 min",
-          "Designed PostgreSQL schema for multi-tenant SaaS product, onboarding 12 enterprise customers in Q2",
-          "Shipped React dashboard with real-time WebSocket updates, increasing user engagement 28% per analytics",
-          "Wrote integration test suite (pytest + Testcontainers) covering 87% of API surface, blocking 3 prod regressions"
-        ],
-        "systems": [
-          "Built REST API platform in FastAPI serving 50k req/day, reducing p99 latency 40% via async query batching",
-          "Automated CI/CD pipeline with GitHub Actions + Docker, reducing deploy time from 45 min to 8 min",
-          "Designed PostgreSQL schema for multi-tenant SaaS product, onboarding 12 enterprise customers in Q2",
-          "Shipped Go event bus handling 10k events/sec with <5ms p99 latency using goroutines and channel pipelines",
-          "Wrote integration test suite (pytest + Testcontainers) covering 87% of API surface, blocking 3 prod regressions"
-        ],
         "fullstack": [
-          "Built REST API platform in FastAPI serving 50k req/day, reducing p99 latency 40% via async query batching",
-          "Automated CI/CD pipeline with GitHub Actions + Docker, reducing deploy time from 45 min to 8 min",
-          "Designed PostgreSQL schema for multi-tenant SaaS product, onboarding 12 enterprise customers in Q2",
-          "Shipped React dashboard with real-time WebSocket updates, increasing user engagement 28% per analytics",
-          "Wrote integration test suite (pytest + Testcontainers) covering 87% of API surface, blocking 3 prod regressions"
+          "Built React dashboards and FastAPI microservices in Python, automating simulation validation and reducing QA by 60%",
+          "Delivered 4+ production features per sprint end-to-end across design, implementation, testing, and deployment phases",
+          "Automated CI/CD pipelines with GitHub Actions and Docker, cutting deployment time from 2+ hours to under 30 minutes",
+          "Built Python analysis pipelines for scientific simulation data used in published computational research projects",
+          "Wrote runbooks for distributed simulation systems; reduced onboarding time and improved cross-team code handoffs"
+        ],
+        "genai": [
+          "Built Python pipelines for simulation analysis using FastAPI and Docker, cutting validation time by 60% per cycle",
+          "Developed FastAPI endpoints serving simulation analytics to React dashboards, processing 1K+ data points per run",
+          "Automated data ETL pipelines in Python + Docker, enabling reproducible simulation runs and consistent data quality",
+          "Built Python analysis pipelines for scientific simulation data for computational research publication workflows",
+          "Debugged pipeline failures in Python by tracing outputs, isolating transformation bugs, and shipping targeted fixes"
         ],
         "sre": [
-          "Automated CI/CD pipeline with GitHub Actions + Docker, reducing deploy time from 45 min to 8 min",
-          "Deployed services on AWS ECS with Terraform IaC, achieving 99.9% uptime over a 90-day production window",
-          "Configured Prometheus + Grafana alerting stack, catching 2 latency regressions before they reached customers",
-          "Shipped Go event bus handling 10k events/sec with <5ms p99 latency using goroutines and channel pipelines",
-          "Wrote integration test suite (pytest + Testcontainers) covering 87% of API surface, blocking 3 prod regressions"
+          "Automated CI/CD pipelines using GitHub Actions and Docker containers, reducing release cycles from 2h to 30 min",
+          "Built Prometheus observability dashboards tracking 50+ simulation metrics, cutting incident detection 15 to 2 min",
+          "Wrote Python automation tooling for simulation validation, eliminating 60% of manual QA across 3 research teams",
+          "Containerized simulation services using Docker multi-stage builds for reproducible deployments across environments",
+          "Diagnosed and resolved production failures by tracing logs, isolating root causes, and deploying targeted fixes"
+        ],
+        "systems": [
+          "Built async Python services for distributed simulation pipelines handling concurrent state transitions reliably",
+          "Automated deployment with Docker and GitHub Actions CI/CD, cutting release cycles from 2+ hours to under 30 minutes",
+          "Developed monitoring tooling tracking 50+ system health metrics across distributed simulation clusters in real-time",
+          "Diagnosed and resolved failures in distributed systems by tracing logs, isolating root causes, and shipping fixes",
+          "Wrote runbooks for 3 distributed simulation systems; reduced onboarding time and improved cross-team code handoffs"
         ]
-      }
+      },
+      "tech_ground_truth": [
+        "Python", "FastAPI", "React", "Docker", "GitHub Actions",
+        "Prometheus", "scientific simulation", "computational research", "CI/CD", "data pipelines", "ETL"
+      ]
     },
     {
-      "id": "university",
-      "title": "Research Assistant / Teaching Assistant",
+      "id": "job1",
+      "title": "Open Source Contributor",
+      "company": "OpenDev / TechPath",
+      "location": "Remote, US",
+      "dates": "Feb. 2025 – Present",
+      "actual_work": "Contributing to open-source platform CE via mentorship program; codebase fixes and features, infrastructure provisioning with Ansible and Terraform, CI/CD pipeline configuration, LLM tooling prototypes",
+      "tools_used": "Ruby, Git, Ansible, Terraform, CI/CD, LLMs, Bash",
+      "bullets": {
+        "systems": [
+          "Contributing to open-source platform in Ruby; shipped bug fixes reviewed and merged by senior platform engineers",
+          "Automated infrastructure provisioning with Ansible and Terraform IaC for reproducible deployment and stack workflows",
+          "Configured CI/CD pipelines with lint, test, and deploy stages for automated quality gating on merge requests",
+          "Collaborated with senior engineers through code review cycles, iterating on Ruby implementations for production",
+          "Built Git automation scripts for batch repository operations and CI/CD integration across open-source projects"
+        ],
+        "genai": [
+          "Contributed to open-source platform in Ruby; shipped bug fixes reviewed and merged by senior platform engineers",
+          "Built LLM-assisted tooling for code review workflows during mentorship program with senior platform engineers",
+          "Configured CI/CD pipelines for automated lint, test, and deploy stages across open-source Ruby projects",
+          "Automated deployment workflows with Ansible and Terraform, enabling reproducible environment setup across projects",
+          "Collaborated on LLM integration research, prototyping prompt-based code analysis tools with engineering mentors"
+        ],
+        "fullstack": [
+          "Contributed to open-source platform in Ruby; shipped features and bug fixes reviewed by senior platform engineers",
+          "Configured CI/CD pipelines for automated testing, linting, and multi-stage deployment on open-source code",
+          "Automated infrastructure provisioning with Ansible and Terraform IaC for reproducible stack deployment workflows",
+          "Collaborated with senior engineers on code review, iterating Ruby implementations to meet production standards",
+          "Built Git scripting workflows for batch repository automation and CI/CD integration across open-source projects"
+        ],
+        "sre": [
+          "Configured CI/CD pipelines with lint, test, and deploy stages for automated quality gating on merge requests",
+          "Automated infrastructure provisioning with Ansible and Terraform IaC for reproducible deployment and stack workflows",
+          "Contributed to open-source platform in Ruby; diagnosed and resolved bugs in pipeline config and deployment logic",
+          "Collaborated with senior engineers on incident triage, config debugging, and hardening CI/CD deployment pipelines",
+          "Scripted Git automation workflows for bulk repository operations and CI/CD integration across multiple projects"
+        ]
+      },
+      "tech_ground_truth": [
+        "Ruby", "Go/Golang", "Git", "Ansible", "Terraform", "CI/CD", "LLMs", "mentorship program", "open-source contribution"
+      ]
+    },
+    {
+      "id": "job3",
+      "title": "Graduate Research Assistant",
       "company": "State University",
-      "location": "Dayton, OH",
-      "dates": "Aug. 2022 – Dec. 2023",
-      "actual_work": "ML research on adversarial robustness + TA for Data Structures",
-      "tools_used": [
-        "Python",
-        "PyTorch",
-        "NumPy",
-        "Go",
-        "CUDA",
-        "Coq"
-      ],
+      "location": "Anytown, OH",
+      "dates": "Aug. 2022 – Aug. 2024",
+      "tools_used": "Python, TypeScript, Coq/Rocq, PyTorch, PPO, ARS, Gymnasium",
+      "research_papers": {
+        "paper1": {
+          "status": "PUBLISHED — IEEE Conference 2024",
+          "title": "Adversarial RL robustness via entropy-based detection",
+          "role": "2nd author",
+          "funding": "NSF-funded",
+          "result": "97%+ detection accuracy"
+        },
+        "paper2": {
+          "status": "IN PROGRESS — MEMOCODE 2024 target",
+          "title": "Formal verification of software security via Program Graphs",
+          "role": "1st author",
+          "what": "Translates Program Graphs to Transition Systems; proves integer overflow and HTTP injection absence"
+        }
+      },
       "bullets": {
         "genai": [
-          "Published ML research on adversarial robustness of RL agents at IEEE KSE 2024 as 2nd author",
-          "Built PyTorch DQN agent solving custom maze environments, achieving 94% success rate after 500k steps",
-          "Implemented data preprocessing pipeline in Python + NumPy, reducing training set noise by 31%",
-          "Mentored 40+ undergraduates in Data Structures, improving pass rate 18% over two semesters",
-          "Contributed 8 merged PRs to open-source ML framework, adding gradient-checkpointing for memory efficiency"
+          "Co-authored IEEE 2024 paper on adversarial RL robustness; entropy-based detection at 97%+ accuracy (NSF-funded)",
+          "Built Coq framework translating Program Graphs to safety proofs; detected integer overflow and injection attacks",
+          "Wrote Python and TypeScript tooling for data processing, research automation, and multi-system state management",
+          "Designed and executed test suites for 3+ research systems; analyzed failure modes and iterated on targeted bug fixes",
+          "Authored technical documentation for 3 research systems; presented findings to cross-functional teams of 100+ peers"
         ],
         "systems": [
-          "Implemented formal verification of security protocols in Coq, proving 14 invariants over state machines",
-          "Built Go CLI tooling for batch experiment runs, cutting researcher setup time from 2 hours to 10 minutes",
-          "Developed CUDA kernel for parallelized matrix ops, reducing training wall-time 3x on NVIDIA A100",
-          "Mentored 40+ undergraduates in Data Structures, improving pass rate 18% over two semesters",
-          "Contributed 8 merged PRs to open-source ML framework, adding gradient-checkpointing for memory efficiency"
+          "Built Coq framework translating Program Graphs to safety proofs; detected integer overflow and injection attacks",
+          "Co-authored IEEE 2024 paper on adversarial RL robustness; entropy-based detection at 97%+ accuracy (NSF-funded)",
+          "Wrote Python and TypeScript tooling for data processing, research automation, and multi-system state management",
+          "Designed and executed test suites for 3+ research systems; analyzed failure modes and iterated on targeted bug fixes",
+          "Authored technical documentation for 3 research systems; presented findings to cross-functional teams of 100+ peers"
         ],
         "fullstack": [
-          "Published ML research on adversarial robustness of RL agents at IEEE KSE 2024 as 2nd author",
-          "Built PyTorch DQN agent solving custom maze environments, achieving 94% success rate after 500k steps",
-          "Implemented data preprocessing pipeline in Python + NumPy, reducing training set noise by 31%",
-          "Mentored 40+ undergraduates in Data Structures, improving pass rate 18% over two semesters",
-          "Contributed 8 merged PRs to open-source ML framework, adding gradient-checkpointing for memory efficiency"
+          "Wrote Python and TypeScript tooling for data processing, research automation, and multi-system state management",
+          "Designed and executed test suites for 3+ research systems; analyzed failure modes and iterated on targeted bug fixes",
+          "Authored technical documentation for 3 research systems; presented findings to cross-functional teams of 100+ peers",
+          "Co-authored IEEE 2024 paper on adversarial RL robustness; entropy-based detection at 97%+ accuracy (NSF-funded)",
+          "Built Coq framework translating Program Graphs to safety proofs; detected integer overflow and injection attacks"
         ],
         "sre": [
-          "Built Go CLI tooling for batch experiment runs, cutting researcher setup time from 2 hours to 10 minutes",
-          "Developed CUDA kernel for parallelized matrix ops, reducing training wall-time 3x on NVIDIA A100",
-          "Contributed 8 merged PRs to open-source ML framework, adding gradient-checkpointing for memory efficiency",
-          "Implemented formal verification of security protocols in Coq, proving 14 invariants over state machines",
-          "Mentored 40+ undergraduates in Data Structures, improving pass rate 18% over two semesters"
+          "Designed and executed test suites for 3+ research systems; analyzed failure modes and iterated on targeted bug fixes",
+          "Wrote Python and TypeScript tooling for data processing, research automation, and multi-system state management",
+          "Authored technical documentation for 3 research systems; presented findings to cross-functional teams of 100+ peers",
+          "Co-authored IEEE 2024 paper on adversarial RL robustness; entropy-based detection at 97%+ accuracy (NSF-funded)",
+          "Built Coq framework translating Program Graphs to safety proofs; detected integer overflow and injection attacks"
         ]
-      }
+      },
+      "tech_ground_truth": [
+        "Coq/Rocq Proof Assistant", "Python", "PyTorch", "TypeScript", "Golang", "MATLAB", "NuSMV", "CUDA",
+        "formal verification", "Program Graphs", "Transition Systems", "Reinforcement Learning", "teaching assistant"
+      ]
     },
     {
-      "id": "internship",
-      "title": "Software Engineering Intern",
-      "company": "Tech Corp",
-      "location": "Chicago, IL",
-      "dates": "May. 2022 – Aug. 2022",
-      "actual_work": "Backend services migration and infrastructure automation",
-      "tools_used": [
-        "Python",
-        "Go",
-        "Docker",
-        "Terraform",
-        "Airflow",
-        "React"
-      ],
+      "id": "job4",
+      "title": "Research Assistant & Peer Tutor",
+      "company": "Liberal Arts College",
+      "location": "Anytown, IL",
+      "dates": "Aug. 2018 – May 2022",
+      "actual_work": "Scholar-funded research on numerical methods; presented at regional math conference; peer tutored 300+ students over 3 years in algorithms, data structures, and applied math; IT Help Desk support",
+      "tools_used": "Python, MATLAB, C++, LaTeX",
       "bullets": {
-        "genai": [
-          "Migrated legacy Python 2 ETL pipeline to Python 3 + Airflow DAGs, eliminating 4 manual cron jobs",
-          "Containerized 3 backend services with Docker Compose, enabling reproducible local dev for 8-person team",
-          "Built internal Python SDK wrapping OpenAI API with retry logic, adopted by 3 product teams in 2 weeks",
-          "Wrote Terraform modules for AWS ECS + RDS provisioning, reducing infra setup time from 2 days to 30 min",
-          "Developed Go microservice for real-time event processing, handling 10k events/sec with <5ms p99 latency"
-        ],
         "systems": [
-          "Developed Go microservice for real-time event processing, handling 10k events/sec with <5ms p99 latency",
-          "Migrated legacy Python 2 ETL pipeline to Python 3 + Airflow DAGs, eliminating 4 manual cron jobs",
-          "Containerized 3 backend services with Docker Compose, enabling reproducible local dev for 8-person team",
-          "Wrote Terraform modules for AWS ECS + RDS provisioning, reducing infra setup time from 2 days to 30 min",
-          "Configured Prometheus alerting for 3 services, cutting mean time to detection from 15 min to under 2 min"
+          "Completed Scholar-funded research on numerical methods; presented findings at regional mathematics conference",
+          "Analyzed numerical approximations in Python and MATLAB, benchmarking accuracy against closed-form solutions",
+          "Tutored 300+ students over 3 years in algorithms, data structures, and applied math; maintained 4.8/5.0 rating",
+          "Resolved IT Help Desk tickets for hardware diagnostics, network configurations, and OS troubleshooting across campus",
+          "Graded lab assignments and provided code review feedback to 20+ students per semester in introductory CS coursework"
+        ],
+        "genai": [
+          "Completed Scholar-funded research on numerical methods; presented findings at regional mathematics conference",
+          "Built Python scripts for numerical analysis, validating numerical models against analytical closed forms",
+          "Tutored 300+ students over 3 years in algorithms, data structures, and applied mathematics across 6+ course sections",
+          "Resolved IT Help Desk tickets for hardware diagnostics, network configurations, and OS troubleshooting across campus",
+          "Graded and provided written code feedback on 20+ student submissions per semester in introductory CS coursework"
         ],
         "fullstack": [
-          "Migrated legacy Python 2 ETL pipeline to Python 3 + Airflow DAGs, eliminating 4 manual cron jobs",
-          "Containerized 3 backend services with Docker Compose, enabling reproducible local dev for 8-person team",
-          "Built internal React component library, reducing front-end duplication across 5 internal dashboards",
-          "Wrote Terraform modules for AWS ECS + RDS provisioning, reducing infra setup time from 2 days to 30 min",
-          "Developed Go microservice for real-time event processing, handling 10k events/sec with <5ms p99 latency"
+          "Tutored 300+ students over 3 years in algorithms, data structures, and applied math; maintained 4.8/5.0 rating",
+          "Completed Scholar-funded research on numerical methods; presented findings at regional mathematics conference",
+          "Graded lab assignments and provided technical code review feedback to 20+ students per semester in CS coursework",
+          "Resolved IT Help Desk tickets for hardware diagnostics, network configuration, and OS troubleshooting requests",
+          "Supported peer tutoring sessions covering algorithms, OOP, and applied mathematics for 50+ undergraduate CS students"
         ],
         "sre": [
-          "Developed Go microservice for real-time event processing, handling 10k events/sec with <5ms p99 latency",
-          "Containerized 3 backend services with Docker Compose, enabling reproducible local dev for 8-person team",
-          "Wrote Terraform modules for AWS ECS + RDS provisioning, reducing infra setup time from 2 days to 30 min",
-          "Configured Prometheus alerting for 3 services, cutting mean time to detection from 15 min to under 2 min",
-          "Migrated legacy Python 2 ETL pipeline to Python 3 + Airflow DAGs, eliminating 4 manual cron jobs"
+          "Resolved IT Help Desk tickets for hardware diagnostics, network configurations, and OS troubleshooting across campus",
+          "Completed Scholar-funded research on numerical methods; presented findings at regional mathematics conference",
+          "Configured and maintained lab computer systems, providing hardware diagnostics and network troubleshooting support",
+          "Tutored 300+ students over 3 years in algorithms, data structures, and applied math; maintained 4.8/5.0 rating",
+          "Graded and reviewed CS lab submissions, identifying common bugs and providing systematic feedback to 20+ students"
         ]
-      }
+      },
+      "tech_ground_truth": [
+        "Python", "MATLAB", "numerical methods (Scholar research)", "regional math conference presentation",
+        "tutoring 300+ students", "Data Structures & Algorithms", "IT Help Desk", "hardware diagnostics", "network configuration"
+      ]
     }
   ],
   "projects": [
     {
-      "id": "api_platform",
-      "name": "API Platform",
-      "short_stack": "FastAPI · React · PostgreSQL · Docker",
-      "dates": "Jan. 2025",
-      "date": "Jan. 2025",
-      "url": "https://github.com/alexchen/api-platform",
-      "use_for": [
-        "Backend / API Engineer",
-        "Software Engineer / Full-Stack",
-        "SRE / DevOps Engineer"
-      ],
+      "id": "claude_tui",
+      "name": "daemon-dashboard — Rust TUI Monitor",
+      "tech": "Rust, Tokio, Ratatui, SQLite WAL, JSON-RPC 2.0, Unix Domain Sockets",
+      "short_stack": "Rust, Tokio, SQLite, JSON-RPC",
+      "dates": "Jan. 2025 – Present",
+      "url": "https://github.com/alexchen/daemon-dashboard",
+      "use_for": ["Systems/Infra", "Rust", "AI tooling", "DevTools"],
       "bullets": [
-        "Built multi-tenant REST API with FastAPI, JWT auth, and role-based access control for 3 permission tiers",
-        "Deployed on AWS ECS with Terraform IaC, achieving 99.9% uptime over 90-day production window",
-        "Implemented React admin dashboard with Recharts analytics, giving PMs self-serve access to usage metrics"
+        "Built Rust TUI dashboard with Tokio + Ratatui monitoring daemon token usage and costs across custom session windows",
+        "Built daemon-client IPC with JSON-RPC 2.0 over Unix domain sockets enabling zero-network, credential-free monitoring",
+        "Engineered SQLite WAL storage with incremental log scanning and UUID v5 deduplication for reliable data ingestion",
+        "Implemented owner-only socket permissions (0600) and read-only JSONL scanning ensuring zero credential exposure",
+        "Built session reconstruction from raw log records with automatic schema migrations and per-file cursor tracking"
       ]
     },
     {
-      "id": "llm_assistant",
-      "name": "LLM Code Assistant",
-      "short_stack": "TypeScript · LangChain · Next.js · OpenAI",
-      "dates": "Nov. 2024",
-      "date": "Nov. 2024",
-      "url": "https://github.com/alexchen/llm-assistant",
-      "use_for": [
-        "GenAI / AI Engineer",
-        "AI/LLM/Agents",
-        "Software Engineer / Full-Stack"
-      ],
+      "id": "mrr_dashboard",
+      "name": "Revenue Analytics Dashboard",
+      "tech": "FastAPI, Python, React, Recharts, BigQuery, SQL, Stripe API",
+      "short_stack": "FastAPI, Python, BigQuery, SQL",
+      "dates": "Feb. 2025 – Present",
+      "url": "https://github.com/alexchen/revenue-analytics",
+      "use_for": ["Full-Stack", "Data Engineering", "Backend", "Finance/Analytics"],
       "bullets": [
-        "Engineered RAG pipeline with LangChain + pgvector, reducing hallucination rate 62% on domain-specific queries",
-        "Built streaming Next.js frontend with real-time token rendering, cutting perceived response latency by 1.8s",
-        "Added tool-use layer allowing agent to query live APIs, enabling answers requiring up-to-date external data"
+        "Built Stripe-to-BigQuery ETL pipeline in Python, normalizing 6 months of billing data idempotently for MRR reporting",
+        "Designed 4 FastAPI REST endpoints serving MRR metrics and full subscription tier breakdowns at sub-200ms response",
+        "Wrote BigQuery SQL with window functions reconciling monthly and annual billing plans against invoice totals",
+        "Built analytics dashboard with React + Recharts visualizing subscription trends and revenue forecasts in real-time",
+        "Engineered idempotent ETL upserts keyed on invoice IDs, ensuring data consistency across repeated pipeline runs"
       ]
     },
     {
-      "id": "infra_dashboard",
-      "name": "Homelab Infra Dashboard",
-      "short_stack": "Prometheus · Grafana · Terraform · Ansible",
-      "dates": "Sep. 2024",
-      "date": "Sep. 2024",
-      "url": "https://github.com/alexchen/homelab",
-      "use_for": [
-        "SRE / DevOps Engineer",
-        "Platform Engineer",
-        "Cloud Engineer"
-      ],
+      "id": "pde_platform",
+      "name": "Interactive PDE Simulation Platform",
+      "tech": "FastAPI, Python, React, TypeScript, Plotly.js, NumPy, Docker, Nginx",
+      "short_stack": "FastAPI, Python, NumPy, Docker",
+      "dates": "Jan. 2024 – Present",
+      "url": "https://github.com/alexchen/pde-simulation",
+      "use_for": ["Full-Stack", "Scientific Computing", "Backend", "Numerical"],
       "bullets": [
-        "Provisioned 3-node Proxmox cluster with Terraform + Ansible, hosting 12 self-managed services at home",
-        "Built Grafana alerting stack with 18 custom dashboards, catching 2 disk failures before data loss occurred",
-        "Configured WireGuard VPN + VLAN segmentation, isolating IoT devices from primary network for security"
+        "Engineered FastAPI backend computing PDE solutions with NumPy finite-difference solvers under 500ms response time",
+        "Built React + TypeScript frontend with Plotly.js rendering 2D/3D PDE animations at 50 FPS with interactive controls",
+        "Containerized simulation stack with Docker multi-stage builds and Nginx reverse proxy for one-command deployment",
+        "Shipped 6 preset boundary configs enabling parameter space exploration for heat and wave PDEs without code changes"
       ]
     },
     {
-      "id": "mobile_app",
-      "name": "iOS Fitness Tracker",
-      "short_stack": "SwiftUI · Core ML · CloudKit",
-      "dates": "Aug. 2024",
-      "date": "Aug. 2024",
-      "url": "https://github.com/alexchen/ios-fitness",
-      "use_for": [
-        "iOS Engineer",
-        "Frontend / Product Engineer"
-      ],
+      "id": "spotiswipe",
+      "name": "Music Social Board",
+      "tech": "Next.js, React, TypeScript, tRPC, Prisma ORM, PostgreSQL, OAuth 2.0, Docker",
+      "short_stack": "Next.js, tRPC, PostgreSQL, Docker",
+      "dates": "May 2024 – Present",
+      "url": "https://github.com/alexchen/music-social-board",
+      "use_for": ["Full-Stack", "Frontend/Product", "Backend"],
       "bullets": [
-        "Built workout logging app in SwiftUI with offline-first CloudKit sync, achieving <100ms UI response times",
-        "Integrated Core ML model for rep counting via accelerometer data, reaching 91% accuracy on held-out test set",
-        "Published to App Store with 200+ downloads in first month; 4.6-star average rating across 40 reviews"
+        "Built music discovery platform in Next.js with tRPC APIs and Prisma ORM handling 100+ concurrent user sessions",
+        "Integrated OAuth 2.0 with PKCE flow across multiple providers with secure multi-provider account linking support",
+        "Optimized tRPC endpoints for 99.5% uptime via PostgreSQL indexing, query tuning, and connection pooling strategies",
+        "Automated Docker deployments via GitHub Actions CI/CD, cutting release cycles from 30 min to under 5 min per build"
+      ]
+    },
+    {
+      "id": "homeboard",
+      "name": "HomeBoard — Self-Hosted Dashboard",
+      "tech": "ASP.NET Core 8, C#, React, TypeScript, PostgreSQL, Redis, Docker, xUnit",
+      "short_stack": "ASP.NET Core 8, C#, PostgreSQL",
+      "dates": "Feb. 2025 – Present",
+      "url": "https://github.com/alexchen/homeboard",
+      "use_for": [".NET/Full-Stack", "Backend", "Enterprise"],
+      "bullets": [
+        "Designed modular ASP.NET Core 8 (C#) backend with 5 domain modules following clean architecture and OOP patterns",
+        "Implemented JWT auth with refresh tokens, Redis caching with TTLs, and React frontend with TanStack Query updates",
+        "Built Polly HTTP resilience pipeline with retry, exponential backoff, and circuit breaker for external API calls",
+        "Containerized full stack with Docker Compose (PostgreSQL 16, Redis 7) and EF Core auto-migrations on each startup",
+        "Wrote xUnit + Testcontainers integration tests against real PostgreSQL and Redis instances ensuring data consistency"
+      ]
+    },
+    {
+      "id": "ethswitch",
+      "name": "EthSwitch — Ethernet Switch",
+      "tech": "Go, IEEE 802.3, Goroutines, Channels, CRC32",
+      "short_stack": "Go, Goroutines, Channels",
+      "dates": "Dec. 2023 – Feb. 2024",
+      "url": "https://github.com/alexchen/ethswitch",
+      "use_for": ["Systems", "Go", "Networking", "Distributed/Infra"],
+      "bullets": [
+        "Built concurrent Go Ethernet switch with goroutine-per-port forwarding and channel-based MAC address learning table",
+        "Designed lock-free architecture using Go channels achieving sub-millisecond forwarding with zero mutex contention",
+        "Implemented IEEE 802.3 frame parsing with CRC32 validation and unicast/broadcast flooding per Ethernet specification",
+        "Validated with Go race detector and goleak; achieved deadlock-free operation under concurrent multi-port load tests"
+      ]
+    },
+    {
+      "id": "homelab",
+      "name": "Proxmox Homelab",
+      "tech": "Proxmox, Prometheus, Grafana, Terraform, Ansible, WireGuard, Docker, Kubernetes",
+      "short_stack": "Proxmox, Terraform, Prometheus",
+      "dates": "Jul. 2024 – Present",
+      "url": "https://github.com/alexchen/homelab-scripts",
+      "use_for": ["SRE/DevOps", "Infrastructure", "Systems", "IT/Helpdesk", "Hardware"],
+      "bullets": [
+        "Provisioned 3 bare-metal servers from BIOS/UEFI to GRUB bootloader config, enabling full-stack self-hosted services",
+        "Designed and wired physical network switch and topology connecting 3 bare-metal servers with isolated VLAN segments",
+        "Installed RAM and performed CPU/GPU undervolting on 3 bare-metal servers to reduce idle and peak power consumption",
+        "Scripted cron sleep/wake schedules for heavy and light machines, cutting idle power draw 40% across the full cluster",
+        "Deployed Kubernetes cluster with HA and self-healing pod policies for CPU-intensive jobs across bare-metal servers",
+        "Orchestrated 15+ VM cluster on Proxmox at 99.5% uptime with VLAN segmentation, dual-NIC routing, and health checks",
+        "Built Prometheus + Grafana stack tracking 50+ infrastructure metrics, cutting incident detection from 15 to 2 min",
+        "Automated VM provisioning with Terraform IaC and Ansible configuration runbooks, reducing deployment cycles by 70%",
+        "Reduced MTTR by 50% through automated alerting, log aggregation, and health monitoring across network segments",
+        "Configured WireGuard VPN with dual-NIC routing, enabling encrypted remote access to segmented VM VLAN networks"
+      ]
+    },
+    {
+      "id": "maze_drl",
+      "name": "Maze Solver — Deep RL",
+      "tech": "Python, PyTorch, Deep Q-Network (DQN), NumPy, Matplotlib",
+      "short_stack": "Python, PyTorch, DQN",
+      "dates": "May 2023 – Aug. 2023",
+      "url": "https://github.com/alexchen/maze-drl",
+      "use_for": ["ML/AI", "Research", "Data Science"],
+      "bullets": [
+        "Built Deep Q-Network agent in PyTorch solving stochastic maze environments end-to-end within 500 training episodes",
+        "Designed reward shaping and epsilon-greedy exploration strategies; benchmarked convergence and cut solve time by 35%",
+        "Built training pipeline with experience replay, target network updates, and reward plotting to tune hyperparameters"
+      ]
+    },
+    {
+      "id": "coq_verification",
+      "name": "Coq Security Verification — Program Graphs",
+      "tech": "Coq/Rocq, Program Graphs, Transition Systems, Dependent Types",
+      "short_stack": "Coq/Rocq, Program Graphs, Isabelle",
+      "dates": "Aug. 2022 – Aug. 2024",
+      "url": null,
+      "note": "1st-author research project. Do NOT conflate with IEEE 2024 paper (different work).",
+      "use_for": ["Research", "Security", "Systems"],
+      "bullets": [
+        "Built Coq framework translating Program Graphs to safety proofs; detected integer overflow and injection attacks",
+        "Authored first-author Coq implementation mapping security properties to type-level invariants via Transition Systems",
+        "Improved software security through formal verification in Coq, proving systems free from injection and overflow bugs"
+      ]
+    },
+    {
+      "id": "jetson",
+      "name": "Real-Time Object Detection on Edge",
+      "tech": "NVIDIA Jetson, CUDA, PyTorch, MIPI CSI-2, Python",
+      "short_stack": "CUDA, PyTorch, NVIDIA Jetson",
+      "dates": "2023",
+      "url": null,
+      "use_for": ["ML/AI", "Embedded/Systems", "Edge Computing"],
+      "bullets": [
+        "Deployed real-time object detection on NVIDIA Jetson using CUDA-accelerated PyTorch with MIPI CSI-2 camera input",
+        "Optimized CUDA kernel config and memory layout for embedded GPU, reducing host-device transfer overhead by 25%",
+        "Validated inference accuracy and latency, achieving real-time performance within embedded GPU memory constraints"
+      ]
+    },
+    {
+      "id": "zmk",
+      "name": "ZMK Keyboard Firmware",
+      "tech": "ZMK, nRF52840, Devicetree, BLE HID, GitHub Actions",
+      "short_stack": "ZMK, nRF52840, Devicetree",
+      "dates": "Personal",
+      "url": "https://github.com/alexchen/zmk-config",
+      "use_for": ["Embedded", "Personal"],
+      "bullets": [
+        "Designed ZMK firmware config for nRF52840 split keyboard with 8 layers and macros via Devicetree overlays",
+        "Automated CI pipeline with GitHub Actions producing flashable UF2 binaries for both keyboard halves on every push"
+      ]
+    },
+    {
+      "id": "pe_hackathon",
+      "name": "SRE Hackathon — URL Shortener + Observability",
+      "tech": "Flask, Peewee ORM, PostgreSQL, Redis, Nginx, Gunicorn, Prometheus, Grafana, Alertmanager, Docker, GitHub Actions, pytest, k6",
+      "short_stack": "Flask, Nginx, Prometheus, Docker",
+      "dates": "Apr. 2025",
+      "url": "https://github.com/alexchen/sre-hackathon",
+      "placement": "Top 50 / 250 teams",
+      "use_for": ["SRE/DevOps", "Backend", "QA/Testing"],
+      "bullets": [
+        "Built Flask URL shortener scaled to 0% error rate at 500 VUs via Nginx + 6 Gunicorn workers with Redis caching",
+        "Instrumented Prometheus + Grafana tracking the four golden signals with Alertmanager-based Discord notifications",
+        "Hardened CI/CD pipeline with 30 pytest tests achieving 66% coverage, blocking production deploys on test failure",
+        "Engineered zero-downtime rolling restarts with Docker restart policies and SIGTERM graceful drain across containers",
+        "Tuned PostgreSQL connection pool across 6 app instances to 82% safety margin, eliminating 45% failure rate at load",
+        "Load-tested with k6 scaling from 50 to 500 concurrent VUs, diagnosing and fixing single-threaded Flask bottleneck"
+      ]
+    },
+    {
+      "id": "resumeloop",
+      "name": "JobAI — Agentic Job Application Platform",
+      "tech": "Next.js 14, TypeScript, Vercel AI SDK, NextAuth v5, SQLite, Neon Postgres, AWS ECS Fargate, ALB, GitHub Actions",
+      "short_stack": "Next.js, Vercel AI SDK, AWS ECS, Neon",
+      "dates": "Apr. 2025",
+      "url": "https://github.com/alexchen/jobai",
+      "use_for": ["GenAI", "Full-Stack", "Backend/API", "AI Automation", "QA/Testing"],
+      "bullets": [
+        "Shipped agentic resume pipeline — AI fit scoring, multi-provider LLM via Vercel AI SDK, DOCX + PDF generation per JD",
+        "Deployed on AWS ECS Fargate with zero-downtime rolling deploys, auto-rollback circuit breaker, and HTTPS via ACM",
+        "Bridged SQLite (local) and Neon Postgres (cloud) via a shared DbAdapter — zero code changes between environments"
+      ]
+    },
+    {
+      "id": "llm_wiki",
+      "name": "AgentCtrl — LLM Engineering Control Plane",
+      "tech": "Claude Code, Git, POSIX, JSON-RPC, JSONL, Hooks, Multi-agent systems",
+      "short_stack": "Claude Code, Git, POSIX, JSONL",
+      "dates": "2025",
+      "url": null,
+      "use_for": ["AI tooling", "DevTools", "GenAI", "Platform Engineering", "Systems", "Vibe Coding"],
+      "bullets": [
+        "Designed 4-layer control plane for multi-agent LLM workflows — Execution, Coordination, Quality, and Experience layers",
+        "Engineered atomic task-claim protocol via POSIX mv for single-machine and git refs/tasks/* races for multi-machine",
+        "Specced append-only JSONL event log and agent registry, enabling full audit trail and per-task cost accounting",
+        "Authored kanban-status skill and human-approval gateway, eliminating race conditions in multi-agent task systems",
+        "Mapped council deliberation pattern — parallel evaluators + majority vote — for quality-gating agentic outputs"
+      ]
+    },
+    {
+      "id": "price_monitor",
+      "name": "Price Monitor — Async Web Scraper",
+      "tech": "Playwright, playwright-stealth, Python, FastAPI, PostgreSQL 16, asyncio, SQLAlchemy 2.0, Alembic, Redis, Docker, pytest, GitHub Actions",
+      "short_stack": "Playwright, FastAPI, PostgreSQL, Redis",
+      "dates": "2025",
+      "url": "https://github.com/alexchen/price-monitor",
+      "use_for": ["QA/Testing", "Backend", "Data Engineering"],
+      "bullets": [
+        "Built async Playwright scraper with playwright-stealth bypassing bot detection, handling 100+ product pages reliably",
+        "Designed FastAPI REST backend with SQLAlchemy 2.0 async ORM and Alembic migrations for price history tracking",
+        "Engineered Redis-based deduplication and job queue, reducing duplicate scrape jobs by 90% under concurrent load",
+        "Wrote pytest integration tests with Docker Compose fixtures, achieving 80%+ coverage on all scraping edge cases",
+        "Automated CI/CD with GitHub Actions running lint, tests, and Docker image build on every pull request merge"
       ]
     }
   ],
   "skills": {
     "fullstack": {
-      "Languages": "Python, TypeScript, Go, Rust, SQL, Bash",
-      "Frameworks": "React, Next.js, FastAPI, Node.js, Express",
-      "Data": "PostgreSQL, Redis, SQLite, pgvector",
-      "DevOps": "Docker, GitHub Actions, Terraform, Ansible, AWS ECS",
-      "Tools": "Git, Neovim, tmux"
+      "Languages": "Python, TypeScript, JavaScript, Go, C#, Rust, SQL, Bash",
+      "Frameworks": "React, Next.js, FastAPI, ASP.NET Core 8, Node.js, tRPC, LangChain, Prisma, EF Core",
+      "AI & GenAI": "Claude API, Gemini AI, LangChain, MCP, PyTorch, Prompt Engineering, LLM Integration",
+      "Infra & DevOps": "Docker, GitHub Actions, Prometheus, Grafana, Terraform, Ansible, Nginx, Linux",
+      "Databases": "PostgreSQL, Redis, SQLite, BigQuery, MongoDB, SQL Server"
     },
     "genai": {
-      "Languages": "Python, TypeScript, Go, SQL, Bash",
-      "AI & Agents": "OpenAI API, LangChain, pgvector, Claude API",
-      "Frameworks": "FastAPI, Next.js, React, Node.js",
-      "Infra": "Docker, GitHub Actions, Terraform, AWS",
-      "Data": "PostgreSQL, Redis, SQLite"
+      "Languages": "Python, TypeScript, Rust, Go, SQL, Bash",
+      "AI & Agents": "Claude API, Gemini AI, LangChain, MCP, Agent Orchestrator, Prompt Engineering, RAG",
+      "ML & Research": "PyTorch, Deep Q-Network, NumPy, Reinforcement Learning, scikit-learn, Model Evaluation",
+      "Backend & Data": "FastAPI, PostgreSQL, BigQuery, Redis, ETL Pipelines, Docker, REST APIs, OAuth 2.0",
+      "Tools": "Git, GitHub Actions CI/CD, Linux, Tokio, SQLite, Prometheus, Grafana, Terraform"
     },
     "sre_devops": {
-      "Languages": "Go, Python, Bash, TypeScript, SQL",
-      "Infrastructure": "Terraform, Ansible, Docker, Kubernetes, Proxmox",
-      "Observability": "Prometheus, Grafana, OpenTelemetry",
-      "Cloud": "AWS ECS, S3, RDS, CloudFront",
-      "Tools": "Git, Neovim, tmux, WireGuard"
+      "Languages": "Go, Python, Bash, Rust, TypeScript, SQL",
+      "Infrastructure": "Terraform, Ansible, Docker, Proxmox, WireGuard, Nginx, Linux",
+      "Observability": "Prometheus, Grafana, Log Aggregation, Alerting, Health Monitoring",
+      "Distributed": "Goroutine Concurrency, gRPC, Layer 2 Networking, IPC, JSON-RPC 2.0",
+      "Databases": "PostgreSQL, Redis, SQLite, BigQuery"
+    },
+    "systems": {
+      "Languages": "Rust, Go, Python, C#, Bash, SQL",
+      "Systems": "Tokio, Goroutines/Channels, Unix Domain Sockets, JSON-RPC 2.0, POSIX, CUDA",
+      "Infrastructure": "Docker, Terraform, Ansible, Proxmox, Prometheus, Grafana, Linux",
+      "AI & ML": "PyTorch, Claude API, LangChain, MCP, Deep Reinforcement Learning",
+      "Databases": "PostgreSQL, SQLite WAL, Redis, BigQuery"
+    },
+    "data_ml": {
+      "Languages": "Python, SQL, TypeScript, Go, Bash",
+      "ML & AI": "PyTorch, scikit-learn, LangChain, Gemini AI, Claude API, Deep Q-Network, NumPy, pandas",
+      "Data Eng": "BigQuery, FastAPI, ETL Pipelines, Stripe API, PostgreSQL, Data Modeling, idempotent loads",
+      "Infrastructure": "Docker, GitHub Actions, Terraform, Prometheus, Grafana, Linux",
+      "Research": "Adversarial RL Robustness, Formal Verification, IEEE Conference 2024 (NSF-funded), Coq/Rocq"
     }
   },
   "role_track_picks": {
-    "Software Engineer / Full-Stack": [
-      "api_platform",
-      "llm_assistant",
-      "infra_dashboard"
-    ],
-    "Backend / API Engineer": [
-      "api_platform",
-      "infra_dashboard",
-      "llm_assistant"
-    ],
-    "GenAI / AI Engineer": [
-      "llm_assistant",
-      "api_platform",
-      "infra_dashboard"
-    ],
-    "SRE / DevOps Engineer": [
-      "infra_dashboard",
-      "api_platform",
-      "llm_assistant"
-    ],
-    "iOS Engineer": [
-      "mobile_app",
-      "llm_assistant",
-      "api_platform"
-    ],
-    "Platform Engineer": [
-      "infra_dashboard",
-      "api_platform",
-      "llm_assistant"
-    ]
+    "AI/LLM/Agents": ["llm_wiki", "resumeloop", "claude_tui"],
+    ".NET/Full-Stack": ["homeboard", "mrr_dashboard", "spotiswipe"],
+    "Embedded/Systems": ["zmk", "jetson", "ethswitch"],
+    "Distributed/Infra": ["ethswitch", "homelab", "mrr_dashboard"],
+    "Data/ML": ["mrr_dashboard", "maze_drl", "pde_platform"],
+    "Automation/Finance": ["mrr_dashboard", "homeboard", "resumeloop"],
+    "Quant/Numerical": ["pde_platform", "mrr_dashboard", "maze_drl"],
+    "Rust/Systems": ["claude_tui", "ethswitch", "homelab"],
+    "Frontend/Product": ["resumeloop", "spotiswipe", "homeboard"],
+    "AI Tooling/DevTools": ["llm_wiki", "claude_tui", "resumeloop"],
+    "GenAI/Python": ["resumeloop", "mrr_dashboard", "llm_wiki"],
+    "SRE/DevOps": ["homelab", "pe_hackathon", "ethswitch"],
+    "Security/Research": ["coq_verification", "homelab", "claude_tui"],
+    "QA/Testing": ["pe_hackathon", "price_monitor", "resumeloop"]
   },
-  "resume_rules": "## Resume Hard Constraints\n- tagline: <=76 characters WITH spaces\n- Each bullet: <=116 characters WITH spaces\n- Action verb variety: no two bullets start with same verb\n- Impact mandatory: every bullet needs >=1 metric or result",
-  "fabrication_warnings": "All metrics are illustrative examples. Replace with your actual data before use."
+  "resume_rules": {
+    "no_professional_summary": true,
+    "no_new_grad_language": true,
+    "no_fabrication": "NEVER add tools, metrics, features, or claims not in this file. Cross-check project stack ground truth before writing bullets.",
+    "section_order": ["Education", "Work Experience", "Relevant Projects", "Technical Skills"],
+    "tagline_hard_limit_chars": 76,
+    "bullet_hard_limit_chars": 116,
+    "project_header_hard_limit_chars": 116,
+    "action_verb_rule": "No two bullets in a single resume should start with the same action verb. Use varied verbs: Built, Designed, Engineered, Developed, Automated, Configured, Implemented, Deployed, Wrote, Contributed, Shipped, Optimized, Integrated, Orchestrated, Scaffolded, Diagnosed, Collaborated, Analyzed.",
+    "para_count": "Dynamic (v2.3+). Typical: 3-job x 5b + 3-proj x 3b = 44. Check actual output in Word.",
+    "date_format": "Mon. YYYY",
+    "format": "DOCX via buildv2.js (v2.3+). data.work=[{id,bullets[]}]. Work IDs: job1|job2|job3|job4.",
+    "buzzwords_front": "Lead each bullet with the most important/searchable keyword or technology",
+    "tools_in_bullets": "Every bullet should mention at least one specific tool/tech used",
+    "3_job_layout": "Use job1 + job2 + job3 for most roles. Add job4 for academic/research roles. 3-job + 3-proj x 3b = 44 paras (likely 1-page; verify in Word)."
+  },
+  "fabrication_warnings": {
+    "paper1_is_rl_NOT_coq": "IEEE 2024 paper = Adversarial RL robustness + entropy-based detection. 2nd author. NSF-funded. NOT about Coq or formal verification.",
+    "coq_paper_is_NOT_published": "Coq paper = Program Graphs to Proofs. 1st author. DRAFT — not yet published. NOT published at the IEEE conference.",
+    "mrr_is_python_NOT_csharp": "Revenue Analytics Dashboard = Python/FastAPI/BigQuery. HomeBoard = C#/ASP.NET Core 8.",
+    "no_fabricated_metrics": "Never add metrics not in this file — ask the candidate for actual before/after numbers."
+  },
+  "quality_review": {
+    "_note": "Bullets flagged as activity-only or missing business context. Improve when real numbers are available — DO NOT fabricate.",
+    "weak_bullets": {
+      "job1_collaborated": {
+        "current": "Collaborated with senior engineers on code review, iterating Ruby implementations to meet production standards",
+        "problem": "Activity-only — 'to meet production standards' is vague. No outcome.",
+        "improve_to": "Collaborated with senior engineers on code review, refactoring Ruby pipeline logic to cut [X] edge-case failures per week",
+        "needs_from_candidate": "What specific improvement came out of the code review cycles? Bug rate? Performance? Latency?"
+      },
+      "job2_runbooks": {
+        "current": "Wrote runbooks for distributed simulation systems; reduced onboarding time and improved cross-team handoffs",
+        "problem": "Vague — 'reduced onboarding time' by how much? From what to what?",
+        "improve_to": "Wrote runbooks for 3 distributed simulation systems, cutting new-engineer onboarding from [X days] to [Y hours]",
+        "needs_from_candidate": "Actual before/after onboarding time. Even approximate is fine."
+      }
+    }
+  },
+  "retired_projects": [
+    {
+      "id": "obsidian_ai_workflow",
+      "name": "AI Workflow Engine",
+      "tech": "TypeScript, Claude API, Gemini AI, MCP, Agent Orchestrator, React Flow",
+      "short_stack": "TypeScript, Claude API, MCP",
+      "dates": "Oct. 2024 – Present",
+      "url": "https://github.com/alexchen/ai-workflow-engine",
+      "use_for": ["AI/Agents", "Full-Stack", "Automation", "AI tooling"],
+      "bullets": [
+        "Built TypeScript Agent Orchestrator chaining LLM calls across JD parsing, profile matching, and DOCX resume output",
+        "Designed MCP connectors for filesystem I/O and vector retrieval with end-to-end validation across 50+ file batches",
+        "Shipped React Flow canvas for composable agent workflows with JSON/YAML pipeline configs for reproducible batch runs"
+      ]
+    },
+    {
+      "id": "cal_ai",
+      "name": "AI Calendar Scheduler",
+      "tech": "Next.js, LangChain, Claude API, Gemini AI, Google Calendar API, OAuth 2.0",
+      "short_stack": "Next.js, LangChain, Gemini AI",
+      "dates": "Oct. 2024 – Present",
+      "url": "https://github.com/alexchen/cal-ai",
+      "use_for": ["GenAI", "Full-Stack", "AI tooling", "Frontend/Product"],
+      "bullets": [
+        "Built LLM pipeline with LangChain + Gemini AI parsing PDF syllabi into structured task records at 94% accuracy",
+        "Integrated Google Calendar API with OAuth 2.0 bidirectional sync, reducing daily academic planning time by 40%",
+        "Enforced structured LLM output using Zod schema validation, eliminating parsing errors across all extraction jobs",
+        "Deployed agentic workflow: PDF ingestion, Gemini AI extraction, priority scoring, and Google Calendar scheduling"
+      ]
+    }
+  ]
 }

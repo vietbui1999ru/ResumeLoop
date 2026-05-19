@@ -50,11 +50,53 @@ const BG  = 'F1F1F5';
 const OUT = path.join(process.cwd(), 'output');
 
 // ── WORK METADATA LOOKUP ─────────────────────────────────────────────────────
-// To add employer: add entry here + bullets in master_resume_data.json
-// WORK_META: optional backward-compat lookup for work entries that omit inline metadata.
-// Generated scripts (v2.4+) always pass title/company/location/dates inline.
-// Add your employer IDs here only if you use the legacy id-only format.
-const WORK_META = {};
+// To add employer: add entry here + bullets in master_resume_data.json.
+// haiku_generate.js scripts use {id, bullets} only — metadata resolved here.
+// Inline metadata in the data object always takes priority (backward compat).
+// Replace id keys and values with your real employer data in your local environment.
+// These match the work IDs in master_resume_data.json.
+const WORK_META = {
+  job1: {
+    title:    'Open Source Contributor',
+    company:  'OpenDev / TechPath',
+    location: 'Remote, US',
+    dates:    'Feb. 2025 – Present'
+  },
+  job2: {
+    title:    'Research Software Engineer',
+    company:  'SimLab Foundation',
+    location: 'Remote, US',
+    dates:    'Jul. 2024 – Present'
+  },
+  job3: {
+    title:    'Graduate Research Assistant',
+    company:  'State University',
+    location: 'Anytown, OH',
+    dates:    'Aug. 2022 – Aug. 2024'
+  },
+  job4: {
+    title:    'Research Assistant & Peer Tutor',
+    company:  'Liberal Arts College',
+    location: 'Anytown, IL',
+    dates:    'Aug. 2018 – May 2022'
+  }
+};
+
+// ── CANDIDATE DEFAULTS ───────────────────────────────────────────────────────
+// Used when data.contact / data.education / data.name are not supplied
+// (e.g. haiku_generate.js scripts that only set file/tagline/work/projects/skills).
+// Replace with real candidate data in your local environment — do not commit PII.
+const DEFAULT_CONTACT = {
+  phone:     '555-555-0100',
+  email:     'alex.chen@example.com',
+  linkedin:  'https://linkedin.com/in/alexchen',
+  portfolio: 'https://alexchen.dev'
+};
+const DEFAULT_NAME = 'Alex Chen';
+const DEFAULT_EDUCATION = [
+  { line: 'State University – Master of Science in Computer Science',      dates: 'Aug. 2022 – Dec. 2024' },
+  { line: 'Liberal Arts College – B.A. Applied Mathematics & Computer Science', dates: 'Aug. 2018 – May 2022' }
+];
 
 // ── VALIDATORS (all exported) ─────────────────────────────────────────────────
 // T()  — bullet hard cap: 116 chars WITH spaces
@@ -213,13 +255,12 @@ function makeDoc(data) {
         throw new Error(`work[${i}] (${w.id}) must have at least 1 bullet`);
     });
   } else {
-    // Legacy: data.carb + data.udra (two-job shorthand — provide work entries inline instead)
     if (!data.carb || !data.udra) throw new Error('Provide data.work OR data.carb + data.udra');
     if (data.carb.length !== 5) throw new Error(`carb must have 5 bullets, got ${data.carb.length}`);
     if (data.udra.length !== 5) throw new Error(`udra must have 5 bullets, got ${data.udra.length}`);
     workEntries = [
-      {id: 'job1', bullets: data.carb},
-      {id: 'job2', bullets: data.udra}
+      {id: 'carboncopies', bullets: data.carb},
+      {id: 'udayton',      bullets: data.udra}
     ];
   }
 
@@ -231,16 +272,16 @@ function makeDoc(data) {
     p.bullets.forEach(b => T(b));
   });
 
-  // Education: dynamic array or fallback to hardcoded entries for backward compat
-  // Education: populate data.education with [{line: 'School – Degree', dates: 'YYYY – YYYY'}]
-  const eduLines = (data.education ?? []).map((e, i) =>
-    el(e.line, e.dates, i === (data.education?.length ?? 0) - 1 ? 40 : 0)
+  // Education: data.education takes priority; fall back to DEFAULT_EDUCATION for haiku-generated scripts
+  const eduData = data.education ?? DEFAULT_EDUCATION;
+  const eduLines = eduData.map((e, i) =>
+    el(e.line || e.display, e.dates, i === eduData.length - 1 ? 40 : 0)
   );
 
   const children = [
-    // HEADER
-    nh(data.name || 'Candidate'),
-    cl(buildContactRuns(data.contact || {})),
+    // HEADER — defaults used when haiku-generated scripts omit name/contact
+    nh(data.name || DEFAULT_NAME),
+    cl(buildContactRuns(data.contact || DEFAULT_CONTACT)),
     tl(TL(tagline)),
 
     // EDUCATION

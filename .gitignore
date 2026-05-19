@@ -63,6 +63,13 @@ docs/reference/ai-reasoning.md
 docs/reference/api-reference.md
 docs/reference/ats-research-article.md
 
+# Internal model docs — local only, never commit
+docs/reference/OptimizedModel/
+
+# Pipeline proprietary scripts/docs — contain AI prompts and pipeline architecture; local only
+pipeline/haiku_generate.js
+pipeline/HAIKU_PIPELINE.md
+
 # Demo resume files — stored in S3, not tracked in git
 docs/reference/*.docx
 docs/reference/*.pdf
