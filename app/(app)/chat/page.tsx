@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import ChatDiff from '@/components/ChatDiff'
 import GithubIngest from '@/components/GithubIngest'
+import { BulletsPreview } from '@/components/BulletsPreview'
 import { useSession } from '@/contexts/SessionContext'
 
 const newId = () => crypto.randomUUID()
@@ -32,8 +33,24 @@ export default function ChatPage() {
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
   const [tab, setTab] = useState<'chat' | 'import'>('chat')
+  const [profileJson, setProfileJson] = useState('')
+  const [bulletsOpen, setBulletsOpen] = useState(true)
   const bottomRef = useRef<HTMLDivElement>(null)
   const streamAbortRef = useRef<AbortController | null>(null)
+
+  const loadProfile = useCallback(async () => {
+    try {
+      const listRes = await fetch('/api/profiles')
+      if (!listRes.ok) return
+      const { profiles } = await listRes.json() as { profiles: { id: string; is_active: number }[] }
+      const active = profiles.find(p => p.is_active === 1) ?? profiles[0] ?? null
+      if (!active) return
+      const dataRes = await fetch(`/api/profiles/${active.id}`)
+      if (!dataRes.ok) return
+      const { data } = await dataRes.json() as { data: string }
+      setProfileJson(data ?? '')
+    } catch { /* ignore */ }
+  }, [])
 
   const loadSessions = useCallback(() => {
     const ac = new AbortController()
@@ -47,6 +64,8 @@ export default function ChatPage() {
   useEffect(() => {
     return loadSessions()
   }, [loadSessions])
+
+  useEffect(() => { void loadProfile() }, [loadProfile])
 
   useEffect(() => {
     return () => { streamAbortRef.current?.abort() }
@@ -169,9 +188,9 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-full">
-      {/* Session sidebar — scrolls independently */}
+      {/* Session sidebar */}
       <div className="w-48 flex-shrink-0 border-r border-zinc-800 flex flex-col h-full">
-        <div className="relative p-3 border-b border-zinc-800 flex-shrink-0">
+        <div className="p-3 border-b border-zinc-800 flex-shrink-0">
           <button
             onClick={() => void startNew()}
             className="w-full text-xs text-indigo-400 hover:text-indigo-300 text-left"
@@ -183,13 +202,8 @@ export default function ChatPage() {
           {sessions.map(s => (
             <button
               key={s.id}
-              onClick={() => {
-                setActiveSessionId(s.id)
-                loadSessionHistory(s.id)
-              }}
-              className={`w-full text-left px-3 py-2 text-xs hover:bg-zinc-800 ${
-                s.id === sessionId ? 'bg-zinc-800' : ''
-              }`}
+              onClick={() => { setActiveSessionId(s.id); loadSessionHistory(s.id) }}
+              className={`w-full text-left px-3 py-2 text-xs hover:bg-zinc-800 ${s.id === sessionId ? 'bg-zinc-800' : ''}`}
             >
               <p className="text-zinc-300 truncate">{s.name}</p>
               <p className="text-zinc-400">{fmtDate(s.created_at)}</p>
@@ -198,10 +212,10 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Main content area */}
+      {/* Chat column */}
       <div className="flex-1 flex flex-col min-w-0 h-full">
-        {/* Tab bar — fixed */}
-        <div className="flex border-b border-zinc-800 px-4 pt-3 gap-4 flex-shrink-0">
+        {/* Tab bar */}
+        <div className="flex items-center border-b border-zinc-800 px-4 pt-3 gap-4 flex-shrink-0">
           <button
             onClick={() => setTab('chat')}
             className={`text-sm pb-2 border-b-2 ${tab === 'chat' ? 'border-indigo-400 text-indigo-300' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
@@ -211,6 +225,17 @@ export default function ChatPage() {
             onClick={() => setTab('import')}
             className={`text-sm pb-2 border-b-2 ${tab === 'import' ? 'border-indigo-400 text-indigo-300' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
           >Import from GitHub</button>
+          <button
+            onClick={() => setBulletsOpen(v => !v)}
+            className={`ml-auto mb-2 text-xs px-2 py-1 rounded border transition-colors ${
+              bulletsOpen
+                ? 'border-indigo-700/60 text-indigo-400 bg-indigo-900/20'
+                : 'border-zinc-700 text-zinc-500 hover:text-zinc-300'
+            }`}
+            title="Toggle bullets preview"
+          >
+            {bulletsOpen ? 'Bullets ×' : 'Bullets ↗'}
+          </button>
         </div>
 
         {tab === 'import' ? (
@@ -219,13 +244,10 @@ export default function ChatPage() {
           </div>
         ) : (
           <>
-            {/* Messages — scrolls independently */}
             <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
               {messages.map(m => (
                 <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div
-                    className={`max-w-2xl ${m.role === 'user' ? 'bg-indigo-900/40 rounded-lg px-4 py-2' : ''}`}
-                  >
+                  <div className={`max-w-2xl ${m.role === 'user' ? 'bg-indigo-900/40 rounded-lg px-4 py-2' : ''}`}>
                     <p className="text-sm whitespace-pre-wrap">{m.text}</p>
                     {m.diff && (
                       <ChatDiff
@@ -233,7 +255,7 @@ export default function ChatPage() {
                         description={m.diff.description}
                         diff={m.diff.diff}
                         sessionId={sessionId}
-                        onApplied={() => {}}
+                        onApplied={(accepted) => { if (accepted) void loadProfile() }}
                       />
                     )}
                   </div>
@@ -242,20 +264,14 @@ export default function ChatPage() {
               <div ref={bottomRef} />
             </div>
 
-            {/* Input — fixed at bottom */}
-            <div className="relative border-t border-zinc-800 px-4 py-3 flex gap-2 flex-shrink-0">
+            <div className="border-t border-zinc-800 px-4 py-3 flex gap-2 flex-shrink-0">
               <textarea
                 value={input}
                 onChange={e => setInput(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault()
-                    send()
-                  }
-                }}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
                 disabled={streaming}
                 rows={2}
-                placeholder="Ask Claude to update your profile…"
+                placeholder="Ask Claude to update your bullets…"
                 className="flex-1 bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm resize-none focus:outline-none focus:border-indigo-500 disabled:opacity-50"
               />
               <button
@@ -269,6 +285,17 @@ export default function ChatPage() {
           </>
         )}
       </div>
+
+      {/* Bullets panel — collapsible */}
+      {bulletsOpen && (
+        <div className="w-[35%] min-w-64 flex-shrink-0 border-l border-zinc-800 flex flex-col h-full bg-zinc-950">
+          <div className="px-3 py-1.5 bg-zinc-800/80 border-b border-zinc-700 flex items-center gap-2 flex-shrink-0">
+            <span className="text-2xs text-zinc-500 uppercase tracking-widest font-mono">Bullets</span>
+            <span className="ml-auto text-2xs text-zinc-400 font-mono">live</span>
+          </div>
+          <BulletsPreview json={profileJson} />
+        </div>
+      )}
     </div>
   )
 }

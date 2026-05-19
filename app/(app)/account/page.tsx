@@ -176,10 +176,10 @@ export default function AccountPage() {
             <p className="text-xs text-zinc-600">Updates the active resume profile · visible in Config</p>
             <button
               type="submit"
-              disabled={contactSaving || !activeProfileId}
+              disabled={contactSaving || contactLoading || !activeProfileId || activeProfileId === 'none'}
               className="py-2 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 rounded text-sm font-medium transition-colors"
             >
-              {contactSaving ? 'Saving…' : 'Save personal info'}
+              {contactLoading ? 'Loading…' : contactSaving ? 'Saving…' : 'Save personal info'}
             </button>
           </form>
         )}
