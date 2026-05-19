@@ -5,12 +5,12 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  retries: 1,
+  workers: process.env.CI ? 2 : 4,
   reporter: [['html', { open: 'never' }], ['list']],
 
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://localhost:3001',
     trace: 'on-first-retry',
   },
 
@@ -46,13 +46,14 @@ export default defineConfig({
   globalSetup: require.resolve('./e2e/global-setup'),
 
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
+    command: 'npm run dev -- -p 3001',
+    url: 'http://localhost:3001',
+    reuseExistingServer: false,
     env: {
       DB_PATH: path.resolve('./test.db'),
       NEXTAUTH_SECRET: 'test-secret-for-e2e-only',
-      NEXTAUTH_URL: 'http://localhost:3000',
+      NEXTAUTH_URL: 'http://localhost:3001',
+      DISABLE_RATE_LIMIT: 'true',
     },
   },
 })

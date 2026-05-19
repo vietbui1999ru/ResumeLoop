@@ -13,7 +13,7 @@ test.describe('Sign in', () => {
     await page.getByLabel('Email').fill('test@e2e.local')
     await page.getByLabel('Password').fill('TestPass123!')
     await page.getByRole('button', { name: /sign in/i }).click()
-    await expect(page).toHaveURL('http://localhost:3000/')
+    await page.waitForURL('/', { timeout: 15000 })
   })
 
   test('shows error on invalid credentials', async ({ page }) => {
@@ -21,7 +21,7 @@ test.describe('Sign in', () => {
     await page.getByLabel('Email').fill('test@e2e.local')
     await page.getByLabel('Password').fill('WrongPass99!')
     await page.getByRole('button', { name: /sign in/i }).click()
-    await expect(page.getByText('Invalid email or password')).toBeVisible()
+    await expect(page.getByText('Invalid email or password')).toBeVisible({ timeout: 10000 })
   })
 })
 
@@ -39,7 +39,7 @@ test.describe('Sign up', () => {
     await page.getByLabel('Email').fill(uniqueEmail)
     await page.getByLabel(/Password/).fill('NewPass123!')
     await page.getByRole('button', { name: 'Create account' }).click()
-    await expect(page).toHaveURL('http://localhost:3000/account')
+    await page.waitForURL('/account', { timeout: 15000 })
   })
 
   test('shows error for duplicate email', async ({ page }) => {
@@ -49,7 +49,7 @@ test.describe('Sign up', () => {
     const submitButton = page.getByRole('button', { name: 'Create account' })
     await submitButton.click()
 
-    await expect(page.getByText('Email already registered')).toBeVisible()
+    await expect(page.getByText('Email already registered')).toBeVisible({ timeout: 10000 })
   })
 })
 

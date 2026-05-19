@@ -89,9 +89,8 @@ jobs:
       - name: Run E2E tests
         run: npm run test:e2e
         env:
-          DB_PATH: ./test.db
           NEXTAUTH_SECRET: test-secret-for-e2e-only
-          NEXTAUTH_URL: http://localhost:3000
+          NEXTAUTH_URL: http://localhost:3001
 
       - name: Upload Playwright report
         if: failure()

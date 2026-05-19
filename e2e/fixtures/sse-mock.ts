@@ -14,8 +14,8 @@ export async function mockStream(page: Page): Promise<void> {
     .join('\n\n')
     .concat('\n\n')
 
-  await page.route('**/api/generate/**/stream', (route) => {
-    route.fulfill({
+  await page.route(/\/api\/generate\/.*\/stream/, async (route) => {
+    await route.fulfill({
       status: 200,
       contentType: 'text/event-stream',
       body: sseBody,

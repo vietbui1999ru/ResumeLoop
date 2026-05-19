@@ -59,6 +59,9 @@ export async function checkRateLimitAsync(
   limit = 10,
   windowMs = 60_000,
 ): Promise<RateLimitResult> {
+  if (process.env.DISABLE_RATE_LIMIT === 'true') {
+    return { success: true, remaining: limit, reset: Date.now() }
+  }
   if (isCloud() && process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

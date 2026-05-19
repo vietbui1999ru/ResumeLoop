@@ -1,5 +1,6 @@
 import path from 'path'
 import fs from 'fs'
+import { getDb, initSchema } from '../lib/db'
 
 export default async function globalSetup() {
   process.env.DB_PATH = path.resolve('./test.db')
@@ -9,7 +10,6 @@ export default async function globalSetup() {
     fs.unlinkSync(process.env.DB_PATH)
   }
 
-  const { getDb, initSchema } = await import('../lib/db')
   const db = getDb()
   initSchema(db)
 
@@ -35,5 +35,29 @@ export default async function globalSetup() {
     'test-user-id',
   )
 
-  console.log('✓ Test database seeded with test user and returning-user job')
+  // Seed ollama AI provider so generate button is enabled in returning-user tests.
+  // Ollama requires no real API key — encrypted_key is intentionally empty.
+  db.prepare(
+    `INSERT INTO user_settings (user_id, provider, encrypted_key, model, base_url)
+     VALUES (?, ?, ?, ?, ?)`
+  ).run('test-user-id', 'ollama', '', 'gemma4:e2b', 'http://localhost:11434/v1')
+
+  db.prepare(
+    `INSERT INTO app_settings (key, value) VALUES (?, ?)`
+  ).run('active_ai_provider:test-user-id', 'ollama')
+
+  console.log('✓ Test database seeded with test user, returning-user job, and AI provider')
+
+  // Warm up the dev server by pre-fetching all routes used in tests.
+  // Next.js dev mode compiles routes on first access — doing it here prevents
+  // cold-start timeouts (especially on WebKit) when all tests run in parallel.
+  const baseURL = 'http://localhost:3001'
+  const warmupRoutes = [
+    '/auth/signin', '/auth/signup', '/auth/forgot-password',
+    '/', '/jobs', '/settings', '/account', '/chat', '/config',
+  ]
+  await Promise.allSettled(warmupRoutes.map(route =>
+    fetch(`${baseURL}${route}`).catch(() => {})
+  ))
+  console.log('✓ Dev server routes warmed up')
 }
