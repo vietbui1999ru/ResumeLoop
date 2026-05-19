@@ -12,6 +12,9 @@ node_modules/
 resume.db
 resume.db-wal
 resume.db-shm
+test.db
+test.db-wal
+test.db-shm
 
 # Pipeline working dir
 pipeline/batch-build/
@@ -36,9 +39,11 @@ tsconfig.tsbuildinfo
 *.bak
 *.original.md
 
-# Generated screenshots
+# Generated screenshots & Playwright artifacts
 *.png
 .playwright-mcp
+playwright-report/
+e2e/.auth/user.json
 .obsidian
 .superpowers
 
