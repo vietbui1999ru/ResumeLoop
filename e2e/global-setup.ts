@@ -22,5 +22,18 @@ export default async function globalSetup() {
      VALUES (?, ?, ?, 0, 1, datetime('now'))`
   ).run('test-user-id', 'test@e2e.local', hash)
 
-  console.log('✓ Test database seeded with test user')
+  // Seed a pre-existing job for returning-user journey tests
+  db.prepare(
+    `INSERT INTO jd_jobs (id, file_path, company, role_title, raw_content, user_id, scanned_at)
+     VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`
+  ).run(
+    'seed-job-id',
+    'JobData/Jobs/seed-returning-user.md',
+    'Seed Corp',
+    'Backend Engineer',
+    '---\ntitle: Backend Engineer\ncompany: Seed Corp\n---\n\nBuild APIs.',
+    'test-user-id',
+  )
+
+  console.log('✓ Test database seeded with test user and returning-user job')
 }

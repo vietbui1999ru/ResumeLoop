@@ -24,11 +24,9 @@ test.describe('Returning user journey', () => {
     const generateBtn = page.locator('[data-tour="generate-btn"]')
     await expect(generateBtn).toBeVisible()
 
-    // Set up stream response wait before clicking
-    const streamResponse = page.waitForResponse('**/api/generate/**/stream')
-
-    // Mock the SSE stream
+    // Register route mock before setting up response listener
     await mockStream(page)
+    const streamResponse = page.waitForResponse('**/api/generate/**/stream')
 
     // Click generate button
     await generateBtn.click()
