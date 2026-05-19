@@ -160,8 +160,11 @@ export function PipelineSankeyChart({ data }: { data: PipelineData }) {
     if (!cardRef.current) return
     setMenuOpen(false)
     setExporting(true)
-    await exportCard(cardRef.current, format)
-    setExporting(false)
+    try {
+      await exportCard(cardRef.current, format)
+    } catch { /* ignore */ } finally {
+      setExporting(false)
+    }
   }
 
   return (

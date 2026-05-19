@@ -1025,6 +1025,7 @@ export default function ConfigPage() {
   const [profiles, setProfiles]       = useState<Profile[]>([])
   const [selectedId, setSelectedId]   = useState<string | null>(null)
   const [profilesLoading, setProfilesLoading] = useState(true)
+  const [creatingDefault, setCreatingDefault] = useState(false)
   const [forkModal, setForkModal]     = useState(false)
   const [status, setStatus]           = useState('')
   const uploadRef                     = useRef<HTMLInputElement>(null)
@@ -1043,11 +1044,14 @@ export default function ConfigPage() {
   // If no profiles exist yet, auto-create one seeded from disk
   useEffect(() => {
     if (!profilesLoading && profiles.length === 0) {
+      setCreatingDefault(true)
       fetch('/api/profiles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: 'Default' }),
-      }).then(() => loadProfiles())
+      })
+        .then(() => loadProfiles())
+        .finally(() => setCreatingDefault(false))
     }
   }, [profilesLoading, profiles.length, loadProfiles])
 
@@ -1137,7 +1141,7 @@ export default function ConfigPage() {
         <div className="relative inline-block">
           <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Resume Profile</h2>
         </div>
-        {profilesLoading ? (
+        {profilesLoading || creatingDefault ? (
           <div className="text-zinc-500 text-sm">Loading profiles…</div>
         ) : (
           <>

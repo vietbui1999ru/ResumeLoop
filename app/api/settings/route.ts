@@ -8,14 +8,19 @@ export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const settings = await getAllSettings()
-  return NextResponse.json({
-    ...settings,
-    is_cloud:             isCloud(),
-    jobs_path_exists:     fs.existsSync(settings.jobs_path),
-    output_path_exists:   fs.existsSync(settings.output_path),
-    outreach_path_exists: settings.outreach_path ? fs.existsSync(settings.outreach_path) : false,
-  })
+  try {
+    const settings = await getAllSettings()
+    return NextResponse.json({
+      ...settings,
+      is_cloud:             isCloud(),
+      jobs_path_exists:     fs.existsSync(settings.jobs_path),
+      output_path_exists:   fs.existsSync(settings.output_path),
+      outreach_path_exists: settings.outreach_path ? fs.existsSync(settings.outreach_path) : false,
+    })
+  } catch (e) {
+    console.error('[settings] GET failed:', e)
+    return NextResponse.json({ error: 'Failed to load settings' }, { status: 500 })
+  }
 }
 
 export async function POST(req: Request) {

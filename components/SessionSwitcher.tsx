@@ -17,8 +17,9 @@ export default function SessionSwitcher() {
 
   const fetchSessions = () => {
     fetch('/api/sessions')
-      .then(r => (r.ok ? r.json() : []))
+      .then(r => r.ok ? r.json() as Promise<Session[]> : Promise.resolve([]))
       .then(setSessions)
+      .catch(() => {})
   }
 
   useEffect(() => { fetchSessions() }, [])
@@ -37,30 +38,36 @@ export default function SessionSwitcher() {
   const createNew = async () => {
     const name = window.prompt('Session name:', `Session ${new Date().toLocaleDateString()}`)
     if (!name) return
-    const res = await fetch('/api/sessions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name }),
-    })
-    if (!res.ok) return
-    const created: Session = await res.json()
-    setActiveSessionId(created.id)
-    fetchSessions()
-    setOpen(false)
+    try {
+      const res = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      })
+      if (!res.ok) return
+      const created = await res.json() as Session
+      setActiveSessionId(created.id)
+      fetchSessions()
+      setOpen(false)
+    } catch { /* ignore */ }
   }
 
   const promote = async (id: string) => {
-    await fetch(`/api/sessions/${id}/promote`, { method: 'POST' })
-    setActiveSessionId('default')
-    fetchSessions()
-    setOpen(false)
+    try {
+      await fetch(`/api/sessions/${id}/promote`, { method: 'POST' })
+      setActiveSessionId('default')
+      fetchSessions()
+      setOpen(false)
+    } catch { /* ignore */ }
   }
 
   const del = async (id: string) => {
-    await fetch(`/api/sessions/${id}`, { method: 'DELETE' })
-    if (activeSessionId === id) setActiveSessionId('default')
-    fetchSessions()
-    setOpen(false)
+    try {
+      await fetch(`/api/sessions/${id}`, { method: 'DELETE' })
+      if (activeSessionId === id) setActiveSessionId('default')
+      fetchSessions()
+      setOpen(false)
+    } catch { /* ignore */ }
   }
 
   return (

@@ -457,14 +457,19 @@ function FolderPicker({
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null)
+  const [settingsError, setSettingsError] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState('')
   const [showImportGuide, setShowImportGuide] = useState(false)
 
   useEffect(() => {
     fetch('/api/settings')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setSettings(data) })
+      .then(r => r.ok ? r.json() as Promise<Settings> : null)
+      .then(data => {
+        if (data) setSettings(data)
+        else setSettingsError(true)
+      })
+      .catch(() => setSettingsError(true))
   }, [])
 
   const save = async (patch: Partial<Pick<Settings, 'jobs_path' | 'output_path' | 'outreach_path'>>) => {
@@ -488,7 +493,11 @@ export default function SettingsPage() {
     setTimeout(() => setSaveStatus(''), 2000)
   }
 
-  if (!settings) return (
+  if (!settings) return settingsError ? (
+    <div className="max-w-2xl mx-auto p-6">
+      <p className="text-sm text-red-400">Failed to load settings — please refresh the page.</p>
+    </div>
+  ) : (
     <div className="space-y-3">
       {Array.from({ length: 3 }).map((_, i) => (
         <Skeleton key={i} className="h-10 w-full rounded-lg" />

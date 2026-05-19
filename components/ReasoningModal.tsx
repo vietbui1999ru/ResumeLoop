@@ -23,11 +23,13 @@ export default function ReasoningModal({ jobId, company, roleTitle, onClose }: P
   const [error, setError] = useState('')
 
   useEffect(() => {
-    fetch(`/api/jobs/${jobId}/output`)
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    const ac = new AbortController()
+    fetch(`/api/jobs/${jobId}/output`, { signal: ac.signal })
+      .then(r => r.ok ? r.json() as Promise<Output> : Promise.reject(r.status))
       .then(setOutput)
-      .catch(() => setError('Failed to load reasoning'))
-      .finally(() => setLoading(false))
+      .catch(e => { if ((e as DOMException)?.name !== 'AbortError') setError('Failed to load reasoning') })
+      .finally(() => { if (!ac.signal.aborted) setLoading(false) })
+    return () => ac.abort()
   }, [jobId])
 
   useEffect(() => {

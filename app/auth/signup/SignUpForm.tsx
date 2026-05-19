@@ -21,33 +21,35 @@ export default function SignUpForm({
     e.preventDefault()
     setError('')
     setLoading(true)
-
-    const res = await fetch('/api/auth/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    })
-
-    if (!res.ok) {
-      const data = await res.json() as { error?: string }
-      setError(data.error ?? 'Sign up failed')
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      if (!res.ok) {
+        const data = await res.json() as { error?: string }
+        setError(data.error ?? 'Sign up failed')
+        return
+      }
+      const result = await signIn('credentials', { email, password, redirect: false })
+      if (result?.error) { setError('Account created — please sign in'); return }
+      router.push('/account')
+      router.refresh()
+    } catch {
+      setError('Sign up failed — try again')
+    } finally {
       setLoading(false)
-      return
     }
-
-    const result = await signIn('credentials', { email, password, redirect: false })
-    setLoading(false)
-    if (result?.error) {
-      setError('Account created — please sign in')
-      return
-    }
-    router.push('/')
-    router.refresh()
   }
 
   const oauthSignIn = async (provider: 'github' | 'google') => {
     setOauthLoading(provider)
-    await signIn(provider, { callbackUrl: '/' })
+    try {
+      await signIn(provider, { callbackUrl: '/' })
+    } catch {
+      setOauthLoading(null)
+    }
   }
 
   const tryDemo = async () => {

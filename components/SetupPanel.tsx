@@ -41,22 +41,27 @@ function MiniPicker({
 
   const browse = useCallback(async (p: string) => {
     setBrowsePath(p)
-    const res = await fetch(`/api/fs?path=${encodeURIComponent(p)}`)
-    const data = await res.json()
-    if (res.ok) setFs(data)
-    else setFs({ ...data, dirs: [], md_count: 0, docx_count: 0 })
+    try {
+      const res = await fetch(`/api/fs?path=${encodeURIComponent(p)}`)
+      const data = await res.json() as FsInfo
+      if (res.ok) setFs(data)
+      else setFs({ ...data, dirs: [], md_count: 0, docx_count: 0 })
+    } catch { /* ignore */ }
   }, [])
 
   const create = async () => {
     setCreating(true)
-    const res = await fetch('/api/fs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: browsePath }),
-    })
-    const data = await res.json()
-    if (res.ok) { browse(data.path); onChange(data.path) }
-    setCreating(false)
+    try {
+      const res = await fetch('/api/fs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: browsePath }),
+      })
+      const data = await res.json() as FsInfo
+      if (res.ok) { browse(data.path); onChange(data.path) }
+    } catch { /* ignore */ } finally {
+      setCreating(false)
+    }
   }
 
   const select = () => { onChange(browsePath); setOpen(false) }
@@ -163,18 +168,26 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
 
   // Load existing paths so the picker shows current values
   useEffect(() => {
-    fetch('/api/settings').then(r => r.json()).then((d: Record<string, unknown>) => {
-      if (typeof d.jobs_path === 'string')   setJobsPath(d.jobs_path)
-      if (typeof d.output_path === 'string') setOutputPath(d.output_path)
-    })
+    const ac = new AbortController()
+    fetch('/api/settings', { signal: ac.signal })
+      .then(r => r.ok ? r.json() as Promise<Record<string, unknown>> : null)
+      .then((d: Record<string, unknown> | null) => {
+        if (!d) return
+        if (typeof d.jobs_path === 'string')   setJobsPath(d.jobs_path)
+        if (typeof d.output_path === 'string') setOutputPath(d.output_path)
+      })
+      .catch(() => {})
+    return () => ac.abort()
   }, [])
 
   const saveFolder = async (patch: { jobs_path?: string; output_path?: string }) => {
-    await fetch('/api/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(patch),
-    })
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      })
+    } catch { /* ignore */ }
   }
 
   const allConfigured = Boolean(jobsPath && outputPath && (provider === 'ollama' || apiKey))
@@ -184,32 +197,37 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
     setSaving(true)
     setAiError('')
 
-    // Save AI provider
-    if (provider !== 'ollama') {
-      const res = await fetch('/api/settings/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, api_key: apiKey, set_active: true }),
-      })
-      if (!res.ok) {
-        const d = await res.json()
-        setAiError(d.error ?? 'AI key test failed')
-        setSaving(false)
-        return
+    try {
+      // Save AI provider
+      if (provider !== 'ollama') {
+        const res = await fetch('/api/settings/ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider, api_key: apiKey, set_active: true }),
+        })
+        if (!res.ok) {
+          const d = await res.json() as { error?: string }
+          setAiError(d.error ?? 'AI key test failed')
+          setSaving(false)
+          return
+        }
+      } else {
+        await fetch('/api/settings/ai', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: 'ollama' }),
+        })
       }
-    } else {
-      await fetch('/api/settings/ai', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider: 'ollama' }),
-      })
+
+      // Trigger scan
+      setScanStatus('Scanning…')
+      await fetch('/api/batch/scan', { method: 'POST' })
+
+      onComplete()
+    } catch (e) {
+      setAiError(String(e))
+      setSaving(false)
     }
-
-    // Trigger scan
-    setScanStatus('Scanning…')
-    await fetch('/api/batch/scan', { method: 'POST' })
-
-    onComplete()
   }
 
   return (

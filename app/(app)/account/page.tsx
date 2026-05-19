@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, FormEvent } from 'react'
+import { useState, useEffect, useRef, FormEvent } from 'react'
 import { signOut, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -34,27 +34,34 @@ export default function AccountPage() {
   const [contactLoading,  setContactLoading]  = useState(true)
   const [contactSaving,   setContactSaving]   = useState(false)
   const [contactStatus,   setContactStatus]   = useState('')
+  const statusTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => {
+    return () => { clearTimeout(statusTimerRef.current) }
+  }, [])
+
+  useEffect(() => {
+    const ac = new AbortController()
     async function loadContact() {
       setContactLoading(true)
       try {
-        const listRes = await fetch('/api/profiles')
+        const listRes = await fetch('/api/profiles', { signal: ac.signal })
         if (!listRes.ok) return
         const { profiles } = await listRes.json() as { profiles: { id: string; is_active: number }[] }
         const active = profiles.find(p => p.is_active === 1) ?? profiles[0] ?? null
         if (!active) { setActiveProfileId(null); return }
         setActiveProfileId(active.id)
-        const profileRes = await fetch(`/api/profiles/${active.id}`)
+        const profileRes = await fetch(`/api/profiles/${active.id}`, { signal: ac.signal })
         if (!profileRes.ok) return
         const profile = await profileRes.json() as { data: string }
         const parsed = (() => { try { return JSON.parse(profile.data) } catch { return {} } })()
         setContact(parsed.contact ?? {})
-      } finally {
-        setContactLoading(false)
+      } catch { /* AbortError or network error — loading cleared in finally */ } finally {
+        if (!ac.signal.aborted) setContactLoading(false)
       }
     }
     void loadContact()
+    return () => ac.abort()
   }, [])
 
   const saveContact = async (e: FormEvent) => {
@@ -71,9 +78,12 @@ export default function AccountPage() {
       const data = await res.json() as { error?: string }
       if (!res.ok) { setContactStatus(data.error ?? 'Failed'); return }
       setContactStatus('Saved')
+    } catch {
+      setContactStatus('Save failed — try again')
     } finally {
       setContactSaving(false)
-      setTimeout(() => setContactStatus(''), 3000)
+      clearTimeout(statusTimerRef.current)
+      statusTimerRef.current = setTimeout(() => setContactStatus(''), 3000)
     }
   }
 

@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import type { OutreachItem, OutreachRole, OutreachStatus, AiCard } from '@/lib/outreach'
 
@@ -44,21 +44,28 @@ function ContactCard({
   const [copied, setCopied] = useState<'linkedin' | 'email' | null>(null)
 
   async function patch(fields: Partial<Pick<OutreachItem, 'role' | 'role_custom' | 'notes' | 'email' | 'status'>>) {
-    const res = await fetch(`/api/jobs/${jobId}/outreach/${item.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(fields),
-    })
-    if (res.ok) onUpdate(await res.json())
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/outreach/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fields),
+      })
+      if (res.ok) onUpdate(await res.json() as OutreachItem)
+    } catch { /* ignore */ }
   }
 
   async function draftMessages() {
     setDrafting(true); setDraftError('')
-    const res = await fetch(`/api/jobs/${jobId}/outreach/${item.id}/draft`, { method: 'POST' })
-    if (!res.ok) { setDraftError('Draft generation failed'); setDrafting(false); return }
-    const data: { linkedin_draft: string; email_draft: string } = await res.json()
-    onUpdate({ ...item, linkedin_draft: data.linkedin_draft, email_draft: data.email_draft, status: 'drafted' })
-    setDrafting(false)
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/outreach/${item.id}/draft`, { method: 'POST' })
+      if (!res.ok) { setDraftError('Draft generation failed'); return }
+      const data = await res.json() as { linkedin_draft: string; email_draft: string }
+      onUpdate({ ...item, linkedin_draft: data.linkedin_draft, email_draft: data.email_draft, status: 'drafted' })
+    } catch (e) {
+      setDraftError(String(e))
+    } finally {
+      setDrafting(false)
+    }
   }
 
   async function copy(text: string, which: 'linkedin' | 'email') {
@@ -229,8 +236,9 @@ function FilePicker({
 
   // Seed picker from settings outreach_path on first mount
   useEffect(() => {
-    fetch('/api/settings')
-      .then(r => r.ok ? r.json() : null)
+    const ac = new AbortController()
+    fetch('/api/settings', { signal: ac.signal })
+      .then(r => r.ok ? r.json() as Promise<{ outreach_path?: string }> : null)
       .then((s: { outreach_path?: string } | null) => {
         if (s?.outreach_path) {
           setPickerPath(s.outreach_path)
@@ -238,18 +246,24 @@ function FilePicker({
         }
       })
       .catch(() => {})
+    return () => ac.abort()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function browse(p: string) {
     setPickerLoading(true); setPickerError('')
-    const res = await fetch(`/api/fs?path=${encodeURIComponent(p)}`)
-    const data = await res.json()
-    if (!res.ok) { setPickerError(data.error ?? 'Browse failed'); setPickerLoading(false); return }
-    setFsData(data as FsResponse)
-    setPickerPath(data.path)
-    setSelectedPaths(new Set())
-    setPickerLoading(false)
+    try {
+      const res = await fetch(`/api/fs?path=${encodeURIComponent(p)}`)
+      const data = await res.json() as FsResponse & { error?: string }
+      if (!res.ok) { setPickerError(data.error ?? 'Browse failed'); return }
+      setFsData(data)
+      setPickerPath(data.path)
+      setSelectedPaths(new Set())
+    } catch (e) {
+      setPickerError(String(e))
+    } finally {
+      setPickerLoading(false)
+    }
   }
 
   function toggleFile(fullPath: string) {
@@ -262,16 +276,21 @@ function FilePicker({
 
   async function ingest() {
     setIngesting(true); setIngestError('')
-    const res = await fetch(`/api/jobs/${jobId}/outreach/ingest`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ paths: Array.from(selectedPaths) }),
-    })
-    const data = await res.json()
-    if (!res.ok) { setIngestError(data.error ?? 'Ingest failed'); setIngesting(false); return }
-    onIngest(data.items as OutreachItem[])
-    setSelectedPaths(new Set())
-    setIngesting(false)
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/outreach/ingest`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paths: Array.from(selectedPaths) }),
+      })
+      const data = await res.json() as { items?: OutreachItem[]; error?: string }
+      if (!res.ok) { setIngestError(data.error ?? 'Ingest failed'); return }
+      onIngest(data.items ?? [])
+      setSelectedPaths(new Set())
+    } catch (e) {
+      setIngestError(String(e))
+    } finally {
+      setIngesting(false)
+    }
   }
 
   const currentDirFiles = fsData?.files ?? []
@@ -366,17 +385,24 @@ export default function OutreachPanel({ jobId }: { jobId: string }) {
   const [briefStreaming, setBriefStreaming] = useState(false)
   const [briefText, setBriefText] = useState('')
   const [briefError, setBriefError] = useState('')
+  const briefReaderRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null)
 
   useEffect(() => {
-    fetch(`/api/jobs/${jobId}/outreach`)
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    const ac = new AbortController()
+    fetch(`/api/jobs/${jobId}/outreach`, { signal: ac.signal })
+      .then(r => r.ok ? r.json() as Promise<{ items: OutreachItem[]; brief: string | null }> : Promise.reject(r.status))
       .then((data: { items: OutreachItem[]; brief: string | null }) => {
         setItems(data.items)
         setBrief(data.brief)
       })
-      .catch(() => setLoadError('Failed to load outreach data'))
-      .finally(() => setLoading(false))
+      .catch(e => { if ((e as DOMException)?.name !== 'AbortError') setLoadError('Failed to load outreach data') })
+      .finally(() => { if (!ac.signal.aborted) setLoading(false) })
+    return () => ac.abort()
   }, [jobId])
+
+  useEffect(() => {
+    return () => { briefReaderRef.current?.cancel() }
+  }, [])
 
   const handleIngest = useCallback((newItems: OutreachItem[]) => {
     setItems(prev => [...prev, ...newItems])
@@ -388,24 +414,30 @@ export default function OutreachPanel({ jobId }: { jobId: string }) {
 
   async function streamResearchBrief() {
     setBriefStreaming(true); setBriefText(''); setBriefError('')
-    const res = await fetch(`/api/jobs/${jobId}/outreach/brief/stream`, { method: 'POST' })
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      setBriefError((err as { error?: string }).error ?? 'Brief generation failed')
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/outreach/brief/stream`, { method: 'POST' })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        setBriefError(err.error ?? 'Brief generation failed')
+        return
+      }
+      const reader = res.body!.getReader()
+      briefReaderRef.current = reader
+      const decoder = new TextDecoder()
+      let text = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        text += decoder.decode(value, { stream: true })
+        setBriefText(text)
+      }
+      setBrief(text)
+    } catch (e) {
+      if (e instanceof Error && e.name !== 'AbortError') setBriefError(String(e))
+    } finally {
+      briefReaderRef.current = null
       setBriefStreaming(false)
-      return
     }
-    const reader = res.body!.getReader()
-    const decoder = new TextDecoder()
-    let text = ''
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      text += decoder.decode(value, { stream: true })
-      setBriefText(text)
-    }
-    setBrief(text)
-    setBriefStreaming(false)
   }
 
   const personItems = items.filter(i => i.kind === 'person')

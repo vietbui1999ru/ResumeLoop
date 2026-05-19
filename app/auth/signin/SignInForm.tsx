@@ -17,16 +17,25 @@ export default function SignInForm({ showDemoHint, oauthProviders = [] }: { show
     e.preventDefault()
     setError('')
     setLoading(true)
-    const result = await signIn('credentials', { email, password, redirect: false })
-    setLoading(false)
-    if (result?.error) { setError('Invalid email or password'); return }
-    router.push('/')
-    router.refresh()
+    try {
+      const result = await signIn('credentials', { email, password, redirect: false })
+      if (result?.error) { setError('Invalid email or password'); return }
+      router.push('/')
+      router.refresh()
+    } catch {
+      setError('Sign in failed — try again')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const oauthSignIn = async (provider: 'github' | 'google') => {
     setOauthLoading(provider)
-    await signIn(provider, { callbackUrl: '/' })
+    try {
+      await signIn(provider, { callbackUrl: '/' })
+    } catch {
+      setOauthLoading(null)
+    }
   }
 
   const tryDemo = async () => {

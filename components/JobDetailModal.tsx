@@ -158,6 +158,9 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) 
   const [modalSize, setModalSize] = useState<{ width: number; height: number } | null>(null)
   const modalRef = useRef<HTMLDivElement>(null)
   const panelsContainerRef = useRef<HTMLDivElement>(null)
+  const coverReaderRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null)
+  const caseReaderRef = useRef<ReadableStreamDefaultReader<Uint8Array> | null>(null)
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Cover letter state
   const [coverLetter, setCoverLetter] = useState<string | null>(null)
@@ -187,25 +190,30 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) 
 
   // Fetch job details
   useEffect(() => {
-    fetch(`/api/jobs/${jobId}`)
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    const ac = new AbortController()
+    fetch(`/api/jobs/${jobId}`, { signal: ac.signal })
+      .then(r => r.ok ? r.json() as Promise<JobDetail> : Promise.reject(r.status))
       .then((j: JobDetail) => {
         setJob(j)
         setApplyUrl(j.apply_url)
         try { setLocalTags(JSON.parse(j.tags || '[]')) } catch { setLocalTags([]) }
       })
-      .catch(() => setError('Failed to load job'))
-      .finally(() => setLoading(false))
+      .catch(e => { if ((e as DOMException)?.name !== 'AbortError') setError('Failed to load job') })
+      .finally(() => { if (!ac.signal.aborted) setLoading(false) })
+    return () => ac.abort()
   }, [jobId])
 
   async function saveApplyUrl(url: string | null) {
     setApplyUrlSaving(true)
-    await fetch(`/api/jobs/${jobId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apply_url: url }),
-    })
-    setApplyUrlSaving(false)
+    try {
+      await fetch(`/api/jobs/${jobId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apply_url: url }),
+      })
+    } finally {
+      setApplyUrlSaving(false)
+    }
   }
 
   // Escape to close
@@ -227,6 +235,14 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) 
   // Portal mount guard — only render the portal after hydration to avoid
   // SSR mismatch (document.body is not available on the server).
   useEffect(() => { setMounted(true) }, [])
+
+  useEffect(() => {
+    return () => {
+      coverReaderRef.current?.cancel()
+      caseReaderRef.current?.cancel()
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current)
+    }
+  }, [])
 
   // DnD sensors
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
@@ -326,8 +342,9 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) 
 
     try {
       const res = await fetch(`/api/jobs/${jobId}/cover-letter`, { method: 'POST' })
-      if (!res.ok) { setCoverError('Generation failed.'); setCoverLoading(false); return }
+      if (!res.ok) { setCoverError('Generation failed.'); return }
       const reader = res.body!.getReader()
+      coverReaderRef.current = reader
       const decoder = new TextDecoder()
       let text = ''
       while (true) {
@@ -337,8 +354,9 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) 
         setCoverLetter(text)
       }
     } catch (e) {
-      setCoverError(String(e))
+      if (e instanceof Error && e.name !== 'AbortError') setCoverError(String(e))
     } finally {
+      coverReaderRef.current = null
       setCoverLoading(false)
     }
   }
@@ -346,8 +364,9 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) 
   async function copyToClipboard() {
     if (!coverLetter) return
     await navigator.clipboard.writeText(coverLetter)
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current)
     setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    copiedTimerRef.current = setTimeout(() => setCopied(false), 2000)
   }
 
   async function loadCase() {
@@ -371,8 +390,9 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) 
     setOpenPanels(prev => new Set<PanelId>(Array.from(prev).concat('case')))
     try {
       const res = await fetch(`/api/jobs/${jobId}/case`, { method: 'POST' })
-      if (!res.ok) { setCaseError('Generation failed.'); setCaseStreaming(false); return }
+      if (!res.ok) { setCaseError('Generation failed.'); return }
       const reader = res.body!.getReader()
+      caseReaderRef.current = reader
       const decoder = new TextDecoder()
       let text = ''
       while (true) {
@@ -382,8 +402,9 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) 
         setCaseText(text)
       }
     } catch (e) {
-      setCaseError(String(e))
+      if (e instanceof Error && e.name !== 'AbortError') setCaseError(String(e))
     } finally {
+      caseReaderRef.current = null
       setCaseStreaming(false)
     }
   }
@@ -392,10 +413,12 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) 
     const next = localTags.includes(key) ? localTags.filter(t => t !== key) : [...localTags, key]
     setLocalTags(next)
     onTagsChange?.(next)
-    await fetch(`/api/jobs/${jobId}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tags: next }),
-    })
+    try {
+      await fetch(`/api/jobs/${jobId}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags: next }),
+      })
+    } catch { /* ignore — optimistic update already applied */ }
   }
 
   const tags: string[] = (() => { try { return JSON.parse(job?.tags || '[]') } catch { return [] } })()

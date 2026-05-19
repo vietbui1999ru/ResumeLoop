@@ -33,16 +33,24 @@ export default function ChatPage() {
   const [streaming, setStreaming] = useState(false)
   const [tab, setTab] = useState<'chat' | 'import'>('chat')
   const bottomRef = useRef<HTMLDivElement>(null)
+  const streamAbortRef = useRef<AbortController | null>(null)
 
   const loadSessions = useCallback(() => {
-    fetch('/api/sessions')
-      .then(r => (r.ok ? r.json() : []))
+    const ac = new AbortController()
+    fetch('/api/sessions', { signal: ac.signal })
+      .then(r => r.ok ? r.json() as Promise<Session[]> : Promise.resolve([]))
       .then(setSessions)
+      .catch(() => {})
+    return () => ac.abort()
   }, [])
 
   useEffect(() => {
-    loadSessions()
+    return loadSessions()
   }, [loadSessions])
+
+  useEffect(() => {
+    return () => { streamAbortRef.current?.abort() }
+  }, [])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -60,87 +68,101 @@ export default function ChatPage() {
     const assistantId = newId()
     setMessages(prev => [...prev, { id: assistantId, role: 'assistant', text: '' }])
 
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, message: text }),
-    })
-    if (!res.body) {
-      setMessages(prev => prev.filter(m => m.id !== assistantId))
-      setStreaming(false)
-      return
-    }
+    const ac = new AbortController()
+    streamAbortRef.current = ac
 
-    const reader = res.body.getReader()
-    const dec = new TextDecoder()
-    let buf = ''
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, message: text }),
+        signal: ac.signal,
+      })
+      if (!res.body) {
+        setMessages(prev => prev.filter(m => m.id !== assistantId))
+        return
+      }
 
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      buf += dec.decode(value, { stream: true })
-      const parts = buf.split('\n\n')
-      buf = parts.pop() ?? ''
-      for (const part of parts) {
-        if (!part.startsWith('data: ')) continue
-        try {
-          const event: ChatEvent = JSON.parse(part.slice(6))
-          if (event.type === 'text') {
-            setMessages(prev =>
-              prev.map(m => (m.id === assistantId ? { ...m, text: m.text + event.delta } : m))
-            )
-          } else if (event.type === 'diff') {
-            setMessages(prev =>
-              prev.map(m =>
-                m.id === assistantId
-                  ? { ...m, diff: { file: event.file, description: event.description, diff: event.diff } }
-                  : m
+      const reader = res.body.getReader()
+      const dec = new TextDecoder()
+      let buf = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buf += dec.decode(value, { stream: true })
+        const parts = buf.split('\n\n')
+        buf = parts.pop() ?? ''
+        for (const part of parts) {
+          if (!part.startsWith('data: ')) continue
+          try {
+            const event: ChatEvent = JSON.parse(part.slice(6))
+            if (event.type === 'text') {
+              setMessages(prev =>
+                prev.map(m => (m.id === assistantId ? { ...m, text: m.text + event.delta } : m))
               )
-            )
-          } else if (event.type === 'done') {
-            setStreaming(false)
-            loadSessions()
-          } else if (event.type === 'error') {
-            setMessages(prev =>
-              prev.map(m =>
-                m.id === assistantId ? { ...m, text: m.text + `\n\nError: ${event.message}` } : m
+            } else if (event.type === 'diff') {
+              setMessages(prev =>
+                prev.map(m =>
+                  m.id === assistantId
+                    ? { ...m, diff: { file: event.file, description: event.description, diff: event.diff } }
+                    : m
+                )
               )
-            )
-            setStreaming(false)
+            } else if (event.type === 'done') {
+              loadSessions()
+            } else if (event.type === 'error') {
+              setMessages(prev =>
+                prev.map(m =>
+                  m.id === assistantId ? { ...m, text: m.text + `\n\nError: ${event.message}` } : m
+                )
+              )
+            }
+          } catch {
+            // ignore parse errors
           }
-        } catch {
-          // ignore parse errors
         }
       }
+    } catch (e) {
+      if (e instanceof Error && e.name !== 'AbortError') {
+        setMessages(prev =>
+          prev.map(m => m.id === assistantId ? { ...m, text: m.text + '\n\nConnection lost.' } : m)
+        )
+      }
+    } finally {
+      if (!ac.signal.aborted) setStreaming(false)
     }
-    setStreaming(false)
   }
 
   const loadSessionHistory = useCallback(async (sid: string) => {
-    const res = await fetch(`/api/chat/sessions/${sid}`)
-    if (!res.ok) return
-    const rows = await res.json() as Array<{ role: string; content: string | null; tool_calls: string | null }>
-    const msgs: Message[] = rows
-      .filter(r => r.role === 'user' || r.role === 'assistant')
-      .map(r => ({
-        id: crypto.randomUUID(),
-        role: r.role as 'user' | 'assistant',
-        text: r.content ?? '',
-      }))
-    setMessages(msgs)
+    try {
+      const res = await fetch(`/api/chat/sessions/${sid}`)
+      if (!res.ok) return
+      const rows = await res.json() as Array<{ role: string; content: string | null; tool_calls: string | null }>
+      const msgs: Message[] = rows
+        .filter(r => r.role === 'user' || r.role === 'assistant')
+        .map(r => ({
+          id: crypto.randomUUID(),
+          role: r.role as 'user' | 'assistant',
+          text: r.content ?? '',
+        }))
+      setMessages(msgs)
+    } catch { /* ignore */ }
   }, [])
 
   const startNew = async () => {
-    const res = await fetch('/api/sessions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: `Session ${new Date().toLocaleDateString()}` }),
-    })
-    if (!res.ok) return
-    const created: Session = await res.json()
-    setActiveSessionId(created.id)
-    setMessages([])
-    loadSessions()
+    try {
+      const res = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: `Session ${new Date().toLocaleDateString()}` }),
+      })
+      if (!res.ok) return
+      const created = await res.json() as Session
+      setActiveSessionId(created.id)
+      setMessages([])
+      loadSessions()
+    } catch { /* ignore */ }
   }
 
   const fmtDate = (iso: string) => new Date(iso).toLocaleDateString()
