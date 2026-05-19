@@ -7,7 +7,7 @@ import { getAdapter } from './db-adapter'
 import { authConfig } from './auth.config'
 import { validateCredentials, type UserRow } from './auth-credentials'
 import { checkRateLimitAsync } from './rate-limit'
-import { seedDemoUser } from './demo-seed'
+import { seedWelcomeOutput } from './account'
 
 declare module 'next-auth' {
   interface Session {
@@ -110,9 +110,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           [newId, email, '', 1],
         )
         dbUser = { id: newId, is_demo: 0 }
-        // Seed onboarding data so new users see a populated dashboard immediately.
+        // Seed sample job + output so new OAuth users see a non-empty dashboard.
         // Fire-and-forget — a seed failure must not block sign-in.
-        seedDemoUser(newId).catch(() => {})
+        seedWelcomeOutput(newId).catch(() => {})
       }
 
       // Record the OAuth account → user mapping

@@ -60,12 +60,14 @@ export async function createUser(email: string, password: string): Promise<strin
   return id
 }
 
-/** Seed a sample job + output so new users see a non-empty Output History. */
-async function seedWelcomeOutput(userId: string, db: Awaited<ReturnType<typeof getAdapter>>): Promise<void> {
+/** Seed a sample job + output so new users see a non-empty Output History.
+ *  Called for both credentials signup and OAuth first-sign-in. */
+export async function seedWelcomeOutput(userId: string, db?: Awaited<ReturnType<typeof getAdapter>>): Promise<void> {
+  const resolvedDb = db ?? await getAdapter()
   const jobId    = randomUUID()
   const outputId = randomUUID()
   try {
-    await db.run(
+    await resolvedDb.run(
       `INSERT INTO jd_jobs
          (id, file_path, company, role_title, tags, role_track, fit_pct, raw_content, action, hidden, user_id, scanned_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, CURRENT_TIMESTAMP)`,
@@ -77,7 +79,7 @@ async function seedWelcomeOutput(userId: string, db: Awaited<ReturnType<typeof g
         '1-Applied', userId,
       ],
     )
-    await db.run(
+    await resolvedDb.run(
       `INSERT INTO jd_outputs
          (id, job_id, docx_path, pdf_path, variant, tagline, user_id, built_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
