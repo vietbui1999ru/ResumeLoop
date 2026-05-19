@@ -66,3 +66,6 @@ docs/reference/ats-research-article.md
 # Demo resume files — stored in S3, not tracked in git
 docs/reference/*.docx
 docs/reference/*.pdf
+
+# Generation logs
+logs/
