@@ -192,6 +192,12 @@ export default function AccountPage() {
         {session?.user.isDemo && (
           <p className="text-xs text-amber-500">Demo account — data resets periodically</p>
         )}
+        <button
+          onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+          className="text-sm px-4 py-2 bg-zinc-800 hover:bg-red-900/40 border border-zinc-700 hover:border-red-700/50 text-zinc-400 hover:text-red-400 rounded transition-colors"
+        >
+          Sign out
+        </button>
       </section>
 
       {/* Change password */}

@@ -28,8 +28,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     // Re-validate user state on every server-side auth() call.
     // Catches deleted accounts and password changes without waiting for JWT expiry.
     // Edge middleware uses auth.config.ts which skips this (no DB access on Edge).
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
+      // OAuth first sign-in: look up the DB user via oauth_accounts rather than
+      // relying on user.id mutations from signIn — in NextAuth v5, user.id in the
+      // jwt callback reflects the provider's profile.sub (e.g. Google's numeric ID),
+      // not the UUID set on the user object inside signIn.  The signIn callback
+      // already created/linked the row, so the lookup here always succeeds.
+      if (account?.type === 'oauth') {
+        try {
+          const db = await getAdapter()
+          const linked = await db.queryOne<{ user_id: string }>(
+            `SELECT user_id FROM oauth_accounts WHERE provider = ? AND provider_account_id = ?`,
+            [account.provider, account.providerAccountId],
+          )
+          token.id     = linked?.user_id ?? user?.id
+          token.isDemo = (user as { isDemo?: boolean })?.isDemo ?? false
+        } catch {
+          // DB unavailable — fall back to whatever signIn set on user.id
+          token.id     = user?.id
+          token.isDemo = (user as { isDemo?: boolean })?.isDemo ?? false
+        }
+        return token
+      }
+
       if (user) {
+        // Credentials sign-in: user.id is the DB UUID from validateCredentials
         token.id     = user.id
         token.isDemo = (user as { isDemo: boolean }).isDemo
         return token
