@@ -1,3 +1,4 @@
+import path from 'path'
 import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
@@ -49,7 +50,7 @@ export default defineConfig({
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     env: {
-      DB_PATH: './test.db',
+      DB_PATH: path.resolve('./test.db'),
       NEXTAUTH_SECRET: 'test-secret-for-e2e-only',
       NEXTAUTH_URL: 'http://localhost:3000',
     },

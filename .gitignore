@@ -43,7 +43,8 @@ tsconfig.tsbuildinfo
 *.png
 .playwright-mcp
 playwright-report/
-e2e/.auth/user.json
+test-results/
+e2e/.auth/
 .obsidian
 .superpowers
 
