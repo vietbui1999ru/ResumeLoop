@@ -33,7 +33,7 @@ ${data}
 - personaTitle: ≤60 chars, must NOT match the JD job title verbatim
 - workIds: 1–6 IDs from ${workIdsDisplay} — select however many best fit the role
 - projects: 1–6 project IDs that exist in the profile data above — select however many best fit the role
-- skillsRows: 1–10 plain strings formatted "Tech · Tech · Tech"
+- skillsRows: 1–10 plain strings formatted "Label: Tech · Tech · Tech" (e.g., "Languages: Python · Go · TypeScript") — always include the label prefix
 
 ${resumeRules}
 

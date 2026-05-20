@@ -24,7 +24,7 @@ function buildDecisionSchema(workIds: string[]) {
     type: 'object',
     properties: {
       track:        { type: 'string', description: 'Role track from the role-track table in the system prompt' },
-      workVariant:  { type: 'string', enum: ['genai', 'systems', 'IT-track'] },
+      workVariant:  { type: 'string', enum: ['genai', 'systems', 'fullstack', 'sre', 'IT-track'] },
       workIds:      { type: 'array', items: workIdsItems, minItems: 1, maxItems: 6 },
       projects:     { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 6 },
       personaTitle: { type: 'string', maxLength: 60 },
@@ -146,7 +146,7 @@ export async function reasonForJob(rawContent: string, masterData?: string, user
       workIds: `array of 1–6 IDs from: ${workIds.join(', ')}`,
       projects: 'array of 1–6 project IDs from profile data',
       personaTitle: 'string ≤60 chars', tagline: 'string ≤76 chars',
-      skillsRows: 'array of 1–10 strings formatted "Tech · Tech · Tech"',
+      skillsRows: 'array of 1–10 strings formatted "Label: Tech · Tech · Tech" (e.g., "Languages: Python · Go · TypeScript")',
       reasoning: 'string with sections ## Track ## Work Experience ## Projects ## Tagline ## Skills',
     }, null, 2)
 

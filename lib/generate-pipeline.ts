@@ -407,7 +407,15 @@ function buildScript(d: ReasoningResult, _slug: string, docxName: string, master
     ].filter(Boolean).join('\n')
   }).join(',\n')
 
-  const fmtSkills = skillRows.map(s => `    ${JSON.stringify(s)}`).join(',\n')
+  const fmtSkills = skillRows.map(s => {
+    const colonIdx = s.indexOf(': ')
+    if (colonIdx > 0) {
+      const label = s.slice(0, colonIdx)
+      const vals  = s.slice(colonIdx + 2)
+      return `    { label: ${JSON.stringify(label)}, vals: ${JSON.stringify(vals)} }`
+    }
+    return `    { label: "", vals: ${JSON.stringify(s)} }`
+  }).join(',\n')
 
   const fmtContact = contact ? JSON.stringify(contact, null, 4).split('\n').map((l, i) => i === 0 ? `  contact: ${l}` : `  ${l}`).join('\n') : null
   const fmtName    = candidateName ? `  name: ${JSON.stringify(candidateName)},` : null
