@@ -11,6 +11,7 @@ interface ContactFields {
   email?: string
   linkedin?: string
   portfolio?: string
+  github?: string
   work_auth?: string
 }
 
@@ -21,6 +22,7 @@ const CONTACT_LABELS: Record<keyof ContactFields, string> = {
   email:     'Resume email',
   linkedin:  'LinkedIn',
   portfolio: 'Portfolio',
+  github:    'GitHub',
   work_auth: 'Work authorization',
 }
 

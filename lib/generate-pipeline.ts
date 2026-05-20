@@ -333,7 +333,7 @@ function applyFixes(scriptPath: string, violations: string[]): string[] {
 
 function buildScript(d: ReasoningResult, _slug: string, docxName: string, masterDataJson: string): string {
   const master = JSON.parse(masterDataJson) as {
-    contact?:   { name?: string; phone?: string; email?: string; linkedin?: string; portfolio?: string }
+    contact?:   { name?: string; phone?: string; location?: string; email?: string; linkedin?: string; portfolio?: string; github?: string; work_auth?: string }
     experience: Array<{
       id: string; title?: string; company?: string; location?: string; dates?: string
       bullets: Record<string, string[]>
