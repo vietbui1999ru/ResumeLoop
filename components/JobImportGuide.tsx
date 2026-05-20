@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useCallback, type ReactNode } from 'react'
+import { useEffect, useCallback, useState, type ReactNode } from 'react'
 
 const CHROME_EXT  = 'https://chromewebstore.google.com/detail/obsidian-web-clipper/cnjifjpddelmedmihgijeibhnjfabmlf'
 const FIREFOX_EXT = 'https://addons.mozilla.org/en-US/firefox/addon/web-clipper-obsidian/'
@@ -19,6 +19,10 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
 }
 
 export function JobImportGuide({ onClose }: { onClose: () => void }) {
+  const [templateContent, setTemplateContent] = useState<string | null>(null)
+  const [showTemplate, setShowTemplate]       = useState(false)
+  const [copied, setCopied]                   = useState(false)
+
   const handleKey = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose()
   }, [onClose])
@@ -27,6 +31,21 @@ export function JobImportGuide({ onClose }: { onClose: () => void }) {
     document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
   }, [handleKey])
+
+  const toggleTemplate = async () => {
+    if (!showTemplate && templateContent === null) {
+      const res = await fetch('/jd-clipper-template.md')
+      setTemplateContent(res.ok ? await res.text() : '(failed to load template)')
+    }
+    setShowTemplate(v => !v)
+  }
+
+  const copyTemplate = async () => {
+    if (!templateContent) return
+    await navigator.clipboard.writeText(templateContent)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1800)
+  }
 
   return (
     <>
@@ -100,18 +119,47 @@ export function JobImportGuide({ onClose }: { onClose: () => void }) {
           </Step>
 
           <Step n={2} title="Download the templates">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-2xs font-semibold px-1.5 py-0.5 rounded bg-red-900/60 border border-red-700/60 text-red-300 uppercase tracking-wide">
+                Required
+              </span>
+              <span className="text-xs text-zinc-400">
+                The scanner uses frontmatter from this template to read job files correctly.
+              </span>
+            </div>
             <p className="text-xs text-zinc-300 leading-relaxed">
               Two templates — one for job listings, one for LinkedIn profiles (used as outreach
               contacts). Each tells the clipper exactly what to extract.
             </p>
             <div className="flex flex-col gap-2 mt-3">
-              <a
-                href="/jd-clipper-template.md"
-                download="jd-clipper-template.md"
-                className="inline-flex items-center gap-1.5 text-xs px-3 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white font-medium transition-colors w-fit"
-              >
-                ↓ Job listing template
-              </a>
+              <div className="flex items-center gap-2 flex-wrap">
+                <a
+                  href="/jd-clipper-template.md"
+                  download="jd-clipper-template.md"
+                  className="inline-flex items-center gap-1.5 text-xs px-3 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white font-medium transition-colors"
+                >
+                  ↓ Job listing template
+                </a>
+                <button
+                  onClick={() => void toggleTemplate()}
+                  className="text-xs px-3 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-zinc-300 transition-colors"
+                >
+                  {showTemplate ? 'Hide template' : 'View template'}
+                </button>
+              </div>
+              {showTemplate && (
+                <div className="relative">
+                  <pre className="text-2xs font-mono text-zinc-300 bg-zinc-800/80 border border-zinc-700 rounded-lg p-3 overflow-x-auto leading-relaxed max-h-48 overflow-y-auto">
+                    {templateContent ?? 'Loading…'}
+                  </pre>
+                  <button
+                    onClick={() => void copyTemplate()}
+                    className="absolute top-2 right-2 text-2xs px-2 py-1 bg-zinc-700 hover:bg-zinc-600 rounded transition-colors"
+                  >
+                    {copied ? 'Copied ✓' : 'Copy'}
+                  </button>
+                </div>
+              )}
               <a
                 href="/obsidian-linkedin-outreach-template.md"
                 download="obsidian-linkedin-outreach-template.md"
@@ -123,6 +171,14 @@ export function JobImportGuide({ onClose }: { onClose: () => void }) {
           </Step>
 
           <Step n={3} title="Import templates into Web Clipper">
+            <div className="mb-3 bg-amber-950/30 border border-amber-700/40 rounded-lg px-3 py-2">
+              <p className="text-xs text-amber-200 leading-relaxed">
+                <strong>Do not open the downloaded file</strong> — import it directly inside the
+                Web Clipper extension. If your OS asks which app to open a{' '}
+                <code className="text-amber-300 bg-amber-950/40 px-1 rounded text-2xs">.md</code>{' '}
+                file with, close that dialog and follow the steps below instead.
+              </p>
+            </div>
             <ol className="text-xs text-zinc-300 leading-relaxed space-y-2 list-decimal list-inside">
               <li>Click the Web Clipper icon in your browser toolbar</li>
               <li>
@@ -130,7 +186,9 @@ export function JobImportGuide({ onClose }: { onClose: () => void }) {
               </li>
               <li>
                 Go to <strong className="text-zinc-100">Templates</strong> → click{' '}
-                <strong className="text-zinc-100">Import</strong> — import both files
+                <strong className="text-zinc-100">Import</strong> → select the downloaded{' '}
+                <code className="text-indigo-300 bg-indigo-950/40 px-1 rounded text-2xs">.md</code>{' '}
+                files — import both
               </li>
               <li>
                 The <strong className="text-zinc-100">Job listing</strong> template auto-triggers on

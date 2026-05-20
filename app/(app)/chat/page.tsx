@@ -228,6 +228,7 @@ export default function ChatPage() {
             className={`text-sm pb-2 border-b-2 ${tab === 'import' ? 'border-indigo-400 text-indigo-300' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
           >Import from GitHub</button>
           <button
+            data-tour="chat-bullets-toggle"
             onClick={() => setBulletsOpen(v => !v)}
             className={`ml-auto mb-2 text-xs px-2 py-1 rounded border transition-colors ${
               bulletsOpen

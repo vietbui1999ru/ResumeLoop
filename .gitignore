@@ -39,6 +39,9 @@ tsconfig.tsbuildinfo
 *.bak
 *.original.md
 
+# Personal drafts (LinkedIn posts, scripts, outreach notes)
+drafts/
+
 # Generated screenshots & Playwright artifacts
 *.png
 .playwright-mcp
