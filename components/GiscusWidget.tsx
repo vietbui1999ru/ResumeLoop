@@ -34,7 +34,7 @@ function SetupInstructions() {
           Add to your <code className="text-zinc-300">.env.local</code>:
           <pre className="mt-1.5 bg-zinc-800 border border-zinc-700 rounded p-3 text-2xs font-mono text-zinc-300 leading-relaxed overflow-x-auto">{`NEXT_PUBLIC_GISCUS_REPO=vietbui1999ru/ResumeLoop
 NEXT_PUBLIC_GISCUS_REPO_ID=<paste from giscus.app>
-NEXT_PUBLIC_GISCUS_CATEGORY=Feedback
+NEXT_PUBLIC_GISCUS_CATEGORY=General
 NEXT_PUBLIC_GISCUS_CATEGORY_ID=<paste from giscus.app>`}</pre>
         </li>
         <li>Restart the dev server — the widget appears here automatically.</li>
@@ -52,13 +52,12 @@ export function GiscusWidget() {
       repoId={REPO_ID}
       category={CATEGORY ?? 'Feedback'}
       categoryId={CAT_ID}
-      mapping="specific"
-      term="ResumeLoop Feedback"
+      mapping="pathname"
       strict="0"
       reactionsEnabled="1"
       emitMetadata="0"
-      inputPosition="top"
-      theme="dark_dimmed"
+      inputPosition="bottom"
+      theme="preferred_color_scheme"
       lang="en"
       loading="lazy"
     />
