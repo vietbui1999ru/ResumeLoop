@@ -40,4 +40,11 @@ test.describe('Smoke — all routes', () => {
     await expect(page).toHaveURL('/config')
     await expect(page.getByRole('heading', { name: 'Config' })).toBeVisible()
   })
+
+  test('feedback loads', async ({ page }) => {
+    await page.goto('/feedback')
+    await expect(page).toHaveURL('/feedback')
+    await expect(page.getByRole('heading', { name: 'Feedback' })).toBeVisible()
+    await expect(page.locator('[data-testid="giscus-widget"]')).toBeVisible()
+  })
 })
