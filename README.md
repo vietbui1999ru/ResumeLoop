@@ -1,6 +1,6 @@
 # ResumeLoop
 
-Personal job hunt dashboard that turns Obsidian job-description clips into tailored, ATS-optimized DOCX resumes — with fit scoring, cover letter generation, and outreach contact tracking.
+Personal job hunt dashboard that turns job descriptions into tailored, ATS-optimized DOCX resumes — with fit scoring, cover letter generation, outreach contact tracking, and an interactive onboarding tour.
 
 Live at **[resumeloop.me](https://resumeloop.me)** · [Try Demo](https://resumeloop.me/auth/signin)
 
@@ -13,10 +13,12 @@ Live at **[resumeloop.me](https://resumeloop.me)** · [Try Demo](https://resumel
 - **Generate** a 1-page tailored DOCX + PDF resume per job via AI reasoning + `buildv2.js`
 - **Preview** resume PDF inline, side-by-side with the job description
 - **Track** application pipeline stages (Saved → Applied → Phone Screen → Interview → Offer)
-- **Chat** with your resume data to refine bullet points and add new projects
+- **Chat** with your resume data — refine bullets live with a side-by-side bullets editor, import GitHub repos as context, and review AI-suggested diffs before applying them
 - **Outreach** — import LinkedIn/alumni contact files per job, get AI contact summaries and draft emails + LinkedIn messages
 - **Sessions** — maintain multiple resume profile variants (e.g. one for systems roles, one for GenAI)
-- **Personal info** — edit name, phone, location, LinkedIn, portfolio, and work authorization directly from the account page; writes into the active resume profile's `contact` block
+- **Personal info** — edit name, phone, location, LinkedIn, portfolio, and work authorization from the account page; writes into the active resume profile's `contact` block
+- **Onboarding tour** — interactive step-by-step guide covering every major workflow; restartable from any page
+- **Feedback** — community bug reports and feature requests via GitHub Discussions (Giscus)
 
 ## Quick Start
 
@@ -44,6 +46,8 @@ Persists `resume.db` and file outputs as bind-mounts. See [`docs/deploy.md`](doc
 2. **Settings → AI Provider** — add an API key (Anthropic recommended; required for Chat)
 3. **Jobs → Scan** — imports and scores all `.md` files, or use **Paste Job** to import one inline
 4. Check jobs in the table → **Generate N selected**
+
+An interactive **onboarding tour** launches automatically on first sign-in and guides you through each step. Restart it any time from the Help menu.
 
 ## Obsidian Web Clipper
 
@@ -96,13 +100,13 @@ Push to `main` → GitHub Actions builds, pushes to ECR, deploys to ECS, verifie
 Request
   └─ middleware.ts          global rate limit → mobile redirect → auth guard
        └─ Next.js App Router
-            ├─ app/(app)/   authenticated pages (jobs, chat, config, account, outreach)
-            └─ app/api/     REST routes
+            ├─ app/(app)/   authenticated pages (jobs, chat, config, account, settings, feedback)
+            └─ app/api/     REST routes (53 handlers)
 
 Data layer
   ├─ lib/db-adapter.ts      DbAdapter interface (query / queryOne / run / runInTransaction)
   ├─ lib/db.ts              SqliteAdapter + schema + migrations (local mode)
-  └─ lib/db-adapter.ts      NeonAdapter — translatePlaceholders(?→$N) + idempotent initialize()
+  └─ lib/db-neon.ts         NeonAdapter — translatePlaceholders(?→$N) + idempotent initialize()
 
 Generation pipeline
   lib/generate-pipeline.ts
@@ -122,14 +126,16 @@ The same `DbAdapter` interface runs on SQLite locally and Neon Postgres in produ
 
 ## Testing
 
-Tests run with **Vitest** in Node environment. No browser or DOM environment is configured — all tests are pure TypeScript.
+### Unit + Integration (Vitest)
+
+Tests run with **Vitest** in Node environment. No browser or DOM environment configured — all tests are pure TypeScript.
 
 ```bash
-npm test          # run all tests once
+npm test              # run all tests once
 npm test -- --watch   # watch mode
 ```
 
-### Patterns
+**Patterns:**
 
 **DB-level tests** (`lib/*.test.ts`) — spin up an in-memory SQLite DB via `initSchema`, wrap it in `SqliteAdapter`, and test data invariants directly. No mocks. Fast.
 
@@ -145,12 +151,30 @@ const adapter = new SqliteAdapter(db)
 ```typescript
 vi.mock('@/lib/auth',       () => ({ auth: vi.fn() }))
 vi.mock('@/lib/db-adapter', () => ({ getAdapter: vi.fn() }))
-// ...
 const res = await POST(makeRequest({ ... }), makeCtx())
 expect(res.status).toBe(200)
 ```
 
 **Coverage areas**: demo user lifecycle, profile CRUD and isolation, fit scoring, AI reasoning pipeline, generate pipeline, rate limiting, schema migrations, API route auth guards (401/403/404), contact patch, demo reset.
+
+### E2E (Playwright)
+
+End-to-end tests run with **Playwright** against a live dev server on an isolated test database. Cross-browser: Chrome, Firefox, and Safari.
+
+```bash
+npx playwright test           # run all E2E specs
+npx playwright test --ui      # interactive UI mode
+```
+
+Auth state is pre-established via `e2e/auth.setup.ts` and reused across specs — no re-login per test.
+
+| Spec | What it covers |
+|---|---|
+| `smoke.spec.ts` | Landing page, auth routes, health checks |
+| `auth.spec.ts` | Login, signup, OAuth flows, rate limiting |
+| `journeys/new-user.spec.ts` | Full flow: signup → profile setup → first job generation |
+| `journeys/returning-user.spec.ts` | Session persistence, resume generation, pipeline updates |
+| `journeys/bullets-editor.spec.ts` | Chat with live bullets panel; edit and save bullets inline |
 
 ## Tech Stack
 
@@ -164,6 +188,7 @@ expect(res.status).toBe(200)
 - **gray-matter** — YAML frontmatter parsing for JD files
 - **AWS ECS Fargate + ALB** — production hosting; S3 for resume file storage
 - **Vitest** — unit + integration tests
+- **Playwright** — cross-browser E2E tests (Chrome, Firefox, Safari)
 
 ## Key Files
 
@@ -172,6 +197,8 @@ expect(res.status).toBe(200)
 | `pipeline/master_resume_data.json` | Single source of truth for all bullets, projects, work experience, skills |
 | `pipeline/buildv2.js` | DOCX generation engine |
 | `lib/generate-pipeline.ts` | End-to-end resume generation (preflight → ai-reason → build → validate → pdf → finalize) |
+| `lib/ai-reason.ts` | AI bullet selection and fit scoring logic |
+| `lib/prompt-context.ts` | Builds LLM prompt context from profile + JD |
 | `lib/ai-client.ts` | `getModel(userId)` — resolves active provider + model from DB |
 | `lib/db-adapter.ts` | `DbAdapter` interface + `SqliteAdapter` + `NeonAdapter` with `translatePlaceholders()` |
 | `lib/db.ts` | SQLite schema init, `hasColumn()` migration guards, FTS5 triggers |
@@ -180,6 +207,10 @@ expect(res.status).toBe(200)
 | `lib/demo-seed.ts` | Per-IP demo user lifecycle: create, reuse, reset, purge |
 | `lib/auth.ts` | NextAuth config — credentials + OAuth, rate-limited login, session callbacks |
 | `lib/storage.ts` | S3 upload/download/delete for resume files; local disk fallback |
+| `contexts/TourContext.tsx` | Interactive onboarding tour — 35+ steps across all pages, tracks seen state |
+| `contexts/SessionContext.tsx` | Chat session management — supports multiple independent sessions per user |
+| `components/BulletsPreview.tsx` | Live bullets editor panel in Chat (Rendered / Markdown / JSON tabs) |
+| `components/GithubIngest.tsx` | GitHub repo sync for Chat context |
 | `instrumentation.node.ts` | In-process cron — runs demo cleanup every 6 hours at server startup |
 | `middleware.ts` | Global rate limit + mobile redirect + auth guard |
 | `infra/setup-alb.sh` | One-shot ALB provisioning script |
@@ -189,13 +220,13 @@ expect(res.status).toBe(200)
 
 | Metric | Count |
 |---|---|
-| TypeScript files | 183 |
-| Lines of code (TS/TSX) | ~20,200 |
-| API routes | 52 |
-| React components | 25 |
-| Lib modules | 43 |
-| Test files | 34 |
-| npm dependencies | 51 (34 prod + 17 dev) |
-| Job descriptions in corpus | 578 |
-| Git commits | 230 |
+| TypeScript files | 295 |
+| Lines of code (TS/TSX) | ~30,800 |
+| API routes | 53 |
+| React components | 27 |
+| Lib modules | 46 |
+| Vitest test files | 52 |
+| Playwright E2E spec files | 6 |
+| npm dependencies | 53 (35 prod + 18 dev) |
+| Git commits | 273 |
 | Project age | ~5 weeks |
