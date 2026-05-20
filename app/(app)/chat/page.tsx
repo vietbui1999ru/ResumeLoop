@@ -34,6 +34,7 @@ export default function ChatPage() {
   const [streaming, setStreaming] = useState(false)
   const [tab, setTab] = useState<'chat' | 'import'>('chat')
   const [profileJson, setProfileJson] = useState('')
+  const [activeProfileId, setActiveProfileId] = useState<string | undefined>(undefined)
   const [bulletsOpen, setBulletsOpen] = useState(true)
   const bottomRef = useRef<HTMLDivElement>(null)
   const streamAbortRef = useRef<AbortController | null>(null)
@@ -45,6 +46,7 @@ export default function ChatPage() {
       const { profiles } = await listRes.json() as { profiles: { id: string; is_active: number }[] }
       const active = profiles.find(p => p.is_active === 1) ?? profiles[0] ?? null
       if (!active) return
+      setActiveProfileId(active.id)
       const dataRes = await fetch(`/api/profiles/${active.id}`)
       if (!dataRes.ok) return
       const { data } = await dataRes.json() as { data: string }
@@ -293,7 +295,7 @@ export default function ChatPage() {
             <span className="text-2xs text-zinc-500 uppercase tracking-widest font-mono">Bullets</span>
             <span className="ml-auto text-2xs text-zinc-400 font-mono">live</span>
           </div>
-          <BulletsPreview json={profileJson} />
+          <BulletsPreview json={profileJson} profileId={activeProfileId} onSaved={() => void loadProfile()} />
         </div>
       )}
     </div>
