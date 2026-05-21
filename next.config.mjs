@@ -30,7 +30,7 @@ const nextConfig = {
               "default-src 'self'",
               // Next.js requires unsafe-inline for hydration scripts; unsafe-eval for dev HMR
               // jsdelivr.net is required by @monaco-editor/react for the Monaco loader
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://giscus.app",
               "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
               "img-src 'self' data: blob: https:",
               // LLM API calls are server-side; connect-src covers browser fetch to /api/*
@@ -38,7 +38,7 @@ const nextConfig = {
               "font-src 'self' data:",
               "frame-ancestors 'none'",
               // blob: needed for PDF iframe (PdfViewer creates a blob URL from server-fetched PDF)
-              "frame-src 'self' blob:",
+              "frame-src 'self' blob: https://giscus.app",
               // Monaco editor spins up web workers via blob: URLs
               "worker-src 'self' blob:",
               "object-src 'none'",
