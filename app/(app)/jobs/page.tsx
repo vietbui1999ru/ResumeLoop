@@ -111,6 +111,11 @@ export default function JobsPage() {
   const [rowErrors, setRowErrors]   = useState<Map<string, string>>(new Map())
   const [showSecondary, setShowSecondary] = useState(false)
 
+  // Unfiltered option lists — fetched once on mount so track/tag dropdowns
+  // don't collapse when a filter is active (filtered jobs ≠ all jobs).
+  const [allTracks, setAllTracks]       = useState<string[]>([])
+  const [allTagOptions, setAllTagOptions] = useState<string[]>([])
+
   // Filters
   const [q, setQ]               = useState('')
   const [trackFilter, setTrackFilter] = useState('')
@@ -192,15 +197,26 @@ export default function JobsPage() {
     return () => ctrl.abort()
   }, [])
 
+  // Fetch unfiltered job list once on mount for track/tag dropdown options.
+  // Must run independently of the filtered reload so options don't collapse.
+  useEffect(() => {
+    const ctrl = new AbortController()
+    fetch('/api/jobs', { signal: ctrl.signal })
+      .then(r => r.ok ? r.json() as Promise<Job[]> : [])
+      .then((all: Job[]) => {
+        setAllTracks(Array.from(new Set(all.map(j => j.role_track).filter(Boolean))).sort())
+        setAllTagOptions(extractAllTags(all))
+      })
+      .catch(e => { if (e.name !== 'AbortError') console.error(e) })
+    return () => ctrl.abort()
+  }, [])
+
   // Re-fetch whenever any filter changes (debouncedQ handles the search delay).
   // Cleanup aborts any in-flight request when filters change again or on unmount.
   useEffect(() => {
     reload()
     return () => { abortRef.current?.abort() }
   }, [reload])
-
-  const tracks  = useMemo(() => Array.from(new Set(jobs.map(j => j.role_track).filter(Boolean))).sort(), [jobs])
-  const allTags = useMemo(() => extractAllTags(jobs), [jobs])
 
   const onSort = (col: SortCol) =>
     setSort(prev => prev.col === col
@@ -439,7 +455,7 @@ export default function JobsPage() {
               className="h-8 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary focus:outline-none focus:border-indigo-500 transition-colors duration-100"
             >
               <option value="">All tracks</option>
-              {tracks.map(t => <option key={t} value={t}>{t}</option>)}
+              {allTracks.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
             <select
               value={tagFilter}
@@ -447,7 +463,7 @@ export default function JobsPage() {
               className="h-8 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary focus:outline-none focus:border-indigo-500 transition-colors duration-100"
             >
               <option value="">All tags</option>
-              {allTags.map(t => <option key={t} value={t}>{t}</option>)}
+              {allTagOptions.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
             <select
               value={visaFilter}
