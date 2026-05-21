@@ -58,8 +58,8 @@ export function GiscusWidget() {
       <Giscus
         repo="vietbui1999ru/ResumeLoop"
         repoId="R_kgDORgSzSw"
-        category="General"
-        categoryId="DIC_kwDORgSzS84C9fnt"
+        category="Announcements"
+        categoryId="DIC_kwDORgSzS84C9fns"
         mapping="pathname"
         strict="0"
         reactionsEnabled="1"
