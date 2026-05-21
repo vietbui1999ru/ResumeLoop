@@ -11,7 +11,7 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
-    include: ['**/*.test.ts'],
-    exclude: ['node_modules', 'pipeline/batch-build'],
+    include: ['**/*.test.ts', '**/*.test.js'],
+    exclude: ['node_modules', '**/node_modules/**', 'pipeline/batch-build', '.claude/worktrees/**', 'docs/reference/**', 'JobData/**'],
   },
 })

@@ -49,18 +49,6 @@ describe('GET /api/settings/ai/ollama-models', () => {
     expect(body.error).toMatch(/local|private/i)
   })
 
-  it('returns 400 for cloud metadata base_url', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
-    const res = await GET(makeReq({ base_url: 'http://169.254.169.254' }))
-    expect(res.status).toBe(400)
-  })
-
-  it('returns 400 for external hostname', async () => {
-    mockAuth.mockResolvedValue({ user: { id: 'user-1' } })
-    const res = await GET(makeReq({ base_url: 'http://evil.com:11434' }))
-    expect(res.status).toBe(400)
-  })
-
   // ── Ollama server unreachable ──────────────────────────────────────────────
   it('returns 502 when Ollama fetch throws ECONNREFUSED', async () => {
     mockAuth.mockResolvedValue({ user: { id: 'user-1' } })

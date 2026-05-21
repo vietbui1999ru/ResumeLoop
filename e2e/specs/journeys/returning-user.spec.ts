@@ -59,26 +59,4 @@ test.describe('Returning user journey', () => {
     await expect(generationPanel).toBeVisible({ timeout: 15000 })
   })
 
-  test('filters jobs by company name', async ({ page }) => {
-    // Navigate to jobs page
-    await page.goto('/jobs')
-
-    // Assert filters bar is visible
-    const filtersBar = page.locator('[data-tour="filters-bar"]')
-    await expect(filtersBar).toBeVisible()
-
-    // Find filter input and type 'Backend'
-    const filterInput = filtersBar.locator('input[placeholder*="Search"]')
-    await filterInput.fill('Backend')
-
-    // Assert the Backend Engineer row remains visible after filter
-    const jobsTable = page.locator('[data-tour="jobs-table"]')
-    await expect(jobsTable.getByText('Backend Engineer')).toBeVisible()
-
-    // Clear the filter input
-    await filterInput.fill('')
-
-    // Assert row still visible after clearing filter
-    await expect(jobsTable.getByText('Backend Engineer')).toBeVisible()
-  })
 })

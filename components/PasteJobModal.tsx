@@ -28,6 +28,12 @@ export function PasteJobModal({ onClose, onAdded }: { onClose: () => void; onAdd
     return () => document.removeEventListener('keydown', handleKey)
   }, [handleKey])
 
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [])
+
   const submit = async () => {
     if (!content.trim()) { setError('Paste the .md content first'); return }
     setSaving(true)

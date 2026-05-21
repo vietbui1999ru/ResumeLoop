@@ -90,10 +90,10 @@ build({
   ],
 
   skills: [
-    'Languages: Python · Go · TypeScript · Ruby · Bash · SQL · Rust',
-    'Backend: FastAPI · PostgreSQL · Redis · REST · gRPC · Docker · Kubernetes',
-    'Systems: Linux · goroutines · channels · multithreaded design · IEEE 802.3',
-    'DevOps: GitHub Actions · GitLab CI/CD · Terraform · Ansible · Prometheus · Grafana',
-    'Tools: Git · Proxmox · Neovim · tmux · Obsidian · Claude Code',
+    { label: 'Languages', vals: 'Python · Go · TypeScript · Ruby · Bash · SQL · Rust' },
+    { label: 'Backend',   vals: 'FastAPI · PostgreSQL · Redis · REST · gRPC · Docker · Kubernetes' },
+    { label: 'Systems',   vals: 'Linux · goroutines · channels · multithreaded design · IEEE 802.3' },
+    { label: 'DevOps',    vals: 'GitHub Actions · GitLab CI/CD · Terraform · Ansible · Prometheus · Grafana' },
+    { label: 'Tools',     vals: 'Git · Proxmox · Neovim · tmux · Obsidian · Claude Code' },
   ],
 });

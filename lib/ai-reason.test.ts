@@ -78,6 +78,59 @@ describe('validateResult', () => {
   })
 })
 
+// ── validateResultAgainstProfile ─────────────────────────────────────────────
+
+describe('validateResultAgainstProfile', () => {
+  const makeProfile = (workIds: string[], projectIds: string[]) => JSON.stringify({
+    experience: workIds.map(id => ({ id, bullets: { genai: ['B'] } })),
+    projects:   projectIds.map(id => ({ id, bullets: ['P'] })),
+  })
+
+  it('passes when all IDs exist in profile', async () => {
+    const { validateResultAgainstProfile } = await import('./ai-reason')
+    const profile = makeProfile(['j1', 'j2'], ['p1', 'p2'])
+    expect(() => validateResultAgainstProfile(
+      { ...GOOD_INPUT, workIds: ['j1', 'j2'], projects: ['p1'] },
+      profile,
+    )).not.toThrow()
+  })
+
+  it('throws when work ID is unknown', async () => {
+    const { validateResultAgainstProfile } = await import('./ai-reason')
+    const profile = makeProfile(['j1', 'j2'], ['p1'])
+    expect(() => validateResultAgainstProfile(
+      { ...GOOD_INPUT, workIds: ['j1', 'ghost'], projects: ['p1'] },
+      profile,
+    )).toThrow(/unknown work ID.*ghost/)
+  })
+
+  it('throws when project ID is unknown', async () => {
+    const { validateResultAgainstProfile } = await import('./ai-reason')
+    const profile = makeProfile(['j1'], ['p1', 'p2'])
+    expect(() => validateResultAgainstProfile(
+      { ...GOOD_INPUT, workIds: ['j1'], projects: ['p1', 'phantom'] },
+      profile,
+    )).toThrow(/unknown project ID.*phantom/)
+  })
+
+  it('is a no-op when profile has no experience (enum not enforceable)', async () => {
+    const { validateResultAgainstProfile } = await import('./ai-reason')
+    const profile = makeProfile([], ['p1'])
+    expect(() => validateResultAgainstProfile(
+      { ...GOOD_INPUT, workIds: ['any_id'], projects: ['p1'] },
+      profile,
+    )).not.toThrow()
+  })
+
+  it('is a no-op on malformed profile JSON', async () => {
+    const { validateResultAgainstProfile } = await import('./ai-reason')
+    expect(() => validateResultAgainstProfile(
+      { ...GOOD_INPUT, workIds: ['j1'], projects: ['p1'] },
+      '{ bad json',
+    )).not.toThrow()
+  })
+})
+
 // ── reasonForJob (mocked AI SDK) ──────────────────────────────────────────────
 
 describe('reasonForJob', () => {

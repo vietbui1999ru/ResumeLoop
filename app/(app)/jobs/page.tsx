@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 const IS_CLOUD = process.env.NEXT_PUBLIC_APP_MODE === 'cloud'
 
 import { extractAllTags, parseTags } from '@/lib/tag-filter'
+import { FIT_THRESHOLDS } from '@/lib/constants'
 import { PIPELINE_TAGS } from '@/lib/pipeline-tags'
 import dynamic from 'next/dynamic'
 import { JobsTableSkeleton } from '@/components/JobsTableSkeleton'
@@ -85,10 +86,10 @@ function fmtDate(iso: string | null): string {
 }
 
 function FitBadge({ pct }: { pct: number }) {
-  if (pct >= 80) return (
+  if (pct >= FIT_THRESHOLDS.green) return (
     <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-400">{pct}%</span>
   )
-  if (pct >= 60) return (
+  if (pct >= FIT_THRESHOLDS.amber) return (
     <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-amber-500/10 text-amber-400">{pct}%</span>
   )
   return (
@@ -629,7 +630,7 @@ export default function JobsPage() {
                     {/* Action dropdown */}
                     <td className="py-2 pr-4" onClick={e => e.stopPropagation()}>
                       {rowError ? (
-                        <span className="text-red-400 text-xs">{rowError}</span>
+                        <span data-testid="row-action-error" className="text-red-400 text-xs">{rowError}</span>
                       ) : (
                         <select
                           data-tour={idx === 0 ? 'action-cell' : undefined}

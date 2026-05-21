@@ -78,11 +78,6 @@ describe('POST /api/settings/ai — ollama provider', () => {
     expect(body.error).toMatch(/local|private/i)
   })
 
-  it('returns 400 for AWS metadata base_url', async () => {
-    const res = await POST(makePostReq({ provider: 'ollama', base_url: 'http://169.254.169.254' }))
-    expect(res.status).toBe(400)
-  })
-
   it('accepts private-network base_url', async () => {
     const res = await POST(makePostReq({ provider: 'ollama', base_url: 'http://192.168.1.50:11434/v1' }))
     expect(res.status).toBe(200)

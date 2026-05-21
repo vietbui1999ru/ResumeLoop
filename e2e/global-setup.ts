@@ -46,7 +46,19 @@ export default async function globalSetup() {
     `INSERT INTO app_settings (key, value) VALUES (?, ?)`
   ).run('active_ai_provider:test-user-id', 'ollama')
 
-  console.log('✓ Test database seeded with test user, returning-user job, and AI provider')
+  // Seed an active resume profile so the bullets editor Save button is enabled.
+  // Without a profile, activeProfileId stays undefined and Save stays disabled.
+  db.prepare(
+    `INSERT INTO resume_profiles (id, user_id, name, data, is_active, created_at)
+     VALUES (?, ?, ?, ?, 1, datetime('now'))`
+  ).run(
+    'test-profile-id',
+    'test-user-id',
+    'Test Profile',
+    JSON.stringify({ experience: [], projects: [] }),
+  )
+
+  console.log('✓ Test database seeded with test user, returning-user job, AI provider, and resume profile')
 
   // Warm up the dev server by pre-fetching all routes used in tests.
   // Next.js dev mode compiles routes on first access — doing it here prevents

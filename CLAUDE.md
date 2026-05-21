@@ -56,7 +56,12 @@ ls batch-build/*.docx
 
 **Result-first variant** (preferred for impact roles / QA / DevOps): "Automated {outcome} by building {method} using {tech}" — put the metric/outcome BEFORE the method. E.g. "Automated quality gating for merge requests by configuring GitLab CI/CD with lint, test, and deploy stages."
 
-**Action verb variety**: no two bullets in one resume start with the same verb.
+**Action verb variety**: all 24 bullets across a resume (15 work + 9 project) must start with a unique verb — no repeats. Track the full verb list before writing the script.
+
+**Em-dash ban**: never use `—` (U+2014) inside bullet text. ATS and human reviewers flag it as an AI-writing signal. Use semicolons, commas, or rewrite:
+- ❌ `Built a pipeline — reduced latency by 40%`
+- ✓ `Built a pipeline; reduced latency by 40%`
+- ✓ `Built a pipeline, cutting latency by 40%`
 
 **NO** professional summary section — tagline only. **NO** "new grad" language.
 
@@ -69,11 +74,65 @@ JD markdown → visa check → role-track lookup → bullet selection from JSON
 ```
 
 ### Key Files
-- `master_resume_data.json` — single source of truth for all bullets. `data.work = [{id, bullets[]}]`, `data.projects = [{id, bullets[]}]`, `data.skills = {track: {Label: "vals", ...}}`
-- `buildv2.js` — DOCX generation engine. Work input: `{id, bullets}` — metadata auto-resolved from WORK_META. Project input: `{id, bullets}` — metadata auto-resolved from JSON. Skills: `{label, vals}` objects rendered with bold labels via `sl()`.
-- `haiku_generate.js` — automated pipeline (Steps 1–6 via Haiku API). See `pipeline/HAIKU_PIPELINE.md`.
+- `master_resume_data.json` — single source of truth. Top-level keys: `experience[]`, `projects[]`, `skills{}` (NOT `work[]`).
+- `buildv2.js` — DOCX generation engine. Input: `{id, bullets}` for work and projects — metadata auto-resolved. Skills: `{label, vals}` objects.
+- `haiku_generate.js` — automated pipeline (Steps 1–6 via Haiku API). See `docs/reference/OptimizedModel/HAIKU_PIPELINE.md`.
 - `batch-build/` — working dir for build execution; copy both files here each session
 - `JobData/Jobs/` — JD markdown files with frontmatter tags (`un-resume` → `resume-ed`)
+
+### master_resume_data.json Access Pattern (CRITICAL)
+```javascript
+const m = require('./master_resume_data.json');
+
+// Work bullets — experience[], NOT work[]
+const bullet = m.experience.find(x => x.id === 'gitlab').bullets.genai[0];
+//                                                                 ^^^^^ variant: genai|systems|fullstack|sre|IT-track
+
+// Project bullets — flat array (no variant key)
+const proj = m.projects.find(x => x.id === 'resumeloop');
+// proj.id, proj.name, proj.url, proj.short_stack, proj.dates, proj.bullets[]
+
+// Skills — object keyed by variant
+const skills = Object.entries(m.skills.genai).map(([label, vals]) => ({label, vals}));
+// m.skills keys: genai | sre_devops | fullstack | systems | data_ml
+```
+
+### Build Script Pattern
+```javascript
+// Always use makeDoc() + Packer.toBuffer() — never call build() directly
+const { makeDoc } = require('./buildv2.js');
+const { Packer }  = require('docx');
+const fs = require('fs'), path = require('path');
+const master = require('./master_resume_data.json');
+
+const RESUMES_DIR = '/Users/vietquocbui/repos/resume-gen/Startups/Resumes';
+
+const data = { /* ... */ };
+const doc = makeDoc(data);
+Packer.toBuffer(doc).then(buf => {
+  fs.mkdirSync(RESUMES_DIR, { recursive: true });
+  const fp = path.join(RESUMES_DIR, data.file + '.docx');
+  fs.writeFileSync(fp, buf);
+  console.log('✓ ' + data.file + ' (' + (buf.length / 1024).toFixed(1) + 'KB) → ' + fp);
+}).catch(err => { console.error(err); process.exit(1); });
+```
+
+Build script header must include verb plan:
+```javascript
+// VietBui_<Co>_<Role>.js — <Title> @ <Company>
+// Fit: XX% — <rationale>
+// Track: <track> | Variant: genai
+// Tagline: XX chars ✓
+//
+// Verb plan (all 24 unique):
+//   gitlab genai:    Contributed, Built, Configured, Automated, Collaborated
+//   carboncopies:    Scaled*, Developed, Streamlined*, Processed*, Debugged
+//   udayton genai:   Co-authored, Constructed*, Wrote, Designed, Authored
+//   <proj1>:         VerbA, VerbB, VerbC
+//   <proj2>:         VerbD, VerbE, VerbF
+//   <proj3>:         VerbG, VerbH, VerbI
+// * = overrides
+```
 
 ### buildv2.js Data Shape (v2.3)
 Work IDs: `gitlab` | `carboncopies` | `udayton` | `augustana`. WORK_META headers live in buildv2.js. Project IDs resolved from `master_resume_data.json`. Always sync both files to `batch-build/` before running.
@@ -92,72 +151,70 @@ Work IDs: `gitlab` | `carboncopies` | `udayton` | `augustana`. WORK_META headers
 
 ## Work Track Variants
 
-Two bullet tracks per employer. Pick based on role:
+Work bullet variants in `master_resume_data.json`. Pick based on role:
 
 **genai** (Python/LLM/automation/data/product): gitlab, carboncopies, udayton
 **systems** (Go/infra/SRE/backend/embedded/networking): gitlab, carboncopies, udayton
 **fullstack** (product engineering, TypeScript/React heavy): gitlab, carboncopies, udayton
-**sre** (SRE/DevOps/platform, observability-first): gitlab, carboncopies, udayton
+**sre** (SRE/DevOps/platform, observability-first): gitlab, carboncopies, udayton → use `sre_devops` skills track
 **IT-track** (IT support/helpdesk/sysadmin): gitlab + udayton + **augustana** (NOT carboncopies) — put augustana IT Help Desk bullet FIRST
 
 ## Role-Track Project Picks
 
+Project IDs below are lowercase snake_case — use exactly these IDs in build scripts.
+
 ### Core SWE
 | Track | Projects | Work variant |
 |---|---|---|
-| Software Engineer / Full-Stack | HomeBoard + MRR Dashboard + SpotiSwipe | fullstack |
-| Backend / API Engineer | MRR Dashboard + HomeBoard + EthSwitch | systems |
-| Frontend / Product Engineer | resumeloop + SpotiSwipe + HomeBoard | fullstack |
+| Software Engineer / Full-Stack | homeboard + mrr_dashboard + spotiswipe | genai |
+| Backend / API Engineer | mrr_dashboard + homeboard + ethswitch | systems |
+| Frontend / Product Engineer | resumeloop + spotiswipe + homeboard | fullstack |
 | GenAI / AI Engineer | resumeloop + claude_tui + mrr_dashboard | genai |
 | AI/LLM/Agents | llm_wiki + resumeloop + claude_tui | genai |
 | AI Automation Engineer | resumeloop + pe_hackathon + mrr_dashboard | genai |
 | Vibe Coding / AI Dev Tools | llm_wiki + claude_tui + resumeloop | genai |
-| ML Engineer | Jetson + maze_drl + MRR Dashboard | genai |
-| MLOps / Platform Eng | pe_hackathon + Homelab + claude-tui | systems |
-| .NET / C# Engineer | HomeBoard + MRR Dashboard + SpotiSwipe | fullstack |
+| ML Engineer | jetson + maze_drl + mrr_dashboard | genai |
+| MLOps / Platform Eng | pe_hackathon + homelab + claude_tui | systems |
+| .NET / C# Engineer | homeboard + mrr_dashboard + spotiswipe | genai |
 
 ### Infrastructure / DevOps / Cloud
 | Track | Projects | Work variant |
 |---|---|---|
-| SRE / DevOps Engineer | pe_hackathon + Homelab + claude_tui | sre |
-| Cloud Engineer | Homelab + pe_hackathon + MRR Dashboard | systems |
-| Platform Engineer | Homelab + pe_hackathon + claude_tui | systems |
-| Network Engineer | EthSwitch + Homelab + claude_tui | systems |
-| Distributed Systems Eng | EthSwitch + Homelab + MRR Dashboard | systems |
-| Rust / Systems Programmer | claude_tui + EthSwitch + Homelab | systems |
+| SRE / DevOps Engineer | pe_hackathon + homelab + claude_tui | sre |
+| Cloud Engineer | homelab + pe_hackathon + mrr_dashboard | systems |
+| Platform Engineer | homelab + pe_hackathon + claude_tui | systems |
+| Network Engineer | ethswitch + homelab + claude_tui | systems |
+| Distributed Systems Eng | ethswitch + homelab + mrr_dashboard | systems |
+| Rust / Systems Programmer | claude_tui + ethswitch + homelab | systems |
 
 ### Data
 | Track | Projects | Work variant |
 |---|---|---|
-| Data Analyst | MRR Dashboard + PDE Platform + maze_drl | genai |
-| Data Engineer | resumeloop + mrr_dashboard + SpotiSwipe | genai |
-| Quant / Numerical Methods | PDE Platform + MRR Dashboard + maze_drl | genai |
-| Bioinformatics / Research Analyst | PDE Platform + maze_drl + MRR Dashboard | genai |
+| Data Analyst | mrr_dashboard + pde_platform + maze_drl | genai |
+| Data Engineer | resumeloop + mrr_dashboard + spotiswipe | genai |
+| Quant / Numerical Methods | pde_platform + mrr_dashboard + maze_drl | genai |
 
 ### QA / Testing
 | Track | Projects | Work variant |
 |---|---|---|
-| QA Analyst / SQA Engineer | pe_hackathon + price_monitor + resumeloop | sre |
-| Test Automation Engineer | pe_hackathon + price_monitor + resumeloop | sre |
-| SDET / SET (Software Engineer in Test) | pe_hackathon + price_monitor + resumeloop | sre |
+| QA Analyst / SQA Engineer | pe_hackathon + price_monitor + resume_analyze | sre |
+| Test Automation Engineer | pe_hackathon + price_monitor + resume_analyze | sre |
+| SDET / SET (Software Engineer in Test) | pe_hackathon + price_monitor + resume_analyze | sre |
 
 ### Security
 | Track | Projects | Work variant |
 |---|---|---|
-| Information Security Analyst | Homelab + EthSwitch + coq_verification | systems |
-| Network Security Engineer | EthSwitch + Homelab + coq_verification | systems |
-| Risk Management / Compliance | coq_verification + MRR Dashboard + HomeBoard | genai |
+| Information Security Analyst | homelab + ethswitch + coq_verification | systems |
+| Network Security Engineer | ethswitch + homelab + coq_verification | systems |
+| Risk Management / Compliance | coq_verification + mrr_dashboard + homeboard | genai |
 
 ### Support / Embedded / Other
 | Track | Projects | Work variant |
 |---|---|---|
-| IT Support / Helpdesk | Homelab + claude_tui + zmk | IT-track |
-| System Administrator | Homelab + claude_tui + EthSwitch | systems |
-| Technical Support / DevRel | Homelab + resumeloop + claude_tui | genai |
-| Forward Deployed Engineer | resumeloop + mrr_dashboard + HomeBoard | genai |
-| Embedded Systems Engineer | zmk + Jetson + EthSwitch | systems |
-| Game Developer | maze_drl + PDE Platform + Jetson | genai |
-| New Graduate / Early Career SWE | HomeBoard + MRR Dashboard + SpotiSwipe | fullstack |
+| IT Support / Helpdesk | homelab + claude_tui + zmk | IT-track |
+| System Administrator | homelab + claude_tui + ethswitch | systems |
+| Forward Deployed Engineer | resumeloop + mrr_dashboard + homeboard | genai |
+| Embedded Systems Engineer | zmk + jetson + ethswitch | systems |
 
 ## Project Stack Ground Truth
 
@@ -178,6 +235,7 @@ Two bullet tracks per employer. Pick based on role:
 | ~~ObsidianTasks~~ | ~~TypeScript, React Flow, Node.js, Claude API, MCP~~ — **RETIRED** (backup in master_resume_data.json `retired_projects`) |
 | price_monitor | Playwright, playwright-stealth, Python, FastAPI, PostgreSQL 16, asyncio, SQLAlchemy 2.0, Alembic, Redis, Docker, pytest, GitHub Actions |
 | resumeloop | Next.js 14, TypeScript, Vercel AI SDK, NextAuth v5, SQLite/Neon Postgres (DbAdapter), AWS ECS Fargate, ALB, GitHub Actions, LibreOffice |
+| resume_analyze | Next.js 14, TypeScript, Vercel AI SDK, SQLite, Neon Postgres, NextAuth v5, Claude API, GitHub Actions, Docker, Zod |
 | LLM-Wiki | Claude Code, Git, POSIX mv, git refs/tasks/* branch races, JSONL event log, JSON-RPC, Hooks, Skills, multi-agent systems |
 
 ## Work Experience Tech Ground Truth
@@ -198,7 +256,7 @@ Two bullet tracks per employer. Pick based on role:
 
 **QA / SET / DevOps hybrid**: Frame as "the engineer who lets the rest of the team ship faster without breaking things." Lead bullets with outcomes (0% error rate, 60% QA reduction, blocked bad deploys). Never frame as a pure tester — always show full-stack build capability alongside the QA signal.
 
-**Seed-stage AI companies** (≤30 engineers): Prioritize resumeloop — it proves you can build a user-facing AI product end-to-end, not just glue together APIs. Generalist signal > specialist signal at this stage.
+**Seed-stage AI companies** (≤30 engineers): Prioritize `resumeloop` or `resume_analyze` — both prove end-to-end AI product ownership. Generalist signal > specialist signal at this stage.
 
 **Growth-stage startups**: Lead with the two headline metrics — "eliminating 60% of manual QA" (carboncopies) and "0% error rate at 500 VUs" (pe_hackathon). These are the numbers founders remember.
 
@@ -223,16 +281,75 @@ Two bullet tracks per employer. Pick based on role:
 
 ## Key Errors to Avoid
 
-- MRR Dashboard is Python/FastAPI — NOT C#/ASP.NET (HomeBoard is C#)
-- EthSwitch is too technical for most roles — use ONLY for Systems/Go/Networking roles
-- pe_hackathon b0 starts as "Built" → override to "Scaled" to avoid verb conflict with gitlab work track
-- buildv2.js project format is `{id, bullets}` — do NOT pass `{name, url, stack, date, bullets}` manually
-- buildv2.js skills format is `{label, vals}` objects, NOT plain strings — skills render with bold labels via `sl()`
-- `master.skills.*` tracks are stored as `{key: "vals"}` dicts — convert before passing: `Object.entries(master.skills.genai).map(([label, vals]) => ({label, vals}))`
-- Low-fit rule: state fit % and flag missing tools, but still generate the resume — let Viet decide
-- Carboncopies = part-time contract concurrent with M.S. — if a JD or cover letter asks about availability, clarify this; do NOT omit the overlap
-- GitLab bullets: avoid "Configured GitLab CI/CD pipelines" as a lead — use result-first ("Automated quality gating for MRs by...") and name a specific feature area or bug class when possible
-- Skills rows: do NOT list a category (e.g. Languages) if every tech in it is already called out in bullets — it wastes vertical space with no ATS gain
+| Error | Correct approach |
+|---|---|
+| `m.work.find(...)` | `m.experience.find(...)` — top-level key is `experience`, not `work` |
+| `m.experience.find(...).bullets` (flat access) | `m.experience.find(...).bullets.genai` — bullets is `{variant: []}` object |
+| `data.skills = ['string · string']` | `data.skills = [{label, vals}]` — never plain strings |
+| Passing `{name, url, stack, date, bullets}` to project | Pass `{id, bullets}` only — metadata auto-resolved by buildv2.js |
+| `Object.entries(master.skills.genai)` for SRE roles | Use `master.skills.sre_devops` for SRE/DevOps/Platform roles |
+| `master.skills.genai` as-is | `Object.entries(master.skills.genai).map(([label, vals]) => ({label, vals}))` |
+| MRR Dashboard → C# | MRR Dashboard is Python/FastAPI. HomeBoard is C#/ASP.NET |
+| EthSwitch in product roles | EthSwitch only for Systems/Go/Networking roles |
+| `resumeloop` in QA tracks | QA tracks use `resume_analyze`, not `resumeloop` |
+| Em-dash `—` inside bullet text | Use semicolon or comma — em-dashes are flagged as AI-writing signal |
+| Two bullets sharing starting verb | Track all 24 starting verbs; apply overrides proactively (see Verb Conflict Map) |
+| Missing verb plan in script header | Always document all 24 verbs + overrides in script comment header |
+| Skipping char count | Count every tagline and every overridden bullet before writing the script |
+| `'tagline'.length` estimation | Use `'your tagline'.length` in JS console — 76 is hard ceiling |
+| Low fit → no resume | Always generate, state fit %, flag missing tools. Let Viet decide. |
+| Carboncopies overlap | Carboncopies = part-time contract concurrent with M.S. — flag if JD asks about availability |
+| GitLab lead bullet generic | Avoid "Configured GitLab CI/CD pipelines" as lead — result-first, name specific feature area |
+| Skills category redundancy | Do NOT list a skill category if every tech in it is already in bullets — wastes vertical space |
+
+## Verb Conflict Map — genai work track
+
+Standard starting verbs per bullet position. Conflicts marked ⚠. Apply overrides every time.
+
+```
+gitlab genai:
+  b0: Contributed
+  b1: Built          ⚠ LOCKED — forces overrides downstream
+  b2: Configured
+  b3: Automated      ⚠ LOCKED
+  b4: Collaborated
+
+carboncopies genai (conflicts with gitlab):
+  b0: Built          ⚠ → "Scaled"         (60% throughput metric preserved)
+  b1: Developed
+  b2: Automated      ⚠ → "Streamlined"
+  b3: Built          ⚠ → "Processed"
+  b4: Debugged
+
+udayton genai (conflicts with gitlab):
+  b0: Co-authored
+  b1: Built          ⚠ → "Constructed"    (Coq framework bullet)
+  b2: Wrote          LOCKED
+  b3: Designed       ⚠ LOCKED — conflicts with homeboard b0
+  b4: Authored
+```
+
+**Standard overrides for genai 3-job track (apply every time):**
+- `carboncopies b0`: → "Scaled neuron simulation throughput 60% by refactoring Python analysis pipelines using FastAPI and Docker"
+- `carboncopies b2`: → "Streamlined data ETL in Python + Docker, enabling reproducible simulation runs and consistent quality"
+- `carboncopies b3`: → "Processed biophysical neuron simulation data via Python analysis pipelines for computational neuroscience research"
+- `udayton b1`: → "Constructed Coq framework translating Program Graphs to safety proofs; detected overflow and injection attacks"
+
+**Project bullet overrides (apply when conflict with work verbs):**
+
+| Project | Bullet | Default verb | Override |
+|---|---|---|---|
+| mrr_dashboard | b0 | Built | "Piped" |
+| mrr_dashboard | b1 | Designed | "Wired" or "Served" (Designed locked by udayton b3) |
+| mrr_dashboard | b3 | Built | "Visualized" or "Engineered" |
+| claude_tui | b0 | Built | "Architected" |
+| claude_tui | b1 | Built | "Implemented" or "Wired" |
+| claude_tui | b4 | Built | "Reconstructed" |
+| homeboard | b0 | Designed | "Architected" (Designed locked by udayton b3) |
+| pe_hackathon | b0 | Built | "Scaled" (only if carboncopies not in use) |
+| llm_wiki | b1 | Built | "Engineered" |
+
+**Verb pool for overrides**: Architected · Containerized · Engineered · Exposed · Hardened · Implemented · Instrumented · Launched · Mapped · Piped · Processed · Reconstructed · Scaled · Served · Shipped · Specced · Streamlined · Visualized · Wired
 
 ## Feedback Loop
 

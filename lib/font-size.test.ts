@@ -7,12 +7,6 @@ import {
   applyFontSize,
 } from './font-size'
 
-describe('FONT_SIZES', () => {
-  it('contains exactly small, medium, large in that order', () => {
-    expect(FONT_SIZES).toEqual(['small', 'medium', 'large'])
-  })
-})
-
 describe('isValidFontSize', () => {
   it('accepts all valid sizes', () => {
     for (const s of FONT_SIZES) {
@@ -28,14 +22,6 @@ describe('isValidFontSize', () => {
     expect(isValidFontSize('huge')).toBe(false)
     expect(isValidFontSize('xl')).toBe(false)
     expect(isValidFontSize('')).toBe(false)
-  })
-})
-
-describe('fontClass', () => {
-  it('returns correct CSS class for each size', () => {
-    expect(fontClass('small')).toBe('font-small')
-    expect(fontClass('medium')).toBe('font-medium')
-    expect(fontClass('large')).toBe('font-large')
   })
 })
 

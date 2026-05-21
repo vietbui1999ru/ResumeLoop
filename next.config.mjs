@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const isDev = process.env.NODE_ENV !== 'production'
+
 const nextConfig = {
   output: "standalone",
   serverExternalPackages: ["better-sqlite3"],
@@ -28,9 +30,9 @@ const nextConfig = {
             key: "Content-Security-Policy",
             value: [
               "default-src 'self'",
-              // Next.js requires unsafe-inline for hydration scripts; unsafe-eval for dev HMR
+              // Next.js requires unsafe-inline for hydration scripts; unsafe-eval only needed for dev HMR
               // jsdelivr.net is required by @monaco-editor/react for the Monaco loader
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://giscus.app",
+              `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://cdn.jsdelivr.net https://giscus.app`,
               "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
               "img-src 'self' data: blob: https:",
               // LLM API calls are server-side; connect-src covers browser fetch to /api/*

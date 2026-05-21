@@ -59,6 +59,7 @@ function collapseContext(lines: DiffLine[], ctx = 3): (DiffLine | { type: 'ellip
 function DiffView({ current, backup, onRestore, onClose }: {
   current: string; backup: string; onRestore: () => void; onClose: () => void
 }) {
+  const [confirming, setConfirming] = useState(false)
   const lines = computeDiff(current, backup)
   const collapsed = collapseContext(lines)
   const hasChanges = lines.some(l => l.type !== 'same')
@@ -71,12 +72,25 @@ function DiffView({ current, backup, onRestore, onClose }: {
             : 'No differences'}
         </span>
         <div className="flex gap-2">
-          {hasChanges && (
-            <button onClick={onRestore} className="text-xs px-2 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded">
+          {hasChanges && !confirming && (
+            <button onClick={() => setConfirming(true)} className="text-xs px-2 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded">
               Restore this version
             </button>
           )}
-          <button onClick={onClose} className="text-xs px-2 py-1 text-zinc-500 hover:text-zinc-300">Close</button>
+          {confirming && (
+            <>
+              <span className="text-xs text-amber-300 self-center">Replace current config?</span>
+              <button onClick={() => { setConfirming(false); onRestore() }} className="text-xs px-2 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded">
+                Yes, restore
+              </button>
+              <button onClick={() => setConfirming(false)} className="text-xs px-2 py-1 text-zinc-500 hover:text-zinc-300">
+                Cancel
+              </button>
+            </>
+          )}
+          {!confirming && (
+            <button onClick={onClose} className="text-xs px-2 py-1 text-zinc-500 hover:text-zinc-300">Close</button>
+          )}
         </div>
       </div>
       <pre className="overflow-auto max-h-80 text-xs font-mono p-2 leading-5">

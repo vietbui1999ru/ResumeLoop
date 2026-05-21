@@ -77,7 +77,7 @@ export function Sidebar() {
             {active && (
               <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-indigo-500 rounded-r-full -ml-px" />
             )}
-            <Icon size={15} strokeWidth={1.75} />
+            <Icon size={18} strokeWidth={1.75} />
             <span className="text-2xs leading-none">{label}</span>
           </Link>
         )

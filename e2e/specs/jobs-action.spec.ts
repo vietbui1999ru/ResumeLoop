@@ -45,7 +45,7 @@ test.describe('Jobs — action stage transitions', () => {
 
       expect(response.status(), `PATCH to ${action} returned non-200`).toBe(200)
       await expect(actionSelect).toHaveValue(action)
-      await expect(jobRow.locator('.text-red-400')).not.toBeVisible()
+      await expect(jobRow.locator('[data-testid="row-action-error"]')).not.toBeVisible()
     }
   })
 
@@ -66,7 +66,7 @@ test.describe('Jobs — action stage transitions', () => {
 
     await actionSelect.selectOption('1-Applied')
 
-    await expect(jobRow.locator('.text-red-400')).toBeVisible({ timeout: 6_000 })
+    await expect(jobRow.locator('[data-testid="row-action-error"]')).toBeVisible({ timeout: 6_000 })
   })
 
   test('smoke — action dropdown present on jobs page', async ({ page }) => {

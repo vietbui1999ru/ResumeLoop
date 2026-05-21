@@ -14,7 +14,7 @@ import { isCloud } from './app-mode'
 
 export interface SSEEvent {
   stage: 'preflight' | 'ai-reason' | 'write-script' | 'build' | 'validate' | 'fix-loop' | 'pdf' | 'finalize' | 'done' | 'error'
-  status: 'ok' | 'fail' | 'running'
+  status: 'ok' | 'warn' | 'fail' | 'running'
   data: Record<string, unknown>
 }
 
@@ -70,12 +70,29 @@ export async function* runPipeline(jobId: string, sessionId = 'default', userId 
   // Stage 0: Preflight
   if (signal?.aborted) { yield emit(errEvent('preflight', 'Aborted')); logger.finish('failed'); return }
   yield emit({ stage: 'preflight', status: 'running', data: {} })
+
+  // Guard: no profile data at all
+  if (!masterDataJson || masterDataJson.trim() === '' || masterDataJson.trim() === '{}') {
+    yield emit(errEvent('preflight', 'No active resume profile found. Create one in Settings → Profiles.')); logger.finish('failed'); return
+  }
+
   try {
     await preflight(masterDataJson, jobBuildDir)
   } catch (e) {
     yield emit(errEvent('preflight', String(e))); logger.finish('failed'); return
   }
-  yield emit({ stage: 'preflight', status: 'ok', data: {} })
+
+  // Profile structure + minimum requirements
+  const profileIssues = checkProfileStructure(masterDataJson)
+  if (profileIssues.hardErrors.length > 0) {
+    yield emit(errEvent('preflight', `Profile errors:\n${profileIssues.hardErrors.join('\n')}`))
+    logger.finish('failed'); return
+  }
+  const preflightData: Record<string, unknown> = {}
+  if (profileIssues.warnings.length > 0) {
+    preflightData.warnings = profileIssues.warnings
+  }
+  yield emit({ stage: 'preflight', status: profileIssues.warnings.length > 0 ? 'warn' : 'ok', data: preflightData })
 
   // Stage 1: AI reasoning
   if (signal?.aborted) { yield emit(errEvent('ai-reason', 'Aborted')); logger.finish('failed'); return }
@@ -220,6 +237,59 @@ export async function* runPipeline(jobId: string, sessionId = 'default', userId 
   }
 }
 
+interface ProfileCheck {
+  hardErrors: string[]
+  warnings:   string[]
+}
+
+function checkProfileStructure(json: string): ProfileCheck {
+  const hardErrors: string[] = []
+  const warnings:   string[] = []
+
+  let data: Record<string, unknown>
+  try {
+    data = JSON.parse(json) as Record<string, unknown>
+  } catch {
+    hardErrors.push('Profile JSON is invalid — fix syntax errors before generating.')
+    return { hardErrors, warnings }
+  }
+
+  const experience = (data.experience as Array<Record<string, unknown>> | undefined) ?? []
+  const projects   = (data.projects   as Array<Record<string, unknown>> | undefined) ?? []
+
+  // Hard minimum: at least 1 work entry + 1 project
+  if (experience.length === 0) {
+    hardErrors.push('Profile must have at least 1 work entry (experience[]).')
+  }
+  if (projects.length === 0) {
+    hardErrors.push('Profile must have at least 1 project (projects[]).')
+  }
+
+  if (hardErrors.length > 0) return { hardErrors, warnings }
+
+  // Structural integrity: each entry needs id + bullets
+  for (const [i, exp] of experience.entries()) {
+    if (!exp.id) hardErrors.push(`experience[${i}]: missing id field.`)
+    if (!exp.bullets || typeof exp.bullets !== 'object' || Array.isArray(exp.bullets)) {
+      hardErrors.push(`experience[${i}] (${exp.id ?? '?'}): missing bullets object — add { genai: [...], ... }.`)
+    }
+  }
+  for (const [i, proj] of projects.entries()) {
+    if (!proj.id) hardErrors.push(`projects[${i}]: missing id field.`)
+    if (!Array.isArray(proj.bullets)) {
+      hardErrors.push(`projects[${i}] (${proj.id ?? '?'}): bullets must be an array.`)
+    }
+  }
+
+  if (hardErrors.length > 0) return { hardErrors, warnings }
+
+  // Soft warnings: recommend ≥2 of each for a full 1-page resume
+  if (experience.length < 2) warnings.push('Profile has only 1 work entry — resume may appear thin. Consider adding more experience.')
+  if (projects.length   < 2) warnings.push('Profile has only 1 project — consider adding more for a fuller resume.')
+
+  return { hardErrors, warnings }
+}
+
 async function preflight(resumeData: string, jobBuildDir: string): Promise<void> {
   // Ensure shared root has buildv2.js and node_modules
   fs.mkdirSync(BATCH_BUILD_ROOT, { recursive: true })
@@ -263,7 +333,12 @@ async function* buildValidateLoop(scriptPath: string, docxName: string, jobBuild
     if (signal?.aborted) { yield errEvent('validate', 'Aborted'); return }
     console.info(`[pipeline] validate code=${validateResult.code} stdout=${validateResult.stdout.trim().slice(0, 300)}`)
     if (validateResult.code === 0) {
-      yield { stage: 'validate', status: 'ok', data: {} }
+      const warns = validateResult.stdout.split('\n').filter(l => l.startsWith('WARN'))
+      if (warns.length > 0) {
+        yield { stage: 'validate', status: 'warn', data: { warnings: warns } }
+      } else {
+        yield { stage: 'validate', status: 'ok', data: {} }
+      }
       yield { stage: 'finalize', status: 'ok', data: { docx: docxExpected } }
       return
     }
@@ -292,7 +367,7 @@ function applyFixes(scriptPath: string, violations: string[]): string[] {
     // Tagline: trim to 76 chars at last word boundary
     const tlMatch = v.match(/FAIL tagline: (\d+)c/)
     if (tlMatch) {
-      src = src.replace(/TL\((['"])((?:\\.|(?!\1).)*)\1\)/, (_match, q, val) => {
+      src = src.replace(/TL\((['"])((?:\\.|(?!\1).)*)\1\)/g, (_match, q, val) => {
         let trimmed = val.slice(0, 76)
         const lastSpace = trimmed.lastIndexOf(' ')
         if (lastSpace > 60) trimmed = trimmed.slice(0, lastSpace)
@@ -349,8 +424,10 @@ function buildScript(d: ReasoningResult, _slug: string, docxName: string, master
 
   const workEntries = d.workIds.map(id => {
     const exp = master.experience.find(e => e.id === id)
-    if (!exp) throw new Error(`Unknown work id: ${id}`)
+    if (!exp) throw new Error(`Unknown work id: "${id}". Valid work IDs in profile: ${master.experience.map(e => e.id).join(', ')}`)
+    if (!exp.bullets || typeof exp.bullets !== 'object') throw new Error(`Work entry "${id}" has no bullets object. Add { genai: [...], systems: [...] } etc. to this experience entry.`)
     const bullets = exp.bullets[variantKey] ?? exp.bullets['genai'] ?? []
+    if (bullets.length === 0) throw new Error(`Work entry "${id}" has no bullets for variant "${variantKey}" and no genai fallback. Add bullets to this experience entry.`)
     return {
       id,
       title:    exp.title,
@@ -363,7 +440,7 @@ function buildScript(d: ReasoningResult, _slug: string, docxName: string, master
 
   const projectEntries = d.projects.map(id => {
     const proj = master.projects.find(p => p.id === id)
-    if (!proj) throw new Error(`Unknown project id: ${id}`)
+    if (!proj) throw new Error(`Unknown project id: "${id}". Valid project IDs in profile: ${master.projects.map(p => p.id).join(', ')}`)
     return {
       id,
       name:    proj.name,

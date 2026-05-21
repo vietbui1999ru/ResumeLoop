@@ -315,7 +315,8 @@ export default function GenerationPanel({
                             </pre>
                             <button
                               onClick={() => void navigator.clipboard.writeText(sanitizeError(summary))}
-                              className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity text-xs text-zinc-500 hover:text-zinc-300 bg-zinc-900 px-1 rounded"
+                              aria-label="Copy error"
+                              className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:ring-1 focus-visible:ring-indigo-500 transition-opacity text-xs text-zinc-500 hover:text-zinc-300 bg-zinc-900 px-1 rounded"
                             >copy</button>
                           </div>
                         ) : (
@@ -353,6 +354,7 @@ export default function GenerationPanel({
                   <button
                     onClick={() => void submitRating(jobId)}
                     disabled={r.rating === 0}
+                    title={r.rating === 0 ? 'Select a rating (1–3) to submit' : 'Submit feedback'}
                     className="text-xs px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 rounded disabled:opacity-40"
                   >
                     Submit

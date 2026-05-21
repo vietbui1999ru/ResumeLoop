@@ -5,7 +5,7 @@ const LOG_DIR = path.join(process.cwd(), 'logs', 'generate')
 
 export interface StageEntry {
   stage: string
-  status: 'ok' | 'fail' | 'running'
+  status: 'ok' | 'warn' | 'fail' | 'running'
   ts: string
   data: Record<string, unknown>
   stdout?: string
