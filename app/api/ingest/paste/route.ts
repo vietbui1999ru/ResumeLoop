@@ -19,8 +19,11 @@ export async function POST(req: Request) {
     await updateIngestionSource(source.id, userId, { status: 'done', extractedPartial: partial })
     return NextResponse.json({ source: { ...source, status: 'done', extractedPartial: partial } })
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    await updateIngestionSource(source.id, userId, { status: 'failed', errorMsg: msg })
-    return NextResponse.json({ error: msg }, { status: 422 })
+    const raw = e instanceof Error ? e.message : String(e)
+    const userMsg = /api.?key|x-api-key|authentication|unauthorized|401/i.test(raw)
+      ? 'Extraction failed — check your AI model key in Settings'
+      : raw.slice(0, 200)
+    await updateIngestionSource(source.id, userId, { status: 'failed', errorMsg: userMsg })
+    return NextResponse.json({ error: userMsg }, { status: 422 })
   }
 }

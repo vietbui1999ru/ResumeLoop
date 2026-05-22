@@ -44,7 +44,7 @@ describe('extractFromPaste', () => {
       usage: { inputTokens: 50, outputTokens: 10, totalTokens: 60 },
     } as never)
     await expect(extractFromPaste('some valid text about a person', 'user-1', null))
-      .rejects.toThrow('extract_profile tool not called')
+      .rejects.toThrow('AI did not call extract_profile tool')
   })
 
   it('throws when input is too short', async () => {

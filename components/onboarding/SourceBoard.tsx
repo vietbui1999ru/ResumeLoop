@@ -22,7 +22,10 @@ export function SourceBoard({ onMergeComplete }: { onMergeComplete: (r: MergeRes
   }, [])
 
   const handleDelete = useCallback(async (id: string) => {
-    await fetch(`/api/ingest/sources?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+    try {
+      const res = await fetch(`/api/ingest/sources?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+      if (!res.ok) return
+    } catch { return }
     setSources(prev => prev.filter(s => s.id !== id))
   }, [])
 
@@ -41,8 +44,8 @@ export function SourceBoard({ onMergeComplete }: { onMergeComplete: (r: MergeRes
   }
 
   const doneSources = sources.filter(s => s.status === 'done')
-  const canBuild    = doneSources.length > 0 && hasSoftMinimum(sources)
-  const warnNoMin   = doneSources.length > 0 && !hasSoftMinimum(sources)
+  const canBuild    = doneSources.length > 0 && hasSoftMinimum(doneSources)
+  const warnNoMin   = doneSources.length > 0 && !hasSoftMinimum(doneSources)
 
   return (
     <div className="space-y-6">
@@ -64,7 +67,7 @@ export function SourceBoard({ onMergeComplete }: { onMergeComplete: (r: MergeRes
 
       <button
         onClick={handleBuild} disabled={!canBuild || merging}
-        className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm font-medium rounded-lg transition-colors"
+        className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-indigo-600 text-white text-sm font-medium rounded-lg transition-colors"
       >
         {merging ? 'Building profile…' : 'Build profile'}
       </button>

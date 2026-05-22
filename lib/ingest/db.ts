@@ -6,15 +6,18 @@ import type {
 } from './types'
 
 function rowToSource(row: IngestionSourceRow): IngestionSource {
+  let extractedPartial: SparseProfile | null = null
+  if (row.extracted_partial) {
+    try { extractedPartial = JSON.parse(row.extracted_partial) as SparseProfile }
+    catch { extractedPartial = null }
+  }
   return {
     id:               row.id,
     userId:           row.user_id,
     type:             row.type,
     inputRaw:         row.input_raw,
     status:           row.status,
-    extractedPartial: row.extracted_partial
-      ? (JSON.parse(row.extracted_partial) as SparseProfile)
-      : null,
+    extractedPartial,
     errorMsg:         row.error_msg,
     createdAt:        row.created_at,
   }
@@ -45,19 +48,18 @@ export async function updateIngestionSource(
   },
 ): Promise<void> {
   const db = await getAdapter()
-  await db.run(
-    `UPDATE ingestion_sources
-     SET status = ?, extracted_partial = ?, error_msg = ?
-     WHERE id = ? AND user_id = ?`,
-    [
-      updates.status,
-      updates.extractedPartial !== undefined
-        ? JSON.stringify(updates.extractedPartial)
-        : null,
-      updates.errorMsg ?? null,
-      id, userId,
-    ],
-  )
+  // Only include extracted_partial in UPDATE when explicitly provided — avoid overwriting with NULL
+  if (updates.extractedPartial !== undefined) {
+    await db.run(
+      `UPDATE ingestion_sources SET status = ?, extracted_partial = ?, error_msg = ? WHERE id = ? AND user_id = ?`,
+      [updates.status, JSON.stringify(updates.extractedPartial), updates.errorMsg ?? null, id, userId],
+    )
+  } else {
+    await db.run(
+      `UPDATE ingestion_sources SET status = ?, error_msg = ? WHERE id = ? AND user_id = ?`,
+      [updates.status, updates.errorMsg ?? null, id, userId],
+    )
+  }
 }
 
 export async function getIngestionSource(
