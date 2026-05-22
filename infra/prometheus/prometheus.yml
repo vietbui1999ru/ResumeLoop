@@ -1,0 +1,25 @@
+global:
+  scrape_interval: 60s
+  scrape_timeout: 15s
+  evaluation_interval: 60s
+
+scrape_configs:
+  - job_name: resumeloop
+    scheme: https
+    metrics_path: /api/metrics/prometheus
+    scrape_interval: 60s
+    scrape_timeout: 15s
+
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/secrets/metrics_token
+
+    static_configs:
+      - targets:
+          - fh7gi2vfe2.execute-api.us-east-1.amazonaws.com
+        labels:
+          env: production
+          app: resumeloop
+
+    tls_config:
+      insecure_skip_verify: false
