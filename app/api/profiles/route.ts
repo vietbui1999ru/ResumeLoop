@@ -53,12 +53,8 @@ export async function POST(req: Request) {
     try { JSON.parse(bodyData) } catch { return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 }) }
     data = bodyData
   } else {
-    // Seed from disk file (first profile creation)
-    try {
-      data = fs.readFileSync(PATHS.pipeline.masterData, 'utf8')
-    } catch {
-      data = JSON.stringify({ experience: [], projects: [], skills: {} }, null, 2)
-    }
+    // New profile — start empty; user fills via onboarding ingest flow
+    data = JSON.stringify({ experience: [], projects: [], skills: {} })
   }
 
   const id = randomUUID()
