@@ -54,7 +54,7 @@ groups:
             datasourceUid: "__expr__"
             model:
               type: math
-              expression: "$A < 0.8 && $B > 0"
+              expression: "$A < 0.8"
               refId: C
         noDataState: NoData
         execErrState: Error
@@ -64,8 +64,8 @@ groups:
         labels:
           severity: warning
 
-      - uid: resumeloop-token-spike
-        title: TokenSpike
+      - uid: resumeloop-token-usage-high
+        title: TokenUsageHigh
         condition: C
         data:
           - refId: A
