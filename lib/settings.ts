@@ -3,18 +3,22 @@ import os from 'os'
 import { getAdapter } from './db-adapter'
 import { isCloud } from './app-mode'
 
-export interface AppSettings {
-  jobs_path:     string
-  output_path:   string
-  outreach_path: string  // optional — empty string = not configured
-  firecrawl_key: string  // optional — empty string = use fetch fallback
-}
+// Internal keys persisted in DB — all string values
+type StoredKey = 'jobs_path' | 'output_path' | 'outreach_path' | 'firecrawl_key'
 
-const DEFAULTS: AppSettings = {
+const DEFAULTS: Record<StoredKey, string> = {
   jobs_path:     process.env.OBSIDIAN_JOBS_PATH ?? path.join(process.cwd(), 'jobs'),
   output_path:   process.env.OUTPUT_PATH        ?? path.join(os.homedir(), 'Desktop', 'Resume Templates'),
   outreach_path: process.env.OUTREACH_PATH      ?? '',
   firecrawl_key: '',
+}
+
+// Public shape returned to clients — firecrawl_key is never exposed
+export interface AppSettings {
+  jobs_path:            string
+  output_path:          string
+  outreach_path:        string
+  firecrawl_configured: boolean
 }
 
 // Paths must resolve to one of these roots (prevents writing to ~/.ssh, /etc, etc.)
@@ -44,7 +48,7 @@ export function validateSafeDir(raw: string): string {
   return resolved
 }
 
-export async function getSetting<K extends keyof AppSettings>(key: K): Promise<string> {
+export async function getSetting(key: StoredKey): Promise<string> {
   // Cloud has no persistent local filesystem — always use env-based defaults
   if (isCloud()) return DEFAULTS[key]
   const db = await getAdapter()
@@ -55,9 +59,9 @@ export async function getSetting<K extends keyof AppSettings>(key: K): Promise<s
   return row?.value ?? DEFAULTS[key]
 }
 
-export async function setSetting<K extends keyof AppSettings>(key: K, value: string): Promise<void> {
+export async function setSetting(key: StoredKey, value: string): Promise<void> {
   if (isCloud()) return  // No-op in cloud — filesystem paths are meaningless on ECS
-  if (value !== '' && (key as string).endsWith('_path')) validateSafeDir(value)
+  if (value !== '' && key.endsWith('_path')) validateSafeDir(value)
   const db = await getAdapter()
   await db.run(
     'INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
@@ -87,11 +91,11 @@ export async function validateIngestPath(raw: string): Promise<string> {
 }
 
 export async function getAllSettings(): Promise<AppSettings> {
-  const [jobs_path, output_path, outreach_path, firecrawl_key] = await Promise.all([
+  const [jobs_path, output_path, outreach_path, rawFirecrawl] = await Promise.all([
     getSetting('jobs_path'),
     getSetting('output_path'),
     getSetting('outreach_path'),
     getSetting('firecrawl_key'),
   ])
-  return { jobs_path, output_path, outreach_path, firecrawl_key }
+  return { jobs_path, output_path, outreach_path, firecrawl_configured: !!rawFirecrawl?.trim() }
 }

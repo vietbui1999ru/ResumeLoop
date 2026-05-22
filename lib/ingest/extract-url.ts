@@ -8,10 +8,10 @@ import type { SparseProfile } from './types'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyToolCall = { toolName: string; input: any }
 
-export async function getFirecrawlKey(userId: string): Promise<string | null> {
+export async function getFirecrawlKey(_userId: string): Promise<string | null> {
   const db  = await getAdapter()
   const row = await db.queryOne<{ value: string }>(
-    `SELECT value FROM app_settings WHERE key = ?`, [`firecrawl_key:${userId}`],
+    `SELECT value FROM app_settings WHERE key = ?`, [`firecrawl_key`],
   )
   return row?.value?.trim() || null
 }

@@ -275,7 +275,7 @@ interface Settings {
   jobs_path:            string
   output_path:          string
   outreach_path:        string
-  firecrawl_key:        string
+  firecrawl_configured: boolean
   jobs_path_exists:     boolean
   output_path_exists:   boolean
   outreach_path_exists: boolean
@@ -459,6 +459,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null)
   const [settingsError, setSettingsError] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [newFirecrawlKey, setNewFirecrawlKey] = useState('')
   const [saveStatus, setSaveStatus] = useState('')
   const [showImportGuide, setShowImportGuide] = useState(false)
 
@@ -472,7 +473,7 @@ export default function SettingsPage() {
       .catch(() => setSettingsError(true))
   }, [])
 
-  const save = async (patch: Partial<Pick<Settings, 'jobs_path' | 'output_path' | 'outreach_path' | 'firecrawl_key'>>) => {
+  const save = async (patch: Partial<Pick<Settings, 'jobs_path' | 'output_path' | 'outreach_path'> & { firecrawl_key?: string }>) => {
     if (!settings) return
     const next = { ...settings, ...patch }
     setSettings(next)
@@ -643,10 +644,16 @@ export default function SettingsPage() {
           <div className="flex gap-2">
             <input
               type="password"
-              value={settings.firecrawl_key ?? ''}
-              onChange={e => setSettings(s => s ? { ...s, firecrawl_key: e.target.value } : s)}
-              onBlur={() => save({ firecrawl_key: settings.firecrawl_key })}
-              placeholder="fc-..."
+              value={newFirecrawlKey}
+              onChange={e => setNewFirecrawlKey(e.target.value)}
+              onBlur={() => {
+                if (newFirecrawlKey.trim()) {
+                  void save({ firecrawl_key: newFirecrawlKey.trim() })
+                  setNewFirecrawlKey('')
+                  setSettings(s => s ? { ...s, firecrawl_configured: true } : s)
+                }
+              }}
+              placeholder={settings.firecrawl_configured ? 'key saved — paste new key to replace' : 'fc-...'}
               className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm text-zinc-200 font-mono"
             />
           </div>

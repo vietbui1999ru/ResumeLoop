@@ -13,7 +13,7 @@ export function detectInputType(input: string): DetectedType {
     } catch { return 'url' }
   }
   // Bare GitHub username: 1-39 chars, letters/digits/hyphens, no consecutive hyphens
-  if (/^[a-zA-Z0-9]([a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/.test(t)) return 'github'
+  if (/^[a-zA-Z0-9](?:[a-zA-Z0-9]|-(?!-))*[a-zA-Z0-9]?$/.test(t) && t.length <= 39) return 'github'
   return 'paste'
 }
 
