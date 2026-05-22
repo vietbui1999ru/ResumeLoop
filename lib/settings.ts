@@ -7,12 +7,14 @@ export interface AppSettings {
   jobs_path:     string
   output_path:   string
   outreach_path: string  // optional — empty string = not configured
+  firecrawl_key: string  // optional — empty string = use fetch fallback
 }
 
 const DEFAULTS: AppSettings = {
   jobs_path:     process.env.OBSIDIAN_JOBS_PATH ?? path.join(process.cwd(), 'jobs'),
   output_path:   process.env.OUTPUT_PATH        ?? path.join(os.homedir(), 'Desktop', 'Resume Templates'),
   outreach_path: process.env.OUTREACH_PATH      ?? '',
+  firecrawl_key: '',
 }
 
 // Paths must resolve to one of these roots (prevents writing to ~/.ssh, /etc, etc.)
@@ -55,7 +57,7 @@ export async function getSetting<K extends keyof AppSettings>(key: K): Promise<s
 
 export async function setSetting<K extends keyof AppSettings>(key: K, value: string): Promise<void> {
   if (isCloud()) return  // No-op in cloud — filesystem paths are meaningless on ECS
-  if (value !== '') validateSafeDir(value)  // empty = clear optional setting, skip validation
+  if (value !== '' && (key as string).endsWith('_path')) validateSafeDir(value)
   const db = await getAdapter()
   await db.run(
     'INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
@@ -85,10 +87,11 @@ export async function validateIngestPath(raw: string): Promise<string> {
 }
 
 export async function getAllSettings(): Promise<AppSettings> {
-  const [jobs_path, output_path, outreach_path] = await Promise.all([
+  const [jobs_path, output_path, outreach_path, firecrawl_key] = await Promise.all([
     getSetting('jobs_path'),
     getSetting('output_path'),
     getSetting('outreach_path'),
+    getSetting('firecrawl_key'),
   ])
-  return { jobs_path, output_path, outreach_path }
+  return { jobs_path, output_path, outreach_path, firecrawl_key }
 }
