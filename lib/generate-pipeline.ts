@@ -6,6 +6,7 @@ import { reasonForJob, type ReasoningResult } from './ai-reason'
 import { getAdapter } from './db-adapter'
 import { getSetting } from './settings'
 import { PATHS } from './paths'
+import { parseCandidateInfo } from './candidate-info'
 import { GenerationLogger } from './generation-logger'
 import { ensureDefaultSession, getSession } from './sessions'
 import { saveOutput } from './storage'
@@ -13,7 +14,7 @@ import { isCloud } from './app-mode'
 
 export interface SSEEvent {
   stage: 'preflight' | 'ai-reason' | 'write-script' | 'build' | 'validate' | 'fix-loop' | 'pdf' | 'finalize' | 'done' | 'error'
-  status: 'ok' | 'fail' | 'running'
+  status: 'ok' | 'warn' | 'fail' | 'running'
   data: Record<string, unknown>
 }
 
@@ -50,43 +51,73 @@ export async function* runPipeline(jobId: string, sessionId = 'default', userId 
   // Per-job working directory — isolates concurrent builds
   const jobBuildDir = path.join(BATCH_BUILD_ROOT, jobId)
 
+  // Resolve master data once — used by all stages.
+  // Priority: active DB profile > session.data > disk file (local-dev fallback only).
+  // Both AI reasoning and build script must see the same data to keep work/project IDs consistent.
+  // The disk file is Viet's personal local artifact — never override a user's uploaded profile with it.
+  const activeProfile = await db.queryOne<{ data: string }>(
+    'SELECT data FROM resume_profiles WHERE user_id = ? AND is_active = 1 LIMIT 1',
+    [userId],
+  )
+  let masterDataJson = activeProfile?.data || session.data || ''
+  if (!masterDataJson && !isCloud()) {
+    try { masterDataJson = fs.readFileSync(PATHS.pipeline.masterData, 'utf8') } catch { /* file absent */ }
+  }
+
+  const { workIds: resolvedWorkIds } = parseCandidateInfo(masterDataJson)
+  console.info(`[pipeline] job=${job.id} company="${job.company}" role="${job.role_title}" workIds=${JSON.stringify(resolvedWorkIds)}`)
+
   // Stage 0: Preflight
   if (signal?.aborted) { yield emit(errEvent('preflight', 'Aborted')); logger.finish('failed'); return }
   yield emit({ stage: 'preflight', status: 'running', data: {} })
+
+  // Guard: no profile data at all
+  if (!masterDataJson || masterDataJson.trim() === '' || masterDataJson.trim() === '{}') {
+    yield emit(errEvent('preflight', 'No active resume profile found. Create one in Settings → Profiles.')); logger.finish('failed'); return
+  }
+
   try {
-    await preflight(session.data, jobBuildDir)
+    await preflight(masterDataJson, jobBuildDir)
   } catch (e) {
     yield emit(errEvent('preflight', String(e))); logger.finish('failed'); return
   }
-  yield emit({ stage: 'preflight', status: 'ok', data: {} })
+
+  // Profile structure + minimum requirements
+  const profileIssues = checkProfileStructure(masterDataJson)
+  if (profileIssues.hardErrors.length > 0) {
+    yield emit(errEvent('preflight', `Profile errors:\n${profileIssues.hardErrors.join('\n')}`))
+    logger.finish('failed'); return
+  }
+  const preflightData: Record<string, unknown> = {}
+  if (profileIssues.warnings.length > 0) {
+    preflightData.warnings = profileIssues.warnings
+  }
+  yield emit({ stage: 'preflight', status: profileIssues.warnings.length > 0 ? 'warn' : 'ok', data: preflightData })
 
   // Stage 1: AI reasoning
   if (signal?.aborted) { yield emit(errEvent('ai-reason', 'Aborted')); logger.finish('failed'); return }
-  yield emit({ stage: 'ai-reason', status: 'running', data: {} })
+  yield emit({ stage: 'ai-reason', status: 'running', data: { workIds: resolvedWorkIds } })
   let decision: ReasoningResult
   try {
-    decision = await reasonForJob(job.raw_content, session.data, userId)
+    decision = await reasonForJob(job.raw_content, masterDataJson, userId, signal)
   } catch (e) {
-    yield emit(errEvent('ai-reason', String(e))); logger.finish('failed'); return
+    const errMsg = String(e)
+    console.error(`[pipeline] ai-reason failed: ${errMsg}`)
+    yield emit(errEvent('ai-reason', errMsg)); logger.finish('failed'); return
   }
   logger.setAIDecision(decision as unknown as Record<string, unknown>)
+  console.info(`[pipeline] ai-reason ok — track="${decision.track}" variant="${decision.workVariant}" workIds=${JSON.stringify(decision.workIds)} projects=${JSON.stringify(decision.projects)}`)
   yield emit({ stage: 'ai-reason', status: 'ok', data: decision as unknown as Record<string, unknown> })
 
   // Stage 2: Write build script
   if (signal?.aborted) { yield emit(errEvent('write-script', 'Aborted')); logger.finish('failed'); return }
   yield emit({ stage: 'write-script', status: 'running', data: {} })
   const slug = toSlug(`${job.company}_${job.role_title}`)
+
   const scriptName = `${slug}.js`
   const scriptPath = path.join(jobBuildDir, scriptName)
-  const docxName   = `${slug}_VietBui.docx`
-
-  // Resolve master data: active profile > session.data > disk fallback
-  let masterDataJson = session.data
-  const activeProfile = await db.queryOne<{ data: string }>(
-    'SELECT data FROM resume_profiles WHERE user_id = ? AND is_active = 1 LIMIT 1',
-    [userId],
-  )
-  if (activeProfile?.data) masterDataJson = activeProfile.data
+  const { nameSlug } = parseCandidateInfo(masterDataJson)
+  const docxName   = `${slug}_${nameSlug}.docx`
 
   try {
     const script = buildScript(decision, slug, docxName, masterDataJson)
@@ -108,7 +139,8 @@ export async function* runPipeline(jobId: string, sessionId = 'default', userId 
       continue // captured — do not forward to SSE stream
     }
     yield emit(event)
-    if (event.status === 'fail') { logger.finish('failed'); return }
+    // validate:fail is non-terminal — fix-loop follows. Only build:fail and fix-loop:fail are terminal.
+    if (event.status === 'fail' && event.stage !== 'validate') { logger.finish('failed'); return }
   }
 
   if (!docxPath) { yield emit(errEvent('finalize', 'DOCX path not set after pipeline')); logger.finish('failed'); return }
@@ -205,6 +237,59 @@ export async function* runPipeline(jobId: string, sessionId = 'default', userId 
   }
 }
 
+interface ProfileCheck {
+  hardErrors: string[]
+  warnings:   string[]
+}
+
+function checkProfileStructure(json: string): ProfileCheck {
+  const hardErrors: string[] = []
+  const warnings:   string[] = []
+
+  let data: Record<string, unknown>
+  try {
+    data = JSON.parse(json) as Record<string, unknown>
+  } catch {
+    hardErrors.push('Profile JSON is invalid — fix syntax errors before generating.')
+    return { hardErrors, warnings }
+  }
+
+  const experience = (data.experience as Array<Record<string, unknown>> | undefined) ?? []
+  const projects   = (data.projects   as Array<Record<string, unknown>> | undefined) ?? []
+
+  // Hard minimum: at least 1 work entry + 1 project
+  if (experience.length === 0) {
+    hardErrors.push('Profile must have at least 1 work entry (experience[]).')
+  }
+  if (projects.length === 0) {
+    hardErrors.push('Profile must have at least 1 project (projects[]).')
+  }
+
+  if (hardErrors.length > 0) return { hardErrors, warnings }
+
+  // Structural integrity: each entry needs id + bullets
+  for (const [i, exp] of experience.entries()) {
+    if (!exp.id) hardErrors.push(`experience[${i}]: missing id field.`)
+    if (!exp.bullets || typeof exp.bullets !== 'object' || Array.isArray(exp.bullets)) {
+      hardErrors.push(`experience[${i}] (${exp.id ?? '?'}): missing bullets object — add { genai: [...], ... }.`)
+    }
+  }
+  for (const [i, proj] of projects.entries()) {
+    if (!proj.id) hardErrors.push(`projects[${i}]: missing id field.`)
+    if (!Array.isArray(proj.bullets)) {
+      hardErrors.push(`projects[${i}] (${proj.id ?? '?'}): bullets must be an array.`)
+    }
+  }
+
+  if (hardErrors.length > 0) return { hardErrors, warnings }
+
+  // Soft warnings: recommend ≥2 of each for a full 1-page resume
+  if (experience.length < 2) warnings.push('Profile has only 1 work entry — resume may appear thin. Consider adding more experience.')
+  if (projects.length   < 2) warnings.push('Profile has only 1 project — consider adding more for a fuller resume.')
+
+  return { hardErrors, warnings }
+}
+
 async function preflight(resumeData: string, jobBuildDir: string): Promise<void> {
   // Ensure shared root has buildv2.js and node_modules
   fs.mkdirSync(BATCH_BUILD_ROOT, { recursive: true })
@@ -230,9 +315,12 @@ async function* buildValidateLoop(scriptPath: string, docxName: string, jobBuild
     const buildResult = await spawnAsync('node', [scriptPath], jobBuildDir, signal)
     if (signal?.aborted) { yield errEvent('build', 'Aborted'); return }
     if (buildResult.code !== 0) {
-      yield errEvent('build', buildResult.stderr || buildResult.stdout); return
+      const errOut = (buildResult.stderr || buildResult.stdout).slice(0, 800)
+      console.error(`[pipeline] build failed attempt=${attempt} code=${buildResult.code}\n${errOut}`)
+      yield errEvent('build', errOut); return
     }
-    yield { stage: 'build', status: 'ok', data: { script: path.basename(scriptPath), attempt } }
+    console.info(`[pipeline] build ok attempt=${attempt} stdout=${buildResult.stdout.trim().slice(0, 200)}`)
+    yield { stage: 'build', status: 'ok', data: { script: path.basename(scriptPath), attempt, out: buildResult.stdout.trim().slice(0, 200) } }
 
     if (!fs.existsSync(docxExpected)) {
       yield errEvent('build', `Build exited 0 but DOCX not found at ${docxExpected}`)
@@ -243,17 +331,25 @@ async function* buildValidateLoop(scriptPath: string, docxName: string, jobBuild
     yield { stage: 'validate', status: 'running', data: {} }
     const validateResult = await spawnAsync('node', [VALIDATE_JS, scriptPath], process.cwd(), signal)
     if (signal?.aborted) { yield errEvent('validate', 'Aborted'); return }
+    console.info(`[pipeline] validate code=${validateResult.code} stdout=${validateResult.stdout.trim().slice(0, 300)}`)
     if (validateResult.code === 0) {
-      yield { stage: 'validate', status: 'ok', data: {} }
+      const warns = validateResult.stdout.split('\n').filter(l => l.startsWith('WARN'))
+      if (warns.length > 0) {
+        yield { stage: 'validate', status: 'warn', data: { warnings: warns } }
+      } else {
+        yield { stage: 'validate', status: 'ok', data: {} }
+      }
       yield { stage: 'finalize', status: 'ok', data: { docx: docxExpected } }
       return
     }
 
     const violations = validateResult.stdout.split('\n').filter(l => l.startsWith('FAIL'))
+    console.warn(`[pipeline] validate violations: ${JSON.stringify(violations)}`)
     yield { stage: 'validate', status: 'fail', data: { violations } }
 
     yield { stage: 'fix-loop', status: 'running', data: { violations } }
     const fixed = applyFixes(scriptPath, violations)
+    console.info(`[pipeline] fix-loop fixed=${JSON.stringify(fixed)} for violations=${JSON.stringify(violations)}`)
     if (fixed.length === 0) {
       yield errEvent('fix-loop', `Unfixable violations: ${violations.join(', ')}`); return
     }
@@ -268,9 +364,10 @@ function applyFixes(scriptPath: string, violations: string[]): string[] {
   const fixed: string[] = []
 
   for (const v of violations) {
+    // Tagline: trim to 76 chars at last word boundary
     const tlMatch = v.match(/FAIL tagline: (\d+)c/)
     if (tlMatch) {
-      src = src.replace(/TL\((['"])((?:\\.|(?!\1).)*)\1\)/, (_match, q, val) => {
+      src = src.replace(/TL\((['"])((?:\\.|(?!\1).)*)\1\)/g, (_match, q, val) => {
         let trimmed = val.slice(0, 76)
         const lastSpace = trimmed.lastIndexOf(' ')
         if (lastSpace > 60) trimmed = trimmed.slice(0, lastSpace)
@@ -278,8 +375,30 @@ function applyFixes(scriptPath: string, violations: string[]): string[] {
         return `TL(${q}${trimmed}${q})`
       })
     }
-    if (v.includes('FAIL bullet')) {
-      return []
+
+    // Bullet: trim over-length T() calls to 116 chars at word boundary
+    const bulletMatch = v.match(/FAIL bullet \[(work|proj)\.\d+\]: (\d+)c/)
+    if (bulletMatch) {
+      let repCount = 0
+      src = src.replace(/\bT\((['"])((?:\\.|(?!\1).)*)\1\)/g, (_m, q, val) => {
+        if (val.length <= 116) return _m
+        let trimmed = val.slice(0, 116)
+        const lastSpace = trimmed.lastIndexOf(' ')
+        if (lastSpace > 90) trimmed = trimmed.slice(0, lastSpace)
+        repCount++
+        return `T(${q}${trimmed}${q})`
+      })
+      if (repCount > 0) fixed.push(`${repCount} bullet(s) trimmed to ≤116 chars`)
+    }
+
+    // Para count: soft warning — mark handled, proceed without changes
+    if (v.includes('FAIL para count')) {
+      fixed.push('para count warning (skipped — cosmetic)')
+    }
+
+    // Skills: soft warning — mark handled, proceed without changes
+    if (v.includes('FAIL skills')) {
+      fixed.push('skills warning (skipped — cosmetic)')
     }
   }
 
@@ -289,40 +408,94 @@ function applyFixes(scriptPath: string, violations: string[]): string[] {
 
 function buildScript(d: ReasoningResult, _slug: string, docxName: string, masterDataJson: string): string {
   const master = JSON.parse(masterDataJson) as {
-    experience: Array<{ id: string; bullets: Record<string, string[]> }>
-    projects:   Array<{ id: string; bullets: string[] }>
-    skills:     Record<string, Record<string, string>>
+    contact?:   { name?: string; phone?: string; location?: string; email?: string; linkedin?: string; portfolio?: string; github?: string; work_auth?: string }
+    experience: Array<{
+      id: string; title?: string; company?: string; location?: string; dates?: string
+      bullets: Record<string, string[]>
+    }>
+    projects: Array<{
+      id: string; name?: string; url?: string; short_stack?: string; date?: string; dates?: string
+      bullets: string[]
+    }>
+    skills: Record<string, Record<string, string>>
   }
 
   const variantKey = bulletsKey(d.workVariant)
 
   const workEntries = d.workIds.map(id => {
     const exp = master.experience.find(e => e.id === id)
-    if (!exp) throw new Error(`Unknown work id: ${id}`)
+    if (!exp) throw new Error(`Unknown work id: "${id}". Valid work IDs in profile: ${master.experience.map(e => e.id).join(', ')}`)
+    if (!exp.bullets || typeof exp.bullets !== 'object') throw new Error(`Work entry "${id}" has no bullets object. Add { genai: [...], systems: [...] } etc. to this experience entry.`)
     const bullets = exp.bullets[variantKey] ?? exp.bullets['genai'] ?? []
-    return { id, bullets: bullets.slice(0, 5) }
+    if (bullets.length === 0) throw new Error(`Work entry "${id}" has no bullets for variant "${variantKey}" and no genai fallback. Add bullets to this experience entry.`)
+    return {
+      id,
+      title:    exp.title,
+      company:  exp.company,
+      location: exp.location,
+      dates:    exp.dates,
+      bullets:  bullets.slice(0, 5),
+    }
   })
 
   const projectEntries = d.projects.map(id => {
     const proj = master.projects.find(p => p.id === id)
-    if (!proj) throw new Error(`Unknown project id: ${id}`)
-    return { id, bullets: proj.bullets.slice(0, 3) }
+    if (!proj) throw new Error(`Unknown project id: "${id}". Valid project IDs in profile: ${master.projects.map(p => p.id).join(', ')}`)
+    return {
+      id,
+      name:    proj.name,
+      url:     proj.url,
+      stack:   proj.short_stack,
+      date:    proj.date ?? proj.dates,
+      bullets: proj.bullets.slice(0, 3),
+    }
   })
 
   const skillRows = d.skillsRows
+  const candidateName = master.contact?.name
+  const contact       = master.contact
 
   // validate.js requires unquoted JS object keys (not JSON) and T() wrappers on bullets
   const fmtWork = workEntries.map(w => {
     const bullets = w.bullets.map(b => `      T(${JSON.stringify(b)})`).join(',\n')
-    return `    {\n      id: ${JSON.stringify(w.id)},\n      bullets: [\n${bullets},\n      ],\n    }`
+    return [
+      `    {`,
+      `      id: ${JSON.stringify(w.id)},`,
+      w.title    ? `      title: ${JSON.stringify(w.title)},`    : null,
+      w.company  ? `      company: ${JSON.stringify(w.company)},`  : null,
+      w.location ? `      location: ${JSON.stringify(w.location)},` : null,
+      w.dates    ? `      dates: ${JSON.stringify(w.dates)},`    : null,
+      `      bullets: [\n${bullets},\n      ],`,
+      `    }`,
+    ].filter(Boolean).join('\n')
   }).join(',\n')
 
   const fmtProj = projectEntries.map(p => {
     const bullets = p.bullets.map(b => `      T(${JSON.stringify(b)})`).join(',\n')
-    return `    {\n      id: ${JSON.stringify(p.id)},\n      bullets: [\n${bullets},\n      ],\n    }`
+    return [
+      `    {`,
+      `      id: ${JSON.stringify(p.id)},`,
+      p.name  ? `      name: ${JSON.stringify(p.name)},`   : null,
+      p.url   ? `      url: ${JSON.stringify(p.url)},`     : null,
+      p.stack ? `      stack: ${JSON.stringify(p.stack)},` : null,
+      p.date  ? `      date: ${JSON.stringify(p.date)},`   : null,
+      `      bullets: [\n${bullets},\n      ],`,
+      `    }`,
+    ].filter(Boolean).join('\n')
   }).join(',\n')
 
-  const fmtSkills = skillRows.map(s => `    ${JSON.stringify(s)}`).join(',\n')
+  const fmtSkills = skillRows.map(s => {
+    const colonIdx = s.indexOf(': ')
+    if (colonIdx > 0) {
+      const label = s.slice(0, colonIdx)
+      const vals  = s.slice(colonIdx + 2)
+      return `    { label: ${JSON.stringify(label)}, vals: ${JSON.stringify(vals)} }`
+    }
+    return `    { label: "", vals: ${JSON.stringify(s)} }`
+  }).join(',\n')
+
+  const fmtContact = contact ? JSON.stringify(contact, null, 4).split('\n').map((l, i) => i === 0 ? `  contact: ${l}` : `  ${l}`).join('\n') : null
+  const fmtName    = candidateName ? `  name: ${JSON.stringify(candidateName)},` : null
 
   return `// Generated by ResumeLoop — ${new Date().toISOString()}
 const { makeDoc, TL, T } = require('../buildv2.js');
@@ -331,6 +504,7 @@ const fs = require('fs');
 const path = require('path');
 
 const doc = makeDoc({
+${[fmtName, fmtContact ? `${fmtContact},` : null].filter(Boolean).join('\n')}
   tagline: TL(${JSON.stringify(d.tagline)}),
   work: [
 ${fmtWork}
@@ -359,15 +533,21 @@ function spawnAsync(cmd: string, args: string[], cwd: string, signal?: AbortSign
     }
     const out: string[] = [], errChunks: string[] = []
     const proc = spawn(cmd, args, { cwd })
-    const onAbort = () => { proc.kill('SIGTERM') }
+    let killTimer: ReturnType<typeof setTimeout> | null = null
+    const onAbort = () => {
+      proc.kill('SIGTERM')
+      killTimer = setTimeout(() => proc.kill('SIGKILL'), 5000)
+    }
     signal?.addEventListener('abort', onAbort, { once: true })
     proc.stdout.on('data', (d: Buffer) => out.push(d.toString()))
     proc.stderr.on('data', (d: Buffer) => errChunks.push(d.toString()))
     proc.on('close', code => {
+      if (killTimer) { clearTimeout(killTimer); killTimer = null }
       signal?.removeEventListener('abort', onAbort)
       resolve({ code: code ?? 1, stdout: out.join(''), stderr: errChunks.join('') })
     })
     proc.on('error', e => {
+      if (killTimer) { clearTimeout(killTimer); killTimer = null }
       signal?.removeEventListener('abort', onAbort)
       resolve({ code: 1, stdout: out.join(''), stderr: e.message })
     })

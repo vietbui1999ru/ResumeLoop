@@ -1,4 +1,4 @@
-# ResumeAnalyze Full-Stack App — Implementation Plan
+# ResumeLoop Full-Stack App — Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -50,7 +50,7 @@
 - [ ] **Step 1: Initialize Next.js 14 app in current directory**
 
 ```bash
-cd /Users/vietquocbui/repos/ResumeAnalyze
+cd /Users/vietquocbui/repos/ResumeLoop
 npx create-next-app@14 . --typescript --tailwind --app --no-src-dir --import-alias "@/*" --yes
 ```
 
@@ -1257,7 +1257,7 @@ export function Sidebar() {
   const pathname = usePathname()
   return (
     <nav className="w-44 shrink-0 border-r border-zinc-700 bg-zinc-900 flex flex-col gap-1 p-4">
-      <p className="text-xs font-semibold text-zinc-500 uppercase mb-3">ResumeAnalyze</p>
+      <p className="text-xs font-semibold text-zinc-500 uppercase mb-3">ResumeLoop</p>
       {NAV.map(({ href, label }) => (
         <Link
           key={href}
@@ -1287,7 +1287,7 @@ import { Sidebar } from '@/components/Sidebar'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'ResumeAnalyze',
+  title: 'ResumeLoop',
   description: 'Resume pipeline dashboard',
 }
 
@@ -1842,7 +1842,7 @@ Expected: 11 tests pass (jd-parser: 5, fit-scorer: 3, db: 3).
 
 ```bash
 git add -A
-git commit -m "feat: complete ResumeAnalyze full-stack — dashboard, jobs, chat, config"
+git commit -m "feat: complete ResumeLoop full-stack — dashboard, jobs, chat, config"
 ```
 
 ---

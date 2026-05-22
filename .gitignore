@@ -12,9 +12,15 @@ node_modules/
 resume.db
 resume.db-wal
 resume.db-shm
+test.db
+test.db-wal
+test.db-shm
 
 # Pipeline working dir
 pipeline/batch-build/
+
+# Council outputs (local tool, not source)
+.council/
 
 # Harness working dir
 harness/batch-build/
@@ -36,9 +42,17 @@ tsconfig.tsbuildinfo
 *.bak
 *.original.md
 
-# Generated screenshots
+# Personal drafts (LinkedIn posts, scripts, outreach notes)
+drafts/
+
+# Generated screenshots & Playwright artifacts
 *.png
 .playwright-mcp
+playwright-report/
+test-results/
+e2e/.auth/
+.obsidian
+.superpowers
 
 # AWS — never commit these
 infra/.env
@@ -55,6 +69,16 @@ docs/reference/ai-reasoning.md
 docs/reference/api-reference.md
 docs/reference/ats-research-article.md
 
+# Internal model docs — local only, never commit
+docs/reference/OptimizedModel/
+
+# Pipeline proprietary scripts/docs — contain AI prompts and pipeline architecture; local only
+pipeline/haiku_generate.js
+pipeline/HAIKU_PIPELINE.md
+
 # Demo resume files — stored in S3, not tracked in git
 docs/reference/*.docx
 docs/reference/*.pdf
+
+# Generation logs
+logs/

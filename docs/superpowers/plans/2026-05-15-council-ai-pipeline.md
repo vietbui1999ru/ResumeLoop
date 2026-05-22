@@ -510,7 +510,7 @@ GitHub Actions needs write access to push commits and post comments. Verify the 
 gh api "repos/$REPO/actions/permissions" --jq '.default_workflow_permissions'
 ```
 
-Replace `$REPO` with the actual repo (e.g. `vietbui99/ResumeAnalyze`).
+Replace `$REPO` with the actual repo (e.g. `YOUR_GITHUB_USERNAME/ResumeLoop`).
 
 Expected: `"write"` or `"read"`.
 

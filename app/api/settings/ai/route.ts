@@ -7,12 +7,12 @@ import {
   type Provider,
 } from '@/lib/user-settings'
 import { buildModel } from '@/lib/ai-client'
-import { checkRateLimit, extractIp } from '@/lib/rate-limit'
+import { checkRateLimit } from '@/lib/rate-limit'
+import { validateOllamaUrl } from '@/lib/ollama-url'
 
 // ── Input limits ──────────────────────────────────────────────────────────────
 const MAX_KEY_LEN   = 500
 const MAX_MODEL_LEN = 100
-const MAX_URL_LEN   = 200
 
 // ── Format validation ─────────────────────────────────────────────────────────
 const KEY_PATTERNS: Partial<Record<Provider, RegExp>> = {
@@ -34,39 +34,6 @@ function validateFormat(provider: Provider, key: string): string | null {
   return null
 }
 
-// ── SSRF guard for Ollama base_url ────────────────────────────────────────────
-// Blocks cloud metadata endpoints and only allows loopback + RFC-1918 private ranges.
-const BLOCKED_HOSTS = new Set([
-  '169.254.169.254',      // AWS EC2 / Azure IMDS
-  '169.254.170.2',        // AWS ECS metadata
-  '100.100.100.200',      // Alibaba Cloud metadata
-  'metadata.google.internal',
-  'metadata.internal',
-])
-
-function validateOllamaUrl(raw: string): string | null {
-  let u: URL
-  try { u = new URL(raw) } catch { return null }
-  if (u.protocol !== 'http:' && u.protocol !== 'https:') return null
-  if (raw.length > MAX_URL_LEN) return null
-
-  const host = u.hostname.toLowerCase()
-
-  // Block cloud metadata hosts
-  if (BLOCKED_HOSTS.has(host)) return null
-  if (host.includes('169.254.') || host.includes('100.100.')) return null
-
-  // Allow only loopback + private RFC-1918 ranges
-  if (host === 'localhost')             return raw
-  if (/^127\./.test(host))             return raw   // 127.0.0.0/8
-  if (/^::1$/.test(host))              return raw   // IPv6 loopback
-  if (/^192\.168\./.test(host))        return raw   // 192.168.0.0/16
-  if (/^10\./.test(host))              return raw   // 10.0.0.0/8
-  if (/^172\.(1[6-9]|2[0-9]|3[01])\./.test(host)) return raw  // 172.16.0.0/12
-
-  return null  // reject all other hosts (public IPs, external hostnames)
-}
-
 // ── Live key test ─────────────────────────────────────────────────────────────
 async function testKey(provider: Provider, apiKey: string, model: string, baseUrl?: string): Promise<string | null> {
   try {
@@ -74,17 +41,24 @@ async function testKey(provider: Provider, apiKey: string, model: string, baseUr
     // to a user-controlled base URL (SSRF key-harvesting mitigation)
     const keyToTest = provider === 'ollama' ? 'ollama' : apiKey
     const testModel = buildModel(provider, keyToTest, model, baseUrl)
-    await generateText({ model: testModel, maxOutputTokens: 1, messages: [{ role: 'user', content: '.' }] })
+    // Thinking models consume thinking tokens within maxOutputTokens, so maxOutputTokens:1
+    // always fails. Use 200 for Google (Gemini 2.5) and Anthropic (Opus 4.7 with extended thinking).
+    const needsThinkingBudget = provider === 'google' ||
+      (provider === 'anthropic' && model.includes('opus'))
+    const maxOutputTokens = needsThinkingBudget ? 200 : 1
+    await generateText({ model: testModel, maxOutputTokens, messages: [{ role: 'user', content: '.' }] })
     return null
   } catch (e) {
-    const msg = String(e)
-    if (msg.includes('401') || msg.includes('auth') || msg.includes('invalid') || msg.includes('Unauthorized'))
+    const raw = String(e)
+    const msg = raw.toLowerCase()
+    console.error(`[settings/ai] testKey provider=${provider} model=${model} error: ${raw.slice(0, 500)}`)
+    if (msg.includes('401') || msg.includes('unauthorized') || msg.includes('invalid api key') || msg.includes('invalid_api_key'))
       return 'API key rejected — check the key and try again'
-    if (msg.includes('404') || msg.includes('model') || msg.includes('not found'))
+    if (msg.includes('404') || (msg.includes('not found') && msg.includes('model')))
       return 'Model not found for this provider — check the model name'
-    if (msg.includes('ECONNREFUSED') || msg.includes('fetch failed'))
+    if (msg.includes('econnrefused') || msg.includes('fetch failed'))
       return 'Could not connect to provider — check the URL and that the service is running'
-    return 'Provider test failed — check key and model name'
+    return 'Provider test failed — check your key, model name, and base URL'
   }
 }
 
@@ -114,7 +88,7 @@ export async function POST(req: Request) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const USER_ID = session.user.id
 
-  if (!checkRateLimit(`settings:${extractIp(req)}`)) {
+  if (!checkRateLimit(`settings:${USER_ID}`)) {
     return NextResponse.json({ error: 'Too many requests — wait a minute' }, { status: 429 })
   }
 
@@ -163,8 +137,13 @@ export async function POST(req: Request) {
   if (fmtErr) return NextResponse.json({ error: fmtErr }, { status: 400 })
 
   // Live test (uses sanitized inputs only)
+  console.info(`[settings/ai] testing provider=${provider} model=${rawModel}`)
   const testErr = await testKey(provider, rawKey, rawModel, safeUrl)
-  if (testErr) return NextResponse.json({ error: testErr }, { status: 400 })
+  if (testErr) {
+    console.warn(`[settings/ai] testKey failed provider=${provider} model=${rawModel}: ${testErr}`)
+    return NextResponse.json({ error: testErr }, { status: 400 })
+  }
+  console.info(`[settings/ai] testKey ok provider=${provider} model=${rawModel}`)
 
   try {
     await setProviderConfig(USER_ID, provider, rawKey, rawModel, safeUrl)

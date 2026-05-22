@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 const IS_CLOUD = process.env.NEXT_PUBLIC_APP_MODE === 'cloud'
 
 import { extractAllTags, parseTags } from '@/lib/tag-filter'
+import { FIT_THRESHOLDS } from '@/lib/constants'
 import { PIPELINE_TAGS } from '@/lib/pipeline-tags'
 import dynamic from 'next/dynamic'
 import { JobsTableSkeleton } from '@/components/JobsTableSkeleton'
@@ -18,6 +19,8 @@ const JobDetailModal  = dynamic(() => import('@/components/JobDetailModal'),  { 
 const GenerationPanel = dynamic(() => import('@/components/GenerationPanel'), { ssr: false })
 const ReasoningModal  = dynamic(() => import('@/components/ReasoningModal'),  { ssr: false })
 const SetupPanel      = dynamic(() => import('@/components/SetupPanel').then(m => ({ default: m.SetupPanel })), { ssr: false })
+const JobImportGuide  = dynamic(() => import('@/components/JobImportGuide').then(m => ({ default: m.JobImportGuide })), { ssr: false })
+const PasteJobModal   = dynamic(() => import('@/components/PasteJobModal').then(m => ({ default: m.PasteJobModal })), { ssr: false })
 
 const ACTION_COLORS: Record<string, string> = {
   '0-Saved':        'text-zinc-400',
@@ -84,10 +87,10 @@ function fmtDate(iso: string | null): string {
 }
 
 function FitBadge({ pct }: { pct: number }) {
-  if (pct >= 80) return (
+  if (pct >= FIT_THRESHOLDS.green) return (
     <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-green-500/10 text-green-400">{pct}%</span>
   )
-  if (pct >= 60) return (
+  if (pct >= FIT_THRESHOLDS.amber) return (
     <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-amber-500/10 text-amber-400">{pct}%</span>
   )
   return (
@@ -110,6 +113,11 @@ export default function JobsPage() {
   const [rowErrors, setRowErrors]   = useState<Map<string, string>>(new Map())
   const [showSecondary, setShowSecondary] = useState(false)
 
+  // Unfiltered option lists — fetched once on mount so track/tag dropdowns
+  // don't collapse when a filter is active (filtered jobs ≠ all jobs).
+  const [allTracks, setAllTracks]       = useState<string[]>([])
+  const [allTagOptions, setAllTagOptions] = useState<string[]>([])
+
   // Filters
   const [q, setQ]               = useState('')
   const [trackFilter, setTrackFilter] = useState('')
@@ -126,6 +134,8 @@ export default function JobsPage() {
   // Generation
   const [selected, setSelected]           = useState<Set<string>>(new Set())
   const [genStatus, setGenStatus]         = useState<Map<string, string>>(new Map())
+  const [genErrors, setGenErrors]         = useState<Map<string, string>>(new Map())
+  const [errorDetail, setErrorDetail]     = useState<string | null>(null)
   const [showPanel, setShowPanel]         = useState(false)
   const [panelMinimized, setPanelMinimized] = useState(false)
   const [generateQueue, setGenerateQueue] = useState<string[]>([])
@@ -133,6 +143,8 @@ export default function JobsPage() {
 
   const [sort, setSort] = useState<{ col: SortCol; dir: SortDir }>({ col: 'clipped_at', dir: 'desc' })
   const [jobsPathExists, setJobsPathExists] = useState<boolean | null>(null)
+  const [showImportGuide, setShowImportGuide] = useState(false)
+  const [showPasteModal, setShowPasteModal]   = useState(false)
   // True only during the initial page load — shows skeleton rows in tbody.
   // Filter-change re-fetches keep the current rows visible (no skeleton flash).
   const [initialLoading, setInitialLoading] = useState(true)
@@ -188,15 +200,26 @@ export default function JobsPage() {
     return () => ctrl.abort()
   }, [])
 
+  // Fetch unfiltered job list once on mount for track/tag dropdown options.
+  // Must run independently of the filtered reload so options don't collapse.
+  useEffect(() => {
+    const ctrl = new AbortController()
+    fetch('/api/jobs', { signal: ctrl.signal })
+      .then(r => r.ok ? r.json() as Promise<Job[]> : [])
+      .then((all: Job[]) => {
+        setAllTracks(Array.from(new Set(all.map(j => j.role_track).filter(Boolean))).sort())
+        setAllTagOptions(extractAllTags(all))
+      })
+      .catch(e => { if (e.name !== 'AbortError') console.error(e) })
+    return () => ctrl.abort()
+  }, [])
+
   // Re-fetch whenever any filter changes (debouncedQ handles the search delay).
   // Cleanup aborts any in-flight request when filters change again or on unmount.
   useEffect(() => {
     reload()
     return () => { abortRef.current?.abort() }
   }, [reload])
-
-  const tracks  = useMemo(() => Array.from(new Set(jobs.map(j => j.role_track).filter(Boolean))).sort(), [jobs])
-  const allTags = useMemo(() => extractAllTags(jobs), [jobs])
 
   const onSort = (col: SortCol) =>
     setSort(prev => prev.col === col
@@ -260,6 +283,31 @@ export default function JobsPage() {
       setRowError(jobId, data.error ?? 'Save failed')
     }
   }, [reload, setRowError])
+
+  const [editingTitleId, setEditingTitleId] = useState<string | null>(null)
+  const [editingTitleVal, setEditingTitleVal] = useState('')
+
+  const startTitleEdit = useCallback((jobId: string, current: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditingTitleId(jobId)
+    setEditingTitleVal(current)
+  }, [])
+
+  const commitTitleEdit = useCallback(async () => {
+    if (!editingTitleId || !editingTitleVal.trim()) { setEditingTitleId(null); return }
+    const jobId = editingTitleId
+    const title = editingTitleVal.trim()
+    setEditingTitleId(null)
+    setJobs(prev => prev.map(j => j.id === jobId ? { ...j, role_title: title } : j))
+    const res = await fetch(`/api/jobs/${jobId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role_title: title }),
+    })
+    if (!res.ok) {
+      reload()
+      setRowError(jobId, 'Title save failed')
+    }
+  }, [editingTitleId, editingTitleVal, reload, setRowError])
 
   const visible = useMemo(() => {
     return [...jobs].sort((a, b) => {
@@ -368,6 +416,14 @@ export default function JobsPage() {
                 {scanStatus}
               </span>
             )}
+            <button
+              data-tour="paste-jd-btn"
+              onClick={() => setShowPasteModal(true)}
+              className="text-sm px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded transition-colors text-zinc-300"
+              title="Paste a job posting (.md format)"
+            >
+              Paste
+            </button>
             <div data-tour="scan-btn" className="relative inline-block">
               <button onClick={scan} className="text-sm px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 rounded transition-colors">
                 Scan
@@ -431,7 +487,7 @@ export default function JobsPage() {
               className="h-8 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary focus:outline-none focus:border-indigo-500 transition-colors duration-100"
             >
               <option value="">All tracks</option>
-              {tracks.map(t => <option key={t} value={t}>{t}</option>)}
+              {allTracks.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
             <select
               value={tagFilter}
@@ -439,7 +495,7 @@ export default function JobsPage() {
               className="h-8 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary focus:outline-none focus:border-indigo-500 transition-colors duration-100"
             >
               <option value="">All tags</option>
-              {allTags.map(t => <option key={t} value={t}>{t}</option>)}
+              {allTagOptions.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
             <select
               value={visaFilter}
@@ -480,12 +536,23 @@ export default function JobsPage() {
       )}
       {IS_CLOUD && !initialLoading && jobs.length === 0 && (
         <div className="flex-1 flex items-center justify-center p-12">
-          <div className="text-center space-y-3 max-w-sm">
-            <p className="text-zinc-400 text-sm">No jobs yet.</p>
-            <p className="text-zinc-500 text-xs leading-relaxed">
-              Click <strong className="text-zinc-300">Scan</strong> to import jobs.
-              In Chrome/Edge, a connected Jobs folder in <strong className="text-zinc-300">Settings</strong> scans automatically; otherwise you can upload <strong className="text-zinc-300">.md</strong> files.
-            </p>
+          <div className="text-center space-y-4 max-w-sm">
+            <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-600/30 text-xl">
+              📋
+            </div>
+            <div className="space-y-1">
+              <p className="text-zinc-300 text-sm font-medium">No jobs yet</p>
+              <p className="text-zinc-500 text-xs leading-relaxed">
+                Click <strong className="text-zinc-300">Scan</strong> to import jobs.
+                In Chrome/Edge, a connected Jobs folder in <strong className="text-zinc-300">Settings</strong> scans automatically; otherwise you can upload <strong className="text-zinc-300">.md</strong> files.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowImportGuide(true)}
+              className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+            >
+              How to clip job listings into .md files →
+            </button>
           </div>
         </div>
       )}
@@ -543,7 +610,26 @@ export default function JobsPage() {
                     {/* Role + track badge + pipeline tag dots */}
                     <td className="py-3 pr-4">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-zinc-300">{job.role_title}</span>
+                        {editingTitleId === job.id ? (
+                          <input
+                            autoFocus
+                            value={editingTitleVal}
+                            onChange={e => setEditingTitleVal(e.target.value)}
+                            onBlur={commitTitleEdit}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') { e.preventDefault(); void commitTitleEdit() }
+                              if (e.key === 'Escape') setEditingTitleId(null)
+                            }}
+                            onClick={e => e.stopPropagation()}
+                            className="text-zinc-200 bg-zinc-800 border border-indigo-500 rounded px-1.5 py-0.5 text-sm outline-none min-w-0 w-48"
+                          />
+                        ) : (
+                          <span
+                            className="text-zinc-300 cursor-text hover:text-zinc-100"
+                            title="Double-click to edit title"
+                            onDoubleClick={e => startTitleEdit(job.id, job.role_title, e)}
+                          >{job.role_title}</span>
+                        )}
                         {job.role_track && (
                           <span className="text-2xs px-1.5 py-0.5 bg-zinc-800 border border-zinc-700/80 text-zinc-500 rounded font-mono leading-none">
                             {job.role_track}
@@ -575,7 +661,7 @@ export default function JobsPage() {
                     {/* Action dropdown */}
                     <td className="py-2 pr-4" onClick={e => e.stopPropagation()}>
                       {rowError ? (
-                        <span className="text-red-400 text-xs">{rowError}</span>
+                        <span data-testid="row-action-error" className="text-red-400 text-xs">{rowError}</span>
                       ) : (
                         <select
                           data-tour={idx === 0 ? 'action-cell' : undefined}
@@ -595,23 +681,32 @@ export default function JobsPage() {
 
                     {/* Resume status */}
                     <td className="py-2 pr-4">
-                      {genStatus.has(job.id) ? (
-                        <span className="text-zinc-400 text-xs">
-                          {genStatus.get(job.id)}
-                          {genStatus.get(job.id) === 'done' && (
+                      {genStatus.has(job.id) ? (() => {
+                        const st = genStatus.get(job.id)!
+                        if (st === 'done') return (
+                          <span className="text-xs flex items-center gap-1">
+                            <span className="text-green-400">✓</span>
                             <button
                               onClick={e => { e.stopPropagation(); setReasoningJobId(job.id) }}
-                              className="ml-1 text-yellow-400 hover:text-yellow-300"
+                              className="text-yellow-400 hover:text-yellow-300"
                             >★</button>
-                          )}
-                        </span>
-                      ) : job.has_reasoning ? (
+                          </span>
+                        )
+                        if (st === 'failed') return (
+                          <button
+                            onClick={e => { e.stopPropagation(); setErrorDetail(genErrors.get(job.id) ?? 'Unknown error') }}
+                            className="text-red-400 hover:text-red-300 text-xs"
+                            title="Click to view error"
+                          >✗ failed</button>
+                        )
+                        return <span className="text-zinc-400 text-xs">{st}</span>
+                      })() : job.has_reasoning ? (
                         <button
                           onClick={e => { e.stopPropagation(); setReasoningJobId(job.id) }}
                           className="text-yellow-400 hover:text-yellow-300 text-xs whitespace-nowrap"
                         >★ Why?</button>
                       ) : job.has_output ? (
-                        <span className="text-zinc-500 text-xs">doc</span>
+                        <span className="text-green-400 text-xs">✓</span>
                       ) : null}
                     </td>
 
@@ -723,9 +818,13 @@ export default function JobsPage() {
                     setGenStatus(prev => new Map(prev).set(jobId, 'done'))
                     reload()
                   }}
-                  onError={(jobId, msg) =>
-                    setGenStatus(prev => new Map(prev).set(jobId, `✗ ${msg.slice(0, 20)}`))
-                  }
+                  onError={(jobId, msg) => {
+                    const sanitized = msg
+                      .replace(/\/api\/[a-zA-Z0-9\-_/[\]?=&]+/g, '[endpoint]')
+                      .replace(/https?:\/\/[^\s)]+/g, '[url]')
+                    setGenStatus(prev => new Map(prev).set(jobId, 'failed'))
+                    setGenErrors(prev => new Map(prev).set(jobId, sanitized))
+                  }}
                 />
               )}
             </AnimatePresence>
@@ -746,6 +845,44 @@ export default function JobsPage() {
             e.currentTarget.value = ''
           }}
         />
+      )}
+
+      {showImportGuide && <JobImportGuide onClose={() => setShowImportGuide(false)} />}
+      {showPasteModal && (
+        <PasteJobModal
+          onClose={() => setShowPasteModal(false)}
+          onAdded={() => reload()}
+        />
+      )}
+
+      {/* Error detail overlay — shown when user clicks ✗ failed in the job row */}
+      {errorDetail && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center pb-6 px-4"
+          onClick={() => setErrorDetail(null)}
+        >
+          <div
+            className="bg-zinc-900 border border-red-800 rounded-lg p-4 w-full max-w-2xl shadow-2xl shadow-black/60"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-red-400 text-sm font-semibold">Generation Error</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => void navigator.clipboard.writeText(errorDetail)}
+                  className="text-xs text-zinc-400 hover:text-zinc-200 px-2 py-0.5 border border-zinc-700 hover:border-zinc-500 rounded"
+                >Copy</button>
+                <button
+                  onClick={() => setErrorDetail(null)}
+                  className="text-zinc-500 hover:text-zinc-300 text-sm leading-none"
+                >✕</button>
+              </div>
+            </div>
+            <pre className="text-red-300 text-xs whitespace-pre-wrap break-words select-all overflow-auto max-h-64 font-mono">
+              {errorDetail}
+            </pre>
+          </div>
+        </div>
       )}
     </div>
   )

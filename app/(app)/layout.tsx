@@ -2,6 +2,7 @@ import { Sidebar } from '@/components/Sidebar'
 import { TourOverlay } from '@/components/TourOverlay'
 import { PageTransition } from '@/components/PageTransition'
 import { DemoBanner } from '@/components/DemoBanner'
+import { OnboardingGate } from '@/components/OnboardingGate'
 import { auth } from '@/lib/auth'
 import { getAdapter } from '@/lib/db-adapter'
 
@@ -26,7 +27,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <TourOverlay />
-        <PageTransition>{children}</PageTransition>
+        <OnboardingGate>
+          <PageTransition>{children}</PageTransition>
+        </OnboardingGate>
       </div>
     </div>
   )

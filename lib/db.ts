@@ -39,22 +39,24 @@ export function getDb(): DB {
 export function initSchema(db: DB): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS jd_jobs (
-      id             TEXT PRIMARY KEY,
-      file_path      TEXT NOT NULL,
-      company        TEXT,
-      role_title     TEXT,
-      tags           TEXT,
-      visa_status    TEXT,
-      role_track     TEXT,
-      fit_pct        INTEGER,
-      raw_content    TEXT,
-      file_mtime     TEXT,
-      clipped_at     TEXT,
-      outreach_brief TEXT,
-      hidden         INTEGER NOT NULL DEFAULT 0,
-      apply_url      TEXT,
-      user_id        TEXT NOT NULL DEFAULT 'default',
-      scanned_at     DATETIME DEFAULT CURRENT_TIMESTAMP
+      id                TEXT PRIMARY KEY,
+      file_path         TEXT NOT NULL,
+      company           TEXT,
+      role_title        TEXT,
+      tags              TEXT,
+      visa_status       TEXT,
+      role_track        TEXT,
+      fit_pct           INTEGER,
+      raw_content       TEXT,
+      file_mtime        TEXT,
+      clipped_at        TEXT,
+      action            TEXT,
+      outreach_brief    TEXT,
+      hidden            INTEGER NOT NULL DEFAULT 0,
+      apply_url         TEXT,
+      application_case  TEXT,
+      user_id           TEXT NOT NULL DEFAULT 'default',
+      scanned_at        DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS jd_outputs (
@@ -202,6 +204,20 @@ export function initSchema(db: DB): void {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE (prompt_key, version)
     );
+
+    CREATE TABLE IF NOT EXISTS ingestion_sources (
+      id                TEXT PRIMARY KEY,
+      user_id           TEXT NOT NULL,
+      type              TEXT NOT NULL CHECK(type IN ('url', 'github', 'paste')),
+      input_raw         TEXT NOT NULL,
+      status            TEXT NOT NULL DEFAULT 'pending'
+                          CHECK(status IN ('pending', 'processing', 'done', 'failed')),
+      extracted_partial TEXT,
+      error_msg         TEXT,
+      created_at        INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ingest_sources_user
+      ON ingestion_sources(user_id, created_at DESC);
   `)
 
   // Migrate existing DBs that predate session_id column on jd_outputs
@@ -360,12 +376,20 @@ export function initSchema(db: DB): void {
   }
 
   // Migrate existing users table to add auth columns
-  if (!hasColumn(db, 'users', 'email_verified'))
+  if (!hasColumn(db, 'users', 'email_verified')) {
     db.exec(`ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0`)
+    // Pre-existing demo user gets email_verified=0 from the DEFAULT — fix it now.
+    db.exec(`UPDATE users SET email_verified = 1 WHERE is_demo = 1`)
+  }
   if (!hasColumn(db, 'users', 'password_changed_at'))
     db.exec(`ALTER TABLE users ADD COLUMN password_changed_at DATETIME`)
   if (!hasColumn(db, 'users', 'deleted_at'))
     db.exec(`ALTER TABLE users ADD COLUMN deleted_at DATETIME`)
+  if (!hasColumn(db, 'users', 'ip_hash'))
+    db.exec(`ALTER TABLE users ADD COLUMN ip_hash TEXT`)
+  if (!hasColumn(db, 'users', 'demo_cleartext_pwd'))
+    db.exec(`ALTER TABLE users ADD COLUMN demo_cleartext_pwd TEXT`)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_users_ip_hash ON users(ip_hash) WHERE is_demo = 1`)
 
   // Migrate: allow empty password for OAuth-only accounts
   // (password column already exists; DEFAULT '' is set on new tables above)
@@ -441,6 +465,10 @@ export function initSchema(db: DB): void {
     db.exec(`ALTER TABLE resume_profiles ADD COLUMN persona_md TEXT`)
   if (!hasColumn(db, 'resume_profiles', 'updated_at'))
     db.exec(`ALTER TABLE resume_profiles ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`)
+
+  // One-time cleanup: orphaned jd_outputs rows (user_id='default') whose job has been deleted.
+  // These block demo-user job deletion via FK. Safe to run every init — deletes nothing if already clean.
+  db.exec(`DELETE FROM jd_outputs WHERE job_id NOT IN (SELECT id FROM jd_jobs)`)
 }
 
 // Seed system_prompts from disk files when the table is empty.
@@ -468,7 +496,7 @@ function seedSystemPromptsFromDisk(db: DB): void {
   const coverLetterContent = '# Cover letter prompt is assembled dynamically in lib/cover-letter.ts'
 
   const insert = db.prepare(
-    `INSERT OR IGNORE INTO system_prompts (id, prompt_key, version, content, is_active) VALUES (?, ?, ?, ?, ?)`
+    `INSERT INTO system_prompts (id, prompt_key, version, content, is_active) VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING`
   )
 
   if (reasonContent)   insert.run('sp-reason-v1',       'reason',       1, reasonContent,      1)

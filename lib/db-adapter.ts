@@ -9,6 +9,9 @@ export interface DbAdapter {
   run(sql: string, params?: unknown[]): Promise<void>
   exec(sql: string): Promise<void>
   initialize(): Promise<void>
+  /** Run a sequence of statements atomically. SQLite uses a real transaction;
+   *  Neon HTTP runs them sequentially (best-effort — no true atomicity). */
+  runInTransaction(ops: Array<{ sql: string; params?: unknown[] }>): Promise<void>
 }
 
 // ── SQLite adapter (local mode) ───────────────────────────────────────────────
@@ -27,6 +30,14 @@ export class SqliteAdapter implements DbAdapter {
   async exec(sql: string): Promise<void> {
     this.db.exec(sql)
   }
+  async runInTransaction(ops: Array<{ sql: string; params?: unknown[] }>): Promise<void> {
+    const txn = this.db.transaction(() => {
+      for (const { sql, params = [] } of ops) {
+        this.db.prepare(sql).run(...params)
+      }
+    })
+    txn()
+  }
   async initialize(): Promise<void> {
     // Schema init runs inside getDb() — no extra work needed
   }
@@ -39,23 +50,24 @@ export class SqliteAdapter implements DbAdapter {
 //   Other TEXT / INTEGER types unchanged (compatible)
 export const NEON_SCHEMA = `
   CREATE TABLE IF NOT EXISTS jd_jobs (
-    id             TEXT PRIMARY KEY,
-    file_path      TEXT NOT NULL,
-    company        TEXT,
-    role_title     TEXT,
-    tags           TEXT,
-    visa_status    TEXT,
-    role_track     TEXT,
-    fit_pct        INTEGER,
-    raw_content    TEXT,
-    file_mtime     TEXT,
-    clipped_at     TEXT,
-    action         TEXT,
-    outreach_brief TEXT,
-    hidden         INTEGER NOT NULL DEFAULT 0,
-    apply_url      TEXT,
-    user_id        TEXT NOT NULL,
-    scanned_at     TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    id               TEXT PRIMARY KEY,
+    file_path        TEXT NOT NULL,
+    company          TEXT,
+    role_title       TEXT,
+    tags             TEXT,
+    visa_status      TEXT,
+    role_track       TEXT,
+    fit_pct          INTEGER,
+    raw_content      TEXT,
+    file_mtime       TEXT,
+    clipped_at       TEXT,
+    action           TEXT,
+    outreach_brief   TEXT,
+    hidden           INTEGER NOT NULL DEFAULT 0,
+    apply_url        TEXT,
+    application_case TEXT,
+    user_id          TEXT NOT NULL,
+    scanned_at       TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   );
 
   CREATE TABLE IF NOT EXISTS jd_outputs (
@@ -137,6 +149,8 @@ export const NEON_SCHEMA = `
     password_changed_at TIMESTAMPTZ,
     is_demo             INTEGER NOT NULL DEFAULT 0,
     deleted_at          TIMESTAMPTZ,
+    ip_hash             TEXT,
+    demo_cleartext_pwd  TEXT,
     created_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -149,6 +163,7 @@ export const NEON_SCHEMA = `
     UNIQUE(provider, provider_account_id)
   );
   CREATE INDEX IF NOT EXISTS idx_oauth_provider ON oauth_accounts(provider, provider_account_id);
+  CREATE INDEX IF NOT EXISTS idx_users_ip_hash  ON users(ip_hash) WHERE is_demo = 1;
 
   CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id         TEXT PRIMARY KEY,
@@ -208,6 +223,19 @@ export const NEON_SCHEMA = `
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (prompt_key, version)
   );
+
+  CREATE TABLE IF NOT EXISTS ingestion_sources (
+    id                TEXT PRIMARY KEY,
+    user_id           TEXT NOT NULL,
+    type              TEXT NOT NULL,
+    input_raw         TEXT NOT NULL,
+    status            TEXT NOT NULL DEFAULT 'pending',
+    extracted_partial TEXT,
+    error_msg         TEXT,
+    created_at        BIGINT NOT NULL DEFAULT extract(epoch from now())::bigint
+  );
+  CREATE INDEX IF NOT EXISTS idx_ingest_sources_user
+    ON ingestion_sources(user_id, created_at DESC);
 `
 
 const NEON_DEMO_SEED = `
@@ -240,9 +268,8 @@ const NEON_SOFT_DELETE_MIGRATION = `
 `
 
 // ── Neon adapter (cloud mode) ─────────────────────────────────────────────────
-interface NeonQueryFn {
-  query(sql: string, params?: unknown[]): Promise<unknown[]>
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type NeonFn = any  // neon() return type — kept as any to allow .query() and .transaction()
 
 // Convert SQLite-style `?` placeholders to Postgres-style `$1`, `$2`, ...
 // Skips `?` inside single-quoted string literals.
@@ -278,34 +305,40 @@ function translatePlaceholders(sql: string): string {
 }
 
 export class NeonAdapter implements DbAdapter {
-  private neonSql: NeonQueryFn
+  private neonFn: NeonFn
   private initialized = false
 
   constructor(connectionString: string) {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { neon } = require('@neondatabase/serverless') as typeof import('@neondatabase/serverless')
-    // Use .query() — neon() no longer supports plain function-call form
-    this.neonSql = neon(connectionString) as unknown as NeonQueryFn
+    this.neonFn = neon(connectionString)
   }
 
   async query<T>(sql: string, params: unknown[] = []): Promise<T[]> {
-    const rows = await this.neonSql.query(translatePlaceholders(sql), params)
+    const rows = await this.neonFn.query(translatePlaceholders(sql), params)
     return rows as T[]
   }
   async queryOne<T>(sql: string, params: unknown[] = []): Promise<T | undefined> {
-    const rows = await this.neonSql.query(translatePlaceholders(sql), params)
+    const rows = await this.neonFn.query(translatePlaceholders(sql), params)
     return (rows[0] as T) ?? undefined
   }
   async run(sql: string, params: unknown[] = []): Promise<void> {
-    await this.neonSql.query(translatePlaceholders(sql), params)
+    await this.neonFn.query(translatePlaceholders(sql), params)
   }
   async exec(sql: string): Promise<void> {
     // .query() is a prepared statement — rejects multiple commands.
     // Split on ';' and run each statement individually.
     const stmts = sql.split(';').map(s => s.trim()).filter(Boolean)
     for (const stmt of stmts) {
-      await this.neonSql.query(stmt)
+      await this.neonFn.query(stmt)
     }
+  }
+  async runInTransaction(ops: Array<{ sql: string; params?: unknown[] }>): Promise<void> {
+    // neon() HTTP driver supports atomic batch transactions via .transaction().
+    // All statements are sent in a single HTTP request, committed or rolled back together.
+    await this.neonFn.transaction(
+      ops.map(({ sql, params = [] }) => this.neonFn.query(translatePlaceholders(sql), params))
+    )
   }
   private async _seedSystemPrompts(): Promise<void> {
     const { count } = (await this.queryOne<{ count: number }>(
@@ -351,19 +384,11 @@ export class NeonAdapter implements DbAdapter {
     await runSchema(NEON_SCHEMA)
     await runSchema(NEON_USER_ID_MIGRATIONS)
     await runSchema(`
-      ALTER TABLE jd_jobs ADD COLUMN IF NOT EXISTS outreach_brief TEXT;
-      ALTER TABLE jd_jobs ADD COLUMN IF NOT EXISTS clipped_at TEXT;
-      ALTER TABLE jd_jobs ADD COLUMN IF NOT EXISTS hidden INTEGER NOT NULL DEFAULT 0;
-      ALTER TABLE jd_jobs ADD COLUMN IF NOT EXISTS apply_url TEXT;
+      ALTER TABLE jd_jobs ADD COLUMN IF NOT EXISTS outreach_brief   TEXT;
+      ALTER TABLE jd_jobs ADD COLUMN IF NOT EXISTS clipped_at       TEXT;
+      ALTER TABLE jd_jobs ADD COLUMN IF NOT EXISTS hidden           INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE jd_jobs ADD COLUMN IF NOT EXISTS apply_url        TEXT;
       ALTER TABLE jd_jobs ADD COLUMN IF NOT EXISTS application_case TEXT;
-      CREATE TABLE IF NOT EXISTS resume_profiles (
-        id         TEXT PRIMARY KEY,
-        user_id    TEXT NOT NULL,
-        name       TEXT NOT NULL,
-        data       TEXT NOT NULL,
-        is_active  INTEGER NOT NULL DEFAULT 0,
-        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-      );
     `)
     await runSchema(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified      INTEGER NOT NULL DEFAULT 0;
@@ -395,6 +420,12 @@ export class NeonAdapter implements DbAdapter {
     // Files exist in the Docker image on the first deploy after privatization;
     // subsequent deploys skip this because rows already exist.
     await this._seedSystemPrompts()
+    // Demo user per-IP columns (added with ip-based demo session feature)
+    await runSchema(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS ip_hash            TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS demo_cleartext_pwd TEXT;
+      CREATE INDEX IF NOT EXISTS idx_users_ip_hash ON users(ip_hash) WHERE is_demo = 1;
+    `)
     if (!isCloud()) await runSchema(NEON_DEMO_SEED)
     this.initialized = true
   }

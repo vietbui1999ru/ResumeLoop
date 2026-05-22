@@ -15,18 +15,18 @@ export default function ChatDiff({ file, description, diff, sessionId, onApplied
 
   const apply = async (accept: boolean) => {
     setBusy(true)
-    const res = await fetch('/api/chat/apply', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, accept, file }),
-    })
-    if (!res.ok) {
+    try {
+      const res = await fetch('/api/chat/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, accept, file }),
+      })
+      if (!res.ok) return
+      setState(accept ? 'accepted' : 'rejected')
+      onApplied(accept)
+    } catch { /* ignore */ } finally {
       setBusy(false)
-      return
     }
-    setState(accept ? 'accepted' : 'rejected')
-    setBusy(false)
-    onApplied(accept)
   }
 
   const lines = diff.split('\n')

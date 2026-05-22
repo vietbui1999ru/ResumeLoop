@@ -1,13 +1,13 @@
 ---
 title: "Deployment Guide"
-description: "How to run ResumeAnalyze locally and deploy it to a self-hosted homelab via Docker and Tailscale."
+description: "How to run ResumeLoop locally and deploy it to a self-hosted homelab via Docker and Tailscale."
 tags: [deployment, aws, docker, local-dev]
 updated: 2026-05-11
 ---
 
 # Deployment Guide
 
-ResumeAnalyze runs as a Next.js 14 application in two modes:
+ResumeLoop runs as a Next.js 14 application in two modes:
 
 - **Local** — SQLite database, filesystem storage, Ollama for LLM calls. No AWS account needed.
 - **Cloud** — ECR (container registry) + S3 (file storage) + Secrets Manager (runtime secrets). Compute runs on a self-hosted homelab LXC via Docker, reached over Tailscale. Neon serverless Postgres is used as the database when `APP_MODE=cloud`.
@@ -111,8 +111,8 @@ The container reaches Ollama on the host machine via `host.docker.internal:11434
 ### Build the image manually
 
 ```bash
-docker build -t resumeanalyze .
-docker run -p 3010:3000 resumeanalyze
+docker build -t resumeloop .
+docker run -p 3010:3000 resumeloop
 ```
 
 The Dockerfile uses a two-stage build (builder → runner) on `node:22-alpine`. The runner stage installs system Chromium for Puppeteer-based PDF generation and exposes port 3000. Next.js standalone output is used (`output: 'standalone'` in `next.config.mjs`).
@@ -127,15 +127,15 @@ The app runs on a Proxmox LXC node accessed via Tailscale. Docker images are pul
 
 - Docker + Docker Compose plugin on the LXC
 - AWS CLI v2: `apk add aws-cli` or `apt install awscli`
-- IAM user `resumeanalyze-homelab` with `AmazonEC2ContainerRegistryReadOnly` policy — run `aws configure` with those credentials
+- IAM user `resumeloop-homelab` with `AmazonEC2ContainerRegistryReadOnly` policy — run `aws configure` with those credentials
 - Tailscale installed and joined to your tailnet
 - SSH key pair: add deploy key public key to `~/.ssh/authorized_keys`
 
 ### One-time setup
 
 ```bash
-mkdir -p ~/resumeanalyze/pipeline
-cd ~/resumeanalyze
+mkdir -p ~/resumeloop/pipeline
+cd ~/resumeloop
 
 # Copy docker-compose.prod.yml from the repo
 # Copy .env.prod.example → .env.prod and fill in values
@@ -148,7 +148,7 @@ touch resume.db  # Docker volume mount requires file to exist
 ### Manual deploy
 
 ```bash
-cd ~/resumeanalyze
+cd ~/resumeloop
 ECR_REGISTRY=<account-id>.dkr.ecr.us-east-1.amazonaws.com
 aws ecr get-login-password --region us-east-1 \
   | docker login --username AWS --password-stdin $ECR_REGISTRY
@@ -186,7 +186,7 @@ AWS App Runner
 
 App Runner
   → Neon (Postgres, DATABASE_URL connection string)
-  → S3 (resumeanalyze-outputs bucket, DOCX/PDF storage)
+  → S3 (resumeloop-outputs bucket, DOCX/PDF storage)
 ```
 
 Health check: `GET /api/health` — App Runner polls this every 10 seconds.
@@ -197,7 +197,7 @@ Health check: `GET /api/health` — App Runner polls this every 10 seconds.
 
 ```bash
 aws ecr create-repository \
-  --repository-name resumeanalyze \
+  --repository-name resumeloop \
   --region us-east-1
 ```
 
@@ -209,17 +209,17 @@ Note the `repositoryUri` in the output — this is your `<ECR_REGISTRY>`.
 
 ```bash
 aws s3api create-bucket \
-  --bucket resumeanalyze-outputs \
+  --bucket resumeloop-outputs \
   --region us-east-1
 
 # Enable versioning
 aws s3api put-bucket-versioning \
-  --bucket resumeanalyze-outputs \
+  --bucket resumeloop-outputs \
   --versioning-configuration Status=Enabled
 
 # Abort incomplete multipart uploads after 7 days
 aws s3api put-bucket-lifecycle-configuration \
-  --bucket resumeanalyze-outputs \
+  --bucket resumeloop-outputs \
   --lifecycle-configuration '{
     "Rules": [{
       "ID": "abort-incomplete-multipart",
@@ -238,29 +238,29 @@ All secrets are created as placeholders by `bash infra/setup-aws.sh`. Fill in re
 
 ```bash
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/APP_MODE \
+  --secret-id resumeloop/prod/APP_MODE \
   --secret-string "cloud"
 
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/AUTH_SECRET \
+  --secret-id resumeloop/prod/AUTH_SECRET \
   --secret-string "$(openssl rand -hex 32)"
 
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/ENCRYPTION_KEY \
+  --secret-id resumeloop/prod/ENCRYPTION_KEY \
   --secret-string "$(openssl rand -hex 32)"
 
 # Neon connection string from Neon dashboard → Connection Details
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/DATABASE_URL \
+  --secret-id resumeloop/prod/DATABASE_URL \
   --secret-string "postgresql://..."
 
 # S3 bucket name (output of setup-aws.sh)
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/S3_BUCKET \
-  --secret-string "resumeanalyze-outputs-<account-id>"
+  --secret-id resumeloop/prod/S3_BUCKET \
+  --secret-string "resumeloop-outputs-<account-id>"
 
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/NEXTAUTH_URL \
+  --secret-id resumeloop/prod/NEXTAUTH_URL \
   --secret-string "https://<your-app-runner-url>"
 ```
 
@@ -274,7 +274,7 @@ The App Runner instance role grants permission to read SSM parameters and write 
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
 aws iam create-role \
-  --role-name AppRunnerResumeAnalyzeRole \
+  --role-name AppRunnerResumeLoopRole \
   --assume-role-policy-document '{
     "Version": "2012-10-17",
     "Statement": [{
@@ -287,14 +287,14 @@ aws iam create-role \
 sed "s/<ACCOUNT_ID>/$ACCOUNT_ID/g" infra/iam-policy.json > /tmp/iam-policy-resolved.json
 
 aws iam put-role-policy \
-  --role-name AppRunnerResumeAnalyzeRole \
-  --policy-name ResumeAnalyzePolicy \
+  --role-name AppRunnerResumeLoopRole \
+  --policy-name ResumeLoopPolicy \
   --policy-document file:///tmp/iam-policy-resolved.json
 ```
 
 The policy in `infra/iam-policy.json` grants:
-- `secretsmanager:GetSecretValue` on `arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeanalyze/prod/*`
-- `s3:PutObject` + `s3:GetObject` on `arn:aws:s3:::resumeanalyze-outputs-<ACCOUNT_ID>/*`
+- `secretsmanager:GetSecretValue` on `arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeloop/prod/*`
+- `s3:PutObject` + `s3:GetObject` on `arn:aws:s3:::resumeloop-outputs-<ACCOUNT_ID>/*`
 
 ---
 
@@ -305,7 +305,7 @@ This lets GitHub Actions assume an AWS role without storing long-lived AWS acces
 ```bash
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 GITHUB_ORG=<YOUR_GITHUB_USERNAME_OR_ORG>
-GITHUB_REPO=ResumeAnalyze
+GITHUB_REPO=ResumeLoop
 
 # One-time per AWS account — skip if OIDC provider already exists
 aws iam create-open-id-connect-provider \
@@ -314,7 +314,7 @@ aws iam create-open-id-connect-provider \
   --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1
 
 aws iam create-role \
-  --role-name GitHubActionsResumeAnalyzeDeploy \
+  --role-name GitHubActionsResumeLoopDeploy \
   --assume-role-policy-document "{
     \"Version\": \"2012-10-17\",
     \"Statement\": [{
@@ -335,11 +335,11 @@ aws iam create-role \
   }"
 
 aws iam attach-role-policy \
-  --role-name GitHubActionsResumeAnalyzeDeploy \
+  --role-name GitHubActionsResumeLoopDeploy \
   --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser
 
 aws iam put-role-policy \
-  --role-name GitHubActionsResumeAnalyzeDeploy \
+  --role-name GitHubActionsResumeLoopDeploy \
   --policy-name AppRunnerDeploy \
   --policy-document '{
     "Version": "2012-10-17",
@@ -360,9 +360,9 @@ aws iam put-role-policy \
 ```bash
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 ECR_REGISTRY=$(aws ecr describe-repositories \
-  --repository-names resumeanalyze \
+  --repository-names resumeloop \
   --query 'repositories[0].repositoryUri' \
-  --output text | sed 's|/resumeanalyze||')
+  --output text | sed 's|/resumeloop||')
 
 sed -e "s|<ECR_REGISTRY>|$ECR_REGISTRY|g" \
     -e "s|<ACCOUNT_ID>|$ACCOUNT_ID|g" \
@@ -379,7 +379,7 @@ Update the `NEXTAUTH_URL` SSM parameter with the actual URL:
 
 ```bash
 aws ssm put-parameter \
-  --name /resumeanalyze/prod/NEXTAUTH_URL \
+  --name /resumeloop/prod/NEXTAUTH_URL \
   --value "https://<ServiceUrl>" \
   --type SecureString \
   --overwrite
@@ -393,7 +393,7 @@ In your repository: **Settings → Secrets and variables → Actions → New rep
 
 | Secret | Value |
 |---|---|
-| `AWS_DEPLOY_ROLE_ARN` | `arn:aws:iam::<ACCOUNT_ID>:role/GitHubActionsResumeAnalyzeDeploy` |
+| `AWS_DEPLOY_ROLE_ARN` | `arn:aws:iam::<ACCOUNT_ID>:role/GitHubActionsResumeLoopDeploy` |
 | `APP_RUNNER_SERVICE_ARN` | `ServiceArn` from the `create-service` output |
 
 ---

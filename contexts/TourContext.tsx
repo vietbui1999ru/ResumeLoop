@@ -14,75 +14,50 @@ export interface TourStepDef {
 }
 
 export const TOUR_STEPS: TourStepDef[] = [
-  // Dashboard
+  // ── 1. SETTINGS — only hard block before generating ───────────────────────
   {
-    id: 'dash-overview', page: '/', target: null,
-    title: 'Dashboard',
-    body: 'Your analytics hub. Track applications, see fit scores across roles, and review generated resumes.',
+    id: 'settings-ai', page: '/settings', target: 'ai-settings',
+    title: 'Required: connect your AI provider',
+    body: 'Add an API key to enable resume generation and the Chat assistant. Anthropic Claude recommended. Keys are AES-256 encrypted at rest.',
   },
+
+  // ── 2. JOBS — core workflow ───────────────────────────────────────────────
   {
-    id: 'dash-role-chart', page: '/', target: 'dashboard-role-chart',
-    title: 'Pipeline flow',
-    body: 'Sankey chart shows how jobs move through your pipeline stages — Saved → Applied → Interview → Offer. Spot where drop-off happens.',
-  },
-  {
-    id: 'dash-outputs', page: '/', target: 'dashboard-outputs',
-    title: 'Resume history',
-    body: 'Every generated resume appears here. Click to view or download as DOCX.',
-  },
-  // Jobs
-  {
-    id: 'jobs-intro', page: '/jobs', target: null,
-    title: 'Jobs — your pipeline',
-    body: 'All job descriptions in your configured folder appear here. Scan to import new ones, then select and generate.',
-  },
-  {
-    id: 'jobs-scan', page: '/jobs', target: 'scan-btn',
-    title: 'Scan for new jobs',
-    body: 'Click Scan to import job descriptions from your configured folder. New jobs appear in the table below.',
-  },
-  {
-    id: 'jobs-filter', page: '/jobs', target: 'filters-bar',
-    title: 'Filter and search',
-    body: 'Search by company or role. Filter by fit score, track, or visa requirements.',
+    id: 'jobs-paste', page: '/jobs', target: 'paste-jd-btn',
+    title: 'Start here — paste any job posting',
+    body: 'Copy any job listing and paste it here. No folder or Web Clipper setup needed — best for generating your first resume.',
   },
   {
     id: 'jobs-table', page: '/jobs', target: 'jobs-table',
-    title: 'Select jobs',
-    body: 'Check the boxes next to jobs you want to tailor your resume for. Multi-select is supported.',
+    title: 'Select jobs to tailor',
+    body: 'Check boxes next to jobs you want a resume for. Multi-select works — batch-generate for all at once.',
   },
   {
     id: 'jobs-generate', page: '/jobs', target: 'generate-btn',
-    title: 'Generate resumes',
-    body: 'After selecting jobs, click Generate Resume. Each job gets its own AI-tailored DOCX.',
+    title: 'Generate tailored resumes',
+    body: 'AI reads the JD, picks your best bullets, writes a custom tagline, and produces a 1-page DOCX — one per job.',
+  },
+  {
+    id: 'jobs-scan', page: '/jobs', target: 'scan-btn',
+    title: 'Power path: bulk-scan your folder',
+    body: 'Import all .md job files at once. Requires the Web Clipper template — click "How to clip jobs →" above to set it up first.',
   },
   {
     id: 'jobs-action', page: '/jobs', target: 'action-cell',
-    title: 'Track your stage',
-    body: 'Update the stage per job — Applied, Interview, Offer. Writes back to your markdown file instantly.',
+    title: 'Track your applications',
+    body: 'Log each stage — Applied, Interview, Offer. Keeps your pipeline visible and updates your .md file in sync.',
   },
-  // Settings
-  {
-    id: 'settings-folder', page: '/settings', target: 'jobs-folder',
-    title: 'Jobs folder',
-    body: 'Point this at the folder containing your .md job description files. ResumeLoop scans here for new jobs.',
-  },
-  {
-    id: 'settings-ai', page: '/settings', target: 'ai-settings',
-    title: 'AI provider',
-    body: 'Choose your AI provider and model. Anthropic Claude is required for Chat; other providers work for generation.',
-  },
-  // Chat
+
+  // ── 3. CHAT — refinement ──────────────────────────────────────────────────
   {
     id: 'chat-intro', page: '/chat', target: null,
-    title: 'Chat',
-    body: 'Refine your resume with Claude. Ask it to emphasize skills, swap bullets, or tailor to a specific JD.',
+    title: 'Refine with Chat',
+    body: 'Ask Claude to swap bullets, emphasize different skills, or tailor your resume to a specific JD in conversation.',
   },
-  // Config
   {
-    id: 'config-intro', page: '/config', target: null,
-    title: 'Profile editor',
-    body: 'Edit your base resume as JSON. Fork profiles for different role tracks — GenAI, Systems, Backend. The active profile is used for every generation.',
+    id: 'chat-bullets-toggle', page: '/chat', target: 'chat-bullets-toggle',
+    title: 'Live bullets panel',
+    body: 'Your current resume bullets — live alongside the chat. Switch tabs to see Rendered, Markdown, or raw JSON. Edit JSON directly and save.',
   },
 ]
 

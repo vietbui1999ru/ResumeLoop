@@ -4,7 +4,7 @@ import { useTourContext, TOUR_STEPS, type TourStepDef } from '@/contexts/TourCon
 
 interface Rect { top: number; left: number; width: number; height: number }
 
-const PAD = 8
+const PAD = 10
 
 function useTargetRect(target: string | null, active: boolean): Rect | null {
   const [rect, setRect] = useState<Rect | null>(null)
@@ -16,12 +16,7 @@ function useTargetRect(target: string | null, active: boolean): Rect | null {
     const attempt = () => {
       const el = document.querySelector(`[data-tour="${target}"]`)
       if (el) {
-        // Scroll the target into view first so getBoundingClientRect() returns
-        // an in-viewport position. Without this, elements below the fold have
-        // rect.top > window.innerHeight, pushing the bubble off-screen bottom.
         el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-        // Wait for scroll to settle before measuring, so the bubble is positioned
-        // correctly on the first render rather than jumping after re-adjustment.
         timerRef.current = setTimeout(() => {
           const r = el.getBoundingClientRect()
           setRect({ top: r.top, left: r.left, width: r.width, height: r.height })
@@ -60,51 +55,89 @@ function useTargetRect(target: string | null, active: boolean): Rect | null {
   return rect
 }
 
-// 4-rect spotlight — cuts a hole in the overlay to highlight a target element
-function Spotlight({ rect }: { rect: Rect }) {
-  const vw = typeof window !== 'undefined' ? window.innerWidth  : 1920
-  const vh = typeof window !== 'undefined' ? window.innerHeight : 1080
-  const t = rect.top    - PAD
-  const l = rect.left   - PAD
-  const r = rect.left   + rect.width  + PAD
-  const b = rect.top    + rect.height + PAD
-  const base = 'fixed pointer-events-none bg-black/65 z-[68]'
+// Glowing pulsing ring drawn exactly over the highlighted component
+function HighlightRing({ rect }: { rect: Rect }) {
   return (
-    <>
-      <div className={base} style={{ top: 0,    left: 0, right: 0, height: Math.max(0, t) }} />
-      <div className={base} style={{ top: b,    left: 0, right: 0, bottom: 0, height: Math.max(0, vh - b) }} />
-      <div className={base} style={{ top: t,    left: 0, width: Math.max(0, l), height: b - t }} />
-      <div className={base} style={{ top: t,    left: r, right: 0, width: Math.max(0, vw - r), height: b - t }} />
-    </>
+    <div
+      className="fixed pointer-events-none z-[69] rounded-lg"
+      style={{
+        top:    rect.top    - PAD,
+        left:   rect.left   - PAD,
+        width:  rect.width  + PAD * 2,
+        height: rect.height + PAD * 2,
+        animation: 'tour-highlight-pulse 2s ease-in-out infinite',
+      }}
+    />
   )
 }
 
 // Bubble is w-80 = 320px; guarantee 16px margin on both sides
-const BUBBLE_W = 320
-const BUBBLE_MARGIN = 16
+const BUBBLE_W   = 320
+const BUBBLE_H   = 200   // estimated for positioning
+const BUBBLE_GAP = 14    // gap between spotlight edge and bubble
+const MARGIN     = 16
 
-function bubbleStyle(rect: Rect | null): React.CSSProperties {
+type BubblePlacement = 'below' | 'above' | 'center'
+
+function getBubblePlacement(rect: Rect | null): { style: React.CSSProperties; placement: BubblePlacement } {
   if (!rect) {
-    return { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }
+    return { style: { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }, placement: 'center' }
   }
-  const estimatedBubbleH = 180
-  const vw = window.innerWidth
-  const vh = window.innerHeight
-  const below = rect.top + rect.height + PAD + 12
-  const above = rect.top - PAD - 12 - estimatedBubbleH
-  const l = Math.max(BUBBLE_MARGIN, Math.min(rect.left, vw - BUBBLE_W - BUBBLE_MARGIN))
+  const vw  = window.innerWidth
+  const vh  = window.innerHeight
+  const sTop    = rect.top    - PAD
+  const sBottom = rect.top    + rect.height + PAD
+  const below   = sBottom + BUBBLE_GAP
+  const above   = sTop    - BUBBLE_GAP - BUBBLE_H
+  const left    = Math.max(MARGIN, Math.min(rect.left, vw - BUBBLE_W - MARGIN))
 
   let top: number
-  if (below + estimatedBubbleH <= vh) {
-    top = below
-  } else if (above >= BUBBLE_MARGIN) {
-    top = above
+  let placement: BubblePlacement
+  if (below + BUBBLE_H <= vh - MARGIN) {
+    top = below; placement = 'below'
+  } else if (above >= MARGIN) {
+    top = above; placement = 'above'
   } else {
-    // Target fills viewport — center bubble vertically
-    top = Math.max(BUBBLE_MARGIN, (vh - estimatedBubbleH) / 2)
+    top = Math.max(MARGIN, (vh - BUBBLE_H) / 2); placement = 'center'
   }
 
-  return { position: 'fixed', top, left: l }
+  return { style: { position: 'fixed', top, left }, placement }
+}
+
+// Small arrow connecting the bubble to the spotlight edge
+function BubbleArrow({ rect, placement }: { rect: Rect; placement: BubblePlacement }) {
+  if (placement === 'center') return null
+  const vw   = window.innerWidth
+  const left = Math.max(MARGIN, Math.min(rect.left, vw - BUBBLE_W - MARGIN))
+  // Arrow center tracks center of highlighted element, clamped within bubble
+  const targetCenterX = rect.left + rect.width / 2
+  const arrowX = Math.max(12, Math.min(BUBBLE_W - 12, targetCenterX - left))
+
+  const arrowStyle: React.CSSProperties = {
+    position: 'absolute',
+    left:     arrowX - 6,
+    width:    12,
+    height:   8,
+  }
+
+  if (placement === 'below') {
+    return (
+      <div className="pointer-events-none absolute" style={{ ...arrowStyle, top: -8 }}>
+        <svg viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 0L12 8H0L6 0Z" fill="rgb(55 48 163)" />
+          <path d="M6 1L11 8H1L6 1Z" stroke="rgba(99,102,241,0.6)" strokeWidth="0.5" fill="none" />
+        </svg>
+      </div>
+    )
+  }
+  return (
+    <div className="pointer-events-none absolute" style={{ ...arrowStyle, bottom: -8 }}>
+      <svg viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 8L0 0H12L6 8Z" fill="rgb(55 48 163)" />
+        <path d="M6 7L1 0H11L6 7Z" stroke="rgba(99,102,241,0.6)" strokeWidth="0.5" fill="none" />
+      </svg>
+    </div>
+  )
 }
 
 function PageProgress({ step }: { step: TourStepDef }) {
@@ -132,45 +165,43 @@ export function TourOverlay() {
   const rect    = useTargetRect(activeStep?.target ?? null, !!activeStep)
   const nextRef = useRef<HTMLButtonElement>(null)
 
-  // Keyboard: Escape → skip page, Enter/→ → advance
   useEffect(() => {
     if (!activeStep) return
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape')                      skipPage()
+      if (e.key === 'Escape')                          skipPage()
       if (e.key === 'Enter' || e.key === 'ArrowRight') advance()
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [activeStep, advance, skipPage])
 
-  // Move focus into bubble so keyboard users can interact
   useEffect(() => {
     if (activeStep) nextRef.current?.focus()
   }, [activeStep])
 
   if (!activeStep) return null
 
-  const pageSteps = TOUR_STEPS.filter(s => s.page === activeStep.page)
-  const isLast = pageSteps[pageSteps.length - 1]?.id === activeStep.id
+  const pageSteps  = TOUR_STEPS.filter(s => s.page === activeStep.page)
+  const isLast     = pageSteps[pageSteps.length - 1]?.id === activeStep.id
+  const { style: bStyle, placement } = getBubblePlacement(rect)
 
   return (
     <>
-      {/* Full-screen click blocker — prevents interacting with content behind overlay */}
-      <div className="fixed inset-0 z-[65] bg-black/65" aria-hidden="true" />
+      {/* Highlight ring (only when target element found) */}
+      {rect && <HighlightRing rect={rect} />}
 
-      {/* Spotlight visual holes (rendered above blocker, pointer-events-none) */}
-      {rect && <Spotlight rect={rect} />}
-
-      {/* Bubble — above everything, acts as dialog for a11y */}
+      {/* Bubble */}
       <div
         role="dialog"
         aria-modal="true"
         aria-label={`Tour: ${activeStep.title}`}
-        className="fixed z-[80] w-80 bg-indigo-950 border border-indigo-600/60 rounded-xl p-4 shadow-2xl shadow-black/60"
-        style={bubbleStyle(rect)}
+        className="fixed z-[80] w-80 bg-indigo-950 border border-indigo-500/70 rounded-xl p-4 shadow-2xl shadow-black/70"
+        style={bStyle}
       >
-        <PageProgress step={activeStep} />
+        {/* Arrow connector (only when target found and not centered) */}
+        {rect && <BubbleArrow rect={rect} placement={placement} />}
 
+        <PageProgress step={activeStep} />
         <p className="text-sm font-semibold text-white mb-1">{activeStep.title}</p>
         <p className="text-xs text-zinc-300 leading-relaxed mb-4">{activeStep.body}</p>
 

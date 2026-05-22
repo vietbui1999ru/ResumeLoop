@@ -108,7 +108,7 @@ git commit -m "feat: add pdf_path column migration to jd_outputs"
 - [ ] **Step 2: Install harness dependencies**
 
 ```bash
-cd /Users/vietquocbui/repos/ResumeAnalyze/harness && npm install
+cd /Users/vietquocbui/repos/ResumeLoop/harness && npm install
 ```
 Expected: `node_modules/` created with mammoth and puppeteer. Puppeteer downloads Chromium (~170MB) on first install.
 

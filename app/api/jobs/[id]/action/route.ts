@@ -6,6 +6,7 @@ import { auth } from '@/lib/auth'
 import { getAdapter } from '@/lib/db-adapter'
 import { getSetting } from '@/lib/settings'
 import { VALID_ACTIONS } from '@/lib/actions'
+import { isCloud } from '@/lib/app-mode'
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -27,24 +28,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   )
   if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  let realFilePath: string
-  try {
-    const jobsDir = fs.realpathSync(await getSetting('jobs_path'))
-    realFilePath  = fs.realpathSync(job.file_path)
-    if (!realFilePath.startsWith(jobsDir + path.sep)) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  // Frontmatter sync is local-only and skipped for pasted jobs (no backing file).
+  // Cloud deployments have no access to the user's filesystem.
+  if (!isCloud() && job.file_path !== 'pasted') {
+    try {
+      const jobsDir  = fs.realpathSync(await getSetting('jobs_path'))
+      const realPath = fs.realpathSync(job.file_path)
+      if (!realPath.startsWith(jobsDir + path.sep)) {
+        return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      }
+      const { data: fm, content } = matter(fs.readFileSync(realPath, 'utf8'))
+      fm.Action = action
+      fs.writeFileSync(realPath, matter.stringify(content, fm), 'utf8')
+    } catch {
+      // File moved or deleted — skip frontmatter sync, DB update below still applies
     }
-  } catch {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  }
-
-  try {
-    const fileContent = fs.readFileSync(realFilePath, 'utf8')
-    const { data: fm, content } = matter(fileContent)
-    fm.Action = action
-    fs.writeFileSync(realFilePath, matter.stringify(content, fm), 'utf8')
-  } catch {
-    return NextResponse.json({ error: 'File write failed' }, { status: 500 })
   }
 
   await db.run('UPDATE jd_jobs SET action = ? WHERE id = ? AND user_id = ?', [action, id, userId])

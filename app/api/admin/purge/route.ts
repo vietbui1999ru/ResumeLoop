@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { timingSafeEqual } from 'crypto'
 import { getAdapter } from '@/lib/db-adapter'
 import { isCloud } from '@/lib/app-mode'
+import { deleteUserOutputs } from '@/lib/storage'
 
 function safeCompare(a: string, b: string): boolean {
   if (a.length !== b.length) return false
@@ -42,11 +43,15 @@ export async function POST(req: Request) {
       await db.run(`DELETE FROM app_settings              WHERE key LIKE ?`, [`active_ai_provider:${user.id}`])
       await db.run(`DELETE FROM users                     WHERE id      = ?`, [user.id])
       await db.run('COMMIT')
-      // TODO: add S3 file cleanup here (list + delete objects under outputs/<userId>/)
     } catch (e) {
       await db.run('ROLLBACK').catch(() => {})
       throw e
     }
+    // S3 cleanup runs outside the DB transaction — a partial S3 failure should not
+    // roll back the DB deletion. Errors are logged but do not fail the request.
+    await deleteUserOutputs(user.id).catch(err =>
+      console.error(`[purge] S3 cleanup failed for user ${user.id}:`, err)
+    )
   }
 
   return NextResponse.json({ purged: users.length })

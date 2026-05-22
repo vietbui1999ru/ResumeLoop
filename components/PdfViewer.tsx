@@ -11,10 +11,11 @@ export default function PdfViewer({ url }: Props) {
 
   useEffect(() => {
     let objectUrl: string | null = null
+    const ac = new AbortController()
     setBlobUrl(null)
     setError(null)
 
-    fetch(url)
+    fetch(url, { signal: ac.signal })
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.arrayBuffer()
@@ -25,11 +26,13 @@ export default function PdfViewer({ url }: Props) {
         setBlobUrl(objectUrl)
       })
       .catch(e => {
-        console.error('[PdfViewer] fetch error:', e.message)
-        setError(e.message)
+        if ((e as DOMException)?.name === 'AbortError') return
+        console.error('[PdfViewer] fetch error:', (e as Error).message)
+        setError((e as Error).message)
       })
 
     return () => {
+      ac.abort()
       if (objectUrl) URL.revokeObjectURL(objectUrl)
     }
   }, [url])
@@ -47,10 +50,10 @@ export default function PdfViewer({ url }: Props) {
   )
 
   return (
-    <embed
+    <iframe
       src={blobUrl}
-      type="application/pdf"
-      className="absolute inset-0 w-full h-full"
+      title="Resume PDF"
+      className="absolute inset-0 w-full h-full border-0"
     />
   )
 }

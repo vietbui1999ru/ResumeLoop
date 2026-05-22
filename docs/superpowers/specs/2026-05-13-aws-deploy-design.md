@@ -88,13 +88,13 @@ Diagram + table explaining each service's role before any commands.
 ```bash
 bash infra/setup-aws.sh
 ```
-Creates: ECR repo, S3 bucket, 7 Secrets Manager placeholders, GitHub OIDC provider, `GitHubActionsResumeAnalyze` IAM role (ECR push).
+Creates: ECR repo, S3 bucket, 7 Secrets Manager placeholders, GitHub OIDC provider, `GitHubActionsResumeLoop` IAM role (ECR push).
 
 After script completes, add two more permissions to the GitHub Actions role:
 ```bash
 # Allow ECS deploy + CloudFront invalidation from CI
 aws iam put-role-policy \
-  --role-name GitHubActionsResumeAnalyze \
+  --role-name GitHubActionsResumeLoop \
   --policy-name ECSAndCFDeploy \
   --policy-document '{
     "Version":"2012-10-17",
@@ -110,24 +110,24 @@ Also create the ECS task execution role (needed for ECR pull + Secrets Manager a
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
 aws iam create-role \
-  --role-name ECSTaskResumeAnalyze \
+  --role-name ECSTaskResumeLoop \
   --assume-role-policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"ecs-tasks.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
 
 sed "s/<ACCOUNT_ID>/$ACCOUNT_ID/g" infra/iam-policy.json > /tmp/policy.json
 
 aws iam put-role-policy \
-  --role-name ECSTaskResumeAnalyze \
-  --policy-name ResumeAnalyzePolicy \
+  --role-name ECSTaskResumeLoop \
+  --policy-name ResumeLoopPolicy \
   --policy-document file:///tmp/policy.json
 
 # Standard ECS execution role policy (ECR pull + CloudWatch logs)
 aws iam attach-role-policy \
-  --role-name ECSTaskResumeAnalyze \
+  --role-name ECSTaskResumeLoop \
   --policy-arn arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
 ```
 
 ### Part 2 — Neon database
-1. Sign up at neon.tech → create project `resumeanalyze` → region `us-east-1`
+1. Sign up at neon.tech → create project `resumeloop` → region `us-east-1`
 2. Dashboard → Connection Details → copy **Pooled connection string**
 3. Format: `postgresql://user:pass@host/dbname?sslmode=require`
 
@@ -135,17 +135,17 @@ aws iam attach-role-policy \
 
 | Secret path | Value | How to get it |
 |---|---|---|
-| `resumeanalyze/prod/APP_MODE` | `cloud` | Literal |
-| `resumeanalyze/prod/DATABASE_URL` | Neon pooled string | Neon dashboard |
-| `resumeanalyze/prod/AUTH_SECRET` | `openssl rand -hex 32` | Run locally |
-| `resumeanalyze/prod/ENCRYPTION_KEY` | `openssl rand -hex 32` | Run locally |
-| `resumeanalyze/prod/NEXTAUTH_URL` | API Gateway URL | Fill after Part 5 |
-| `resumeanalyze/prod/S3_BUCKET` | `resumeanalyze-outputs-<account-id>` | Output of setup script |
-| `resumeanalyze/prod/AWS_REGION` | `us-east-1` | Literal |
+| `resumeloop/prod/APP_MODE` | `cloud` | Literal |
+| `resumeloop/prod/DATABASE_URL` | Neon pooled string | Neon dashboard |
+| `resumeloop/prod/AUTH_SECRET` | `openssl rand -hex 32` | Run locally |
+| `resumeloop/prod/ENCRYPTION_KEY` | `openssl rand -hex 32` | Run locally |
+| `resumeloop/prod/NEXTAUTH_URL` | API Gateway URL | Fill after Part 5 |
+| `resumeloop/prod/S3_BUCKET` | `resumeloop-outputs-<account-id>` | Output of setup script |
+| `resumeloop/prod/AWS_REGION` | `us-east-1` | Literal |
 
 ```bash
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/<NAME> \
+  --secret-id resumeloop/prod/<NAME> \
   --secret-string "<value>"
 ```
 
@@ -153,7 +153,7 @@ aws secretsmanager update-secret \
 
 ```bash
 # Create cluster (free — you pay for tasks, not the cluster)
-aws ecs create-cluster --cluster-name resumeanalyze
+aws ecs create-cluster --cluster-name resumeloop
 
 # Register task definition (fills ACCOUNT_ID automatically)
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
@@ -166,21 +166,21 @@ aws ecs register-task-definition --cli-input-json file:///tmp/task-def.json
 
 ### Part 5 — ECS service + API Gateway (Console — callout boxes)
 
-**> Console:** ECS → Clusters → resumeanalyze → Create service
+**> Console:** ECS → Clusters → resumeloop → Create service
 
 Exact field values:
 - Launch type: Fargate
 - Architecture: ARM64
-- Task definition: `resumeanalyze` (latest)
-- Service name: `resumeanalyze`
+- Task definition: `resumeloop` (latest)
+- Service name: `resumeloop`
 - Desired tasks: `1`
 - Networking: public subnet, assign public IP enabled, security group allows inbound TCP 3000
 - No load balancer
 
 After service is running, get the task's public IP:
 ```bash
-TASK_ARN=$(aws ecs list-tasks --cluster resumeanalyze --query 'taskArns[0]' --output text)
-PUBLIC_IP=$(aws ecs describe-tasks --cluster resumeanalyze --tasks $TASK_ARN \
+TASK_ARN=$(aws ecs list-tasks --cluster resumeloop --query 'taskArns[0]' --output text)
+PUBLIC_IP=$(aws ecs describe-tasks --cluster resumeloop --tasks $TASK_ARN \
   --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' \
   --output text | xargs -I{} aws ec2 describe-network-interfaces \
   --network-interface-ids {} \
@@ -190,7 +190,7 @@ echo "Task public IP: $PUBLIC_IP"
 
 **> Console:** API Gateway → HTTP APIs → Create
 
-- Name: `resumeanalyze`
+- Name: `resumeloop`
 - Integration: HTTP, URL `http://$PUBLIC_IP:3000`
 - Route: `$default` → ANY → `/`
 - Stage: `$default` (auto-deploy)
@@ -200,7 +200,7 @@ Copy the API Gateway invoke URL — this is your app's HTTPS URL.
 Update `NEXTAUTH_URL` secret:
 ```bash
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/NEXTAUTH_URL \
+  --secret-id resumeloop/prod/NEXTAUTH_URL \
   --secret-string "https://<api-gateway-id>.execute-api.us-east-1.amazonaws.com"
 ```
 
@@ -241,19 +241,19 @@ deploy-fargate:
       run: |
         # Force new deployment — pulls latest image
         aws ecs update-service \
-          --cluster resumeanalyze \
-          --service resumeanalyze \
+          --cluster resumeloop \
+          --service resumeloop \
           --force-new-deployment
 
         # Wait for new task to be running
         aws ecs wait services-stable \
-          --cluster resumeanalyze \
-          --services resumeanalyze
+          --cluster resumeloop \
+          --services resumeloop
 
         # Get new task's public IP
-        TASK_ARN=$(aws ecs list-tasks --cluster resumeanalyze \
-          --service-name resumeanalyze --query 'taskArns[0]' --output text)
-        ENI_ID=$(aws ecs describe-tasks --cluster resumeanalyze --tasks $TASK_ARN \
+        TASK_ARN=$(aws ecs list-tasks --cluster resumeloop \
+          --service-name resumeloop --query 'taskArns[0]' --output text)
+        ENI_ID=$(aws ecs describe-tasks --cluster resumeloop --tasks $TASK_ARN \
           --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' \
           --output text)
         PUBLIC_IP=$(aws ec2 describe-network-interfaces \
@@ -293,7 +293,7 @@ git push origin main
 Monitor ECS deployment:
 ```bash
 aws ecs describe-services \
-  --cluster resumeanalyze --services resumeanalyze \
+  --cluster resumeloop --services resumeloop \
   --query 'services[0].{Status:status,Running:runningCount,Desired:desiredCount}'
 ```
 
@@ -308,35 +308,35 @@ ECS natively injects Secrets Manager values as env vars via the `secrets` array 
 
 ```json
 {
-  "family": "resumeanalyze",
+  "family": "resumeloop",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "256",
   "memory": "512",
   "runtimePlatform": { "cpuArchitecture": "ARM64", "operatingSystemFamily": "LINUX" },
-  "executionRoleArn": "arn:aws:iam::<ACCOUNT_ID>:role/ECSTaskResumeAnalyze",
-  "taskRoleArn": "arn:aws:iam::<ACCOUNT_ID>:role/ECSTaskResumeAnalyze",
+  "executionRoleArn": "arn:aws:iam::<ACCOUNT_ID>:role/ECSTaskResumeLoop",
+  "taskRoleArn": "arn:aws:iam::<ACCOUNT_ID>:role/ECSTaskResumeLoop",
   "containerDefinitions": [{
     "name": "app",
-    "image": "<ECR_REGISTRY>/resumeanalyze:latest",
+    "image": "<ECR_REGISTRY>/resumeloop:latest",
     "portMappings": [{ "containerPort": 3000, "protocol": "tcp" }],
     "logConfiguration": {
       "logDriver": "awslogs",
       "options": {
-        "awslogs-group": "/ecs/resumeanalyze",
+        "awslogs-group": "/ecs/resumeloop",
         "awslogs-region": "us-east-1",
         "awslogs-stream-prefix": "app",
         "awslogs-create-group": "true"
       }
     },
     "secrets": [
-      {"name":"APP_MODE",       "valueFrom":"arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeanalyze/prod/APP_MODE"},
-      {"name":"DATABASE_URL",   "valueFrom":"arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeanalyze/prod/DATABASE_URL"},
-      {"name":"AUTH_SECRET",    "valueFrom":"arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeanalyze/prod/AUTH_SECRET"},
-      {"name":"ENCRYPTION_KEY", "valueFrom":"arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeanalyze/prod/ENCRYPTION_KEY"},
-      {"name":"NEXTAUTH_URL",   "valueFrom":"arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeanalyze/prod/NEXTAUTH_URL"},
-      {"name":"S3_BUCKET",      "valueFrom":"arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeanalyze/prod/S3_BUCKET"},
-      {"name":"AWS_REGION",     "valueFrom":"arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeanalyze/prod/AWS_REGION"}
+      {"name":"APP_MODE",       "valueFrom":"arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeloop/prod/APP_MODE"},
+      {"name":"DATABASE_URL",   "valueFrom":"arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeloop/prod/DATABASE_URL"},
+      {"name":"AUTH_SECRET",    "valueFrom":"arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeloop/prod/AUTH_SECRET"},
+      {"name":"ENCRYPTION_KEY", "valueFrom":"arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeloop/prod/ENCRYPTION_KEY"},
+      {"name":"NEXTAUTH_URL",   "valueFrom":"arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeloop/prod/NEXTAUTH_URL"},
+      {"name":"S3_BUCKET",      "valueFrom":"arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeloop/prod/S3_BUCKET"},
+      {"name":"AWS_REGION",     "valueFrom":"arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeloop/prod/AWS_REGION"}
     ],
     "essential": true
   }]
@@ -358,7 +358,7 @@ const SAFE_ORIGINS = new Set([
 
 - Replace all App Runner references with ECS Fargate equivalents
 - Update "Rollback" section: `aws ecs update-service --task-definition <family>:<revision>`
-- Update "Logs" section: CloudWatch log group `/ecs/resumeanalyze`
+- Update "Logs" section: CloudWatch log group `/ecs/resumeloop`
 - Update "Scaling" section: ECS service desired count + auto-scaling policies
 - Update "Pause service (stop billing)": `aws ecs update-service --desired-count 0`
 
@@ -374,7 +374,7 @@ const SAFE_ORIGINS = new Set([
 | ECR storage | ~$0.10/mo |
 | **Total** | **~$10-11/mo** |
 
-Pause service when not in use: `aws ecs update-service --cluster resumeanalyze --service resumeanalyze --desired-count 0` → $0/mo idle.
+Pause service when not in use: `aws ecs update-service --cluster resumeloop --service resumeloop --desired-count 0` → $0/mo idle.
 
 ## Out of Scope
 

@@ -7,11 +7,19 @@ import { getAdapter } from '@/lib/db-adapter'
 import { getSetting } from '@/lib/settings'
 import { parseJd } from '@/lib/jd-parser'
 import { scoreJd } from '@/lib/fit-scorer'
+import { isCloud } from '@/lib/app-mode'
 
 export async function POST() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const userId = session.user.id
+
+  if (isCloud()) {
+    return NextResponse.json(
+      { error: 'Filesystem scanning is not available in cloud mode. Upload your JD files directly instead.' },
+      { status: 400 },
+    )
+  }
 
   const jobsDir = await getSetting('jobs_path')
   if (!jobsDir || !fs.existsSync(jobsDir)) {

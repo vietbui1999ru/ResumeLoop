@@ -1,7 +1,7 @@
 # Issue Tracker
 
 **Platform:** GitHub
-**Repository:** `github.com/vietbui1999ru/ObsidianTasks` (pending rename to ResumeAnalyze)
+**Repository:** See your GitHub remote — `git remote get-url origin`
 
 ## Usage
 

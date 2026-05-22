@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectsCommand, ListObjectsV2Command } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import fs from 'fs'
 import { isCloud } from './app-mode'
@@ -36,4 +36,31 @@ export async function getPresignedUrl(pathOrKey: string, expiresIn = 3600): Prom
 
 export function isS3Key(pathOrKey: string): boolean {
   return pathOrKey.startsWith(S3_PREFIX)
+}
+// Delete all S3 objects under outputs/<userId>/ — called on account hard-delete.
+// No-op in local mode. Non-fatal per-object errors are swallowed; any S3 error is re-thrown.
+export async function deleteUserOutputs(userId: string): Promise<void> {
+  if (!isCloud()) return
+  const b      = bucket()
+  const client = s3()
+  const prefix = `outputs/${userId}/`
+
+  let continuationToken: string | undefined
+  do {
+    const list = await client.send(new ListObjectsV2Command({
+      Bucket:            b,
+      Prefix:            prefix,
+      ContinuationToken: continuationToken,
+    }))
+
+    const keys = (list.Contents ?? []).map(o => ({ Key: o.Key! })).filter(o => o.Key)
+    if (keys.length > 0) {
+      await client.send(new DeleteObjectsCommand({
+        Bucket: b,
+        Delete: { Objects: keys, Quiet: true },
+      }))
+    }
+
+    continuationToken = list.IsTruncated ? list.NextContinuationToken : undefined
+  } while (continuationToken)
 }

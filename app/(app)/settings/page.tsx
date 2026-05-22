@@ -1,9 +1,9 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { signOut } from 'next-auth/react'
 import { Skeleton } from '@/components/Skeleton'
 import { CloudFolderPicker } from '@/components/CloudFolderPicker'
 import { FONT_SIZES, type FontSize, applyFontSize, isValidFontSize, FONT_SIZE_KEY, FONT_SIZE_LABELS } from '@/lib/font-size'
+import { JobImportGuide } from '@/components/JobImportGuide'
 
 // ── AI Provider types ────────────────────────────────────────────────────────
 type Provider = 'anthropic' | 'openai' | 'google' | 'groq' | 'openrouter' | 'ollama'
@@ -275,6 +275,7 @@ interface Settings {
   jobs_path:            string
   output_path:          string
   outreach_path:        string
+  firecrawl_configured: boolean
   jobs_path_exists:     boolean
   output_path_exists:   boolean
   outreach_path_exists: boolean
@@ -456,16 +457,23 @@ function FolderPicker({
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null)
+  const [settingsError, setSettingsError] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [newFirecrawlKey, setNewFirecrawlKey] = useState('')
   const [saveStatus, setSaveStatus] = useState('')
+  const [showImportGuide, setShowImportGuide] = useState(false)
 
   useEffect(() => {
     fetch('/api/settings')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data) setSettings(data) })
+      .then(r => r.ok ? r.json() as Promise<Settings> : null)
+      .then(data => {
+        if (data) setSettings(data)
+        else setSettingsError(true)
+      })
+      .catch(() => setSettingsError(true))
   }, [])
 
-  const save = async (patch: Partial<Pick<Settings, 'jobs_path' | 'output_path' | 'outreach_path'>>) => {
+  const save = async (patch: Partial<Pick<Settings, 'jobs_path' | 'output_path' | 'outreach_path'> & { firecrawl_key?: string }>) => {
     if (!settings) return
     const next = { ...settings, ...patch }
     setSettings(next)
@@ -486,7 +494,11 @@ export default function SettingsPage() {
     setTimeout(() => setSaveStatus(''), 2000)
   }
 
-  if (!settings) return (
+  if (!settings) return settingsError ? (
+    <div className="max-w-2xl mx-auto p-6">
+      <p className="text-sm text-red-400">Failed to load settings — please refresh the page.</p>
+    </div>
+  ) : (
     <div className="space-y-3">
       {Array.from({ length: 3 }).map((_, i) => (
         <Skeleton key={i} className="h-10 w-full rounded-lg" />
@@ -519,10 +531,17 @@ export default function SettingsPage() {
               <CloudFolderPicker
                 handleKey="jobs-folder"
                 label="Job Postings Folder"
-                hint="Select the folder on your computer containing .md job description files. Used by Scan."
+                hint="Select the folder on your computer containing .md job description files. Scan reads files from your browser — no upload to server."
                 onSelect={name => name && save({ jobs_path: name })}
               />
             </div>
+            <button
+              data-tour="clipper-guide-btn"
+              onClick={() => setShowImportGuide(true)}
+              className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors -mt-1"
+            >
+              How to clip job listings with Obsidian Web Clipper →
+            </button>
 
             <CloudFolderPicker
               handleKey="output-folder"
@@ -552,6 +571,13 @@ export default function SettingsPage() {
                 onChange={p => save({ jobs_path: p })}
               />
             </div>
+            <button
+              data-tour="clipper-guide-btn"
+              onClick={() => setShowImportGuide(true)}
+              className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors -mt-1"
+            >
+              How to clip job listings with Obsidian Web Clipper →
+            </button>
 
             <FolderPicker
               label="Resume Output Folder"
@@ -608,14 +634,36 @@ export default function SettingsPage() {
         In Docker, use container-side paths (e.g. <code>/jobs</code>, <code>/output</code>).
       </p>
 
-      <div className="pt-4 border-t border-zinc-800">
-        <button
-          onClick={() => signOut({ callbackUrl: '/auth/signin' })}
-          className="text-sm px-4 py-2 bg-zinc-800 hover:bg-red-900/40 border border-zinc-700 hover:border-red-700/50 text-zinc-400 hover:text-red-400 rounded transition-colors"
-        >
-          Sign out
-        </button>
+      <div className="space-y-3">
+        <h2 className="text-xs font-semibold text-zinc-500 uppercase">Integrations</h2>
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-zinc-300">
+            Firecrawl API Key
+            <span className="ml-2 text-xs text-zinc-500">(optional — richer URL scraping)</span>
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="password"
+              value={newFirecrawlKey}
+              onChange={e => setNewFirecrawlKey(e.target.value)}
+              onBlur={() => {
+                if (newFirecrawlKey.trim()) {
+                  void save({ firecrawl_key: newFirecrawlKey.trim() })
+                  setNewFirecrawlKey('')
+                  setSettings(s => s ? { ...s, firecrawl_configured: true } : s)
+                }
+              }}
+              placeholder={settings.firecrawl_configured ? 'key saved — paste new key to replace' : 'fc-...'}
+              className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm text-zinc-200 font-mono"
+            />
+          </div>
+          <p className="text-xs text-zinc-500">
+            Get a key at firecrawl.dev. Without a key, URL ingestion uses basic HTML fetch.
+          </p>
+        </div>
       </div>
+
+      {showImportGuide && <JobImportGuide onClose={() => setShowImportGuide(false)} />}
     </div>
   )
 }

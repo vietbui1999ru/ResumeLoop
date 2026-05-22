@@ -6,6 +6,8 @@ import { randomUUID } from 'crypto'
 import { getAdapter } from './db-adapter'
 import { authConfig } from './auth.config'
 import { validateCredentials, type UserRow } from './auth-credentials'
+import { checkRateLimitAsync } from './rate-limit'
+import { seedWelcomeOutput } from './account'
 
 declare module 'next-auth' {
   interface Session {
@@ -23,8 +25,58 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   callbacks: {
     ...authConfig.callbacks,
+    // Re-validate user state on every server-side auth() call.
+    // Catches deleted accounts and password changes without waiting for JWT expiry.
+    // Edge middleware uses auth.config.ts which skips this (no DB access on Edge).
+    async jwt({ token, user, account }) {
+      // OAuth first sign-in: look up the DB user via oauth_accounts rather than
+      // relying on user.id mutations from signIn — in NextAuth v5, user.id in the
+      // jwt callback reflects the provider's profile.sub (e.g. Google's numeric ID),
+      // not the UUID set on the user object inside signIn.  The signIn callback
+      // already created/linked the row, so the lookup here always succeeds.
+      if (account?.type === 'oauth' || account?.type === 'oidc') {
+        const db = await getAdapter()
+        const linked = await db.queryOne<{ user_id: string }>(
+          `SELECT user_id FROM oauth_accounts WHERE provider = ? AND provider_account_id = ?`,
+          [account.provider, account.providerAccountId],
+        )
+        if (!linked?.user_id) {
+          // signIn should have inserted the oauth_account row; if it's missing,
+          // returning null forces re-login rather than storing Google's sub as user ID,
+          // which would silently create a broken session (all API calls 401).
+          return null
+        }
+        token.id     = linked.user_id
+        token.isDemo = (user as { isDemo?: boolean })?.isDemo ?? false
+        return token
+      }
+
+      if (user) {
+        // Credentials sign-in: user.id is the DB UUID from validateCredentials
+        token.id     = user.id
+        token.isDemo = (user as { isDemo: boolean }).isDemo
+        return token
+      }
+      if (token.id) {
+        try {
+          const db = await getAdapter()
+          const row = await db.queryOne<{ deleted_at: string | null; password_changed_at: string | null }>(
+            `SELECT deleted_at, password_changed_at FROM users WHERE id = ?`,
+            [token.id as string],
+          )
+          if (!row || row.deleted_at) return null
+          if (row.password_changed_at && token.iat) {
+            const changedMs = new Date(row.password_changed_at).getTime()
+            if (changedMs > (token.iat as number) * 1000) return null
+          }
+        } catch {
+          // DB unavailable — allow existing token to continue (fail open)
+        }
+      }
+      return token
+    },
     async signIn({ user, account, profile }) {
-      if (account?.type !== 'oauth') return true
+      if (account?.type !== 'oauth' && account?.type !== 'oidc') return true
 
       const email = user.email?.toLowerCase()
       if (!email) return false
@@ -54,10 +106,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (!dbUser) {
         const newId = randomUUID()
         await db.run(
-          `INSERT INTO users (id, email, password, email_verified) VALUES (?, ?, ?, 1)`,
+          `INSERT INTO users (id, email, password, email_verified) VALUES (?, ?, ?, ?)`,
           [newId, email, '', 1],
         )
         dbUser = { id: newId, is_demo: 0 }
+        // Seed sample job + output so new OAuth users see a non-empty dashboard.
+        // Fire-and-forget — a seed failure must not block sign-in.
+        seedWelcomeOutput(newId).catch(() => {})
       }
 
       // Record the OAuth account → user mapping
@@ -83,10 +138,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email:    { label: 'Email',    type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         const email    = (credentials?.email    as string | undefined)?.trim().toLowerCase()
         const password = (credentials?.password as string | undefined) ?? ''
         if (!email || !password) return null
+
+        // Rate limit: 10 attempts/min per IP, 20/hr per email address
+        const ip = (req as Request).headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+        const [rlIp, rlEmail] = await Promise.all([
+          checkRateLimitAsync(`auth:login:ip:${ip}`,    10,    60_000),
+          checkRateLimitAsync(`auth:login:email:${email}`, 20, 3_600_000),
+        ])
+        if (!rlIp.success || !rlEmail.success) return null
 
         const db = await getAdapter()
         const row = await db.queryOne<UserRow>(

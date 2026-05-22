@@ -66,7 +66,7 @@ aws iam create-open-id-connect-provider \
 
 # ── GitHub Actions OIDC role ──────────────────────────────────────────────────
 echo "Creating GitHub Actions OIDC role..."
-GITHUB_REPO="vietbui1999ru/ResumeLoop"
+GITHUB_REPO="${GITHUB_REPO:-YOUR_GITHUB_USERNAME/ResumeLoop}"  # set via env or edit before running
 
 TRUST_POLICY=$(cat <<EOF
 {

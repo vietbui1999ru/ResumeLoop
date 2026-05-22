@@ -1,11 +1,93 @@
 'use client'
-import { useState, FormEvent } from 'react'
+import { useState, useEffect, useRef, FormEvent } from 'react'
 import { signOut, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+
+interface ContactFields {
+  name?: string
+  phone?: string
+  location?: string
+  email?: string
+  linkedin?: string
+  portfolio?: string
+  github?: string
+  work_auth?: string
+}
+
+const CONTACT_LABELS: Record<keyof ContactFields, string> = {
+  name:      'Full name',
+  phone:     'Phone',
+  location:  'Location',
+  email:     'Resume email',
+  linkedin:  'LinkedIn',
+  portfolio: 'Portfolio',
+  github:    'GitHub',
+  work_auth: 'Work authorization',
+}
 
 export default function AccountPage() {
   const { data: session } = useSession()
   const router = useRouter()
+
+  // Personal info (contact) state
+  const [activeProfileId, setActiveProfileId] = useState<string | null | 'none'>('none')
+  const [contact,         setContact]         = useState<ContactFields>({})
+  const [contactLoading,  setContactLoading]  = useState(true)
+  const [contactSaving,   setContactSaving]   = useState(false)
+  const [contactStatus,   setContactStatus]   = useState('')
+  const statusTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  useEffect(() => {
+    return () => { clearTimeout(statusTimerRef.current) }
+  }, [])
+
+  useEffect(() => {
+    const ac = new AbortController()
+    async function loadContact() {
+      setContactLoading(true)
+      try {
+        const listRes = await fetch('/api/profiles', { signal: ac.signal })
+        if (!listRes.ok) return
+        const { profiles } = await listRes.json() as { profiles: { id: string; is_active: number }[] }
+        const active = profiles.find(p => p.is_active === 1) ?? profiles[0] ?? null
+        if (!active) { setActiveProfileId(null); return }
+        setActiveProfileId(active.id)
+        const profileRes = await fetch(`/api/profiles/${active.id}`, { signal: ac.signal })
+        if (!profileRes.ok) return
+        const profile = await profileRes.json() as { data: string }
+        const parsed = (() => { try { return JSON.parse(profile.data) } catch { return {} } })()
+        setContact(parsed.contact ?? {})
+      } catch { /* AbortError or network error — loading cleared in finally */ } finally {
+        if (!ac.signal.aborted) setContactLoading(false)
+      }
+    }
+    void loadContact()
+    return () => ac.abort()
+  }, [])
+
+  const saveContact = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!activeProfileId || activeProfileId === 'none') return
+    setContactSaving(true)
+    setContactStatus('')
+    try {
+      const res = await fetch(`/api/profiles/${activeProfileId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contact }),
+      })
+      const data = await res.json() as { error?: string }
+      if (!res.ok) { setContactStatus(data.error ?? 'Failed'); return }
+      setContactStatus('Saved')
+    } catch {
+      setContactStatus('Save failed — try again')
+    } finally {
+      setContactSaving(false)
+      clearTimeout(statusTimerRef.current)
+      statusTimerRef.current = setTimeout(() => setContactStatus(''), 3000)
+    }
+  }
 
   // Password change form
   const [current,   setCurrent]   = useState('')
@@ -63,6 +145,48 @@ export default function AccountPage() {
     <div className="max-w-xl mx-auto p-6 space-y-12">
       <h1 className="text-lg font-semibold text-zinc-100">Account</h1>
 
+      {/* Personal info */}
+      <section data-tour="account-personal-info">
+        <h2 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-4">Personal info</h2>
+        {contactLoading ? (
+          <p className="text-xs text-zinc-500">Loading…</p>
+        ) : activeProfileId === null ? (
+          <p className="text-xs text-zinc-500">
+            No active resume profile —{' '}
+            <Link href="/config" className="text-indigo-400 hover:text-indigo-300 underline">
+              set one up on Config
+            </Link>
+          </p>
+        ) : (
+          <form onSubmit={saveContact} className="space-y-3 max-w-sm">
+            {(Object.keys(CONTACT_LABELS) as (keyof ContactFields)[]).map(field => (
+              <div key={field}>
+                <label className="text-xs text-zinc-500 block mb-1">{CONTACT_LABELS[field]}</label>
+                <input
+                  type="text"
+                  value={contact[field] ?? ''}
+                  onChange={e => setContact(prev => ({ ...prev, [field]: e.target.value }))}
+                  className="w-full text-sm bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+            ))}
+            {contactStatus && (
+              <p className={`text-xs ${contactStatus === 'Saved' ? 'text-green-400' : 'text-red-400'}`}>
+                {contactStatus}
+              </p>
+            )}
+            <p className="text-xs text-zinc-600">Updates the active resume profile · visible in Config</p>
+            <button
+              type="submit"
+              disabled={contactSaving || contactLoading || !activeProfileId || activeProfileId === 'none'}
+              className="py-2 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 rounded text-sm font-medium transition-colors"
+            >
+              {contactLoading ? 'Loading…' : contactSaving ? 'Saving…' : 'Save personal info'}
+            </button>
+          </form>
+        )}
+      </section>
+
       {/* Profile info */}
       <section className="space-y-2">
         <h2 className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Profile</h2>
@@ -70,6 +194,12 @@ export default function AccountPage() {
         {session?.user.isDemo && (
           <p className="text-xs text-amber-500">Demo account — data resets periodically</p>
         )}
+        <button
+          onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+          className="text-sm px-4 py-2 bg-zinc-800 hover:bg-red-900/40 border border-zinc-700 hover:border-red-700/50 text-zinc-400 hover:text-red-400 rounded transition-colors"
+        >
+          Sign out
+        </button>
       </section>
 
       {/* Change password */}

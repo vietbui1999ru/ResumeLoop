@@ -32,7 +32,7 @@
 - [ ] **Step 1: Create fixtures directory**
 
 ```bash
-mkdir -p /Users/vietquocbui/repos/ResumeAnalyze/harness/fixtures
+mkdir -p /Users/vietquocbui/repos/ResumeLoop/harness/fixtures
 ```
 
 - [ ] **Step 2: Create valid fixture**
@@ -203,8 +203,8 @@ build({
 - [ ] **Step 4: Commit fixtures**
 
 ```bash
-git -C /Users/vietquocbui/repos/ResumeAnalyze add harness/fixtures/
-git -C /Users/vietquocbui/repos/ResumeAnalyze commit -m "test: add validate.js fixtures (valid + invalid)"
+git -C /Users/vietquocbui/repos/ResumeLoop add harness/fixtures/
+git -C /Users/vietquocbui/repos/ResumeLoop commit -m "test: add validate.js fixtures (valid + invalid)"
 ```
 
 ---
@@ -267,7 +267,7 @@ if (failed > 0) process.exit(1);
 - [ ] **Step 2: Run tests — verify they fail (validate.js doesn't exist yet)**
 
 ```bash
-node /Users/vietquocbui/repos/ResumeAnalyze/harness/validate.test.js
+node /Users/vietquocbui/repos/ResumeLoop/harness/validate.test.js
 ```
 
 Expected: error `Cannot find module` — confirms test is wired correctly before implementation.
@@ -401,7 +401,7 @@ if (violations.length === 0) {
 - [ ] **Step 2: Run tests — verify they pass**
 
 ```bash
-node /Users/vietquocbui/repos/ResumeAnalyze/harness/validate.test.js
+node /Users/vietquocbui/repos/ResumeLoop/harness/validate.test.js
 ```
 
 Expected:
@@ -423,8 +423,8 @@ invalid fixture:
 - [ ] **Step 3: Smoke test against a real known-good build script**
 
 ```bash
-node /Users/vietquocbui/repos/ResumeAnalyze/harness/validate.js \
-  /Users/vietquocbui/repos/ResumeAnalyze/JobData/Jobs/adtran-embedded-swe.js
+node /Users/vietquocbui/repos/ResumeLoop/harness/validate.js \
+  /Users/vietquocbui/repos/ResumeLoop/JobData/Jobs/adtran-embedded-swe.js
 ```
 
 Expected: `✓ VALID`
@@ -432,8 +432,8 @@ Expected: `✓ VALID`
 - [ ] **Step 4: Commit**
 
 ```bash
-git -C /Users/vietquocbui/repos/ResumeAnalyze add harness/validate.js harness/validate.test.js
-git -C /Users/vietquocbui/repos/ResumeAnalyze commit -m "feat: add harness/validate.js — static constraint checker with tests"
+git -C /Users/vietquocbui/repos/ResumeLoop add harness/validate.js harness/validate.test.js
+git -C /Users/vietquocbui/repos/ResumeLoop commit -m "feat: add harness/validate.js — static constraint checker with tests"
 ```
 
 ---
@@ -446,7 +446,7 @@ git -C /Users/vietquocbui/repos/ResumeAnalyze commit -m "feat: add harness/valid
 - [ ] **Step 1: Create skill directory**
 
 ```bash
-mkdir -p /Users/vietquocbui/repos/ResumeAnalyze/.claude/skills/generate-resume
+mkdir -p /Users/vietquocbui/repos/ResumeLoop/.claude/skills/generate-resume
 ```
 
 - [ ] **Step 2: Create skill file**
@@ -679,8 +679,8 @@ Step 1 always runs before any drafting.
 - [ ] **Step 3: Commit**
 
 ```bash
-git -C /Users/vietquocbui/repos/ResumeAnalyze add .claude/skills/generate-resume/
-git -C /Users/vietquocbui/repos/ResumeAnalyze commit -m "feat: add generate-resume skill with checkpoint gates and validator integration"
+git -C /Users/vietquocbui/repos/ResumeLoop add .claude/skills/generate-resume/
+git -C /Users/vietquocbui/repos/ResumeLoop commit -m "feat: add generate-resume skill with checkpoint gates and validator integration"
 ```
 
 ---
@@ -715,9 +715,9 @@ harness/batch-build/
 - [ ] **Step 3: Verify gitignore**
 
 ```bash
-mkdir -p /Users/vietquocbui/repos/ResumeAnalyze/harness/batch-build
-touch /Users/vietquocbui/repos/ResumeAnalyze/harness/batch-build/test.docx
-git -C /Users/vietquocbui/repos/ResumeAnalyze status harness/
+mkdir -p /Users/vietquocbui/repos/ResumeLoop/harness/batch-build
+touch /Users/vietquocbui/repos/ResumeLoop/harness/batch-build/test.docx
+git -C /Users/vietquocbui/repos/ResumeLoop status harness/
 ```
 
 Expected: `harness/batch-build/` not listed as untracked. `harness/fixtures/` and `harness/validate.js` ARE listed (tracked).
@@ -725,8 +725,8 @@ Expected: `harness/batch-build/` not listed as untracked. `harness/fixtures/` an
 - [ ] **Step 4: Commit**
 
 ```bash
-git -C /Users/vietquocbui/repos/ResumeAnalyze add agents/AGENT.md .gitignore
-git -C /Users/vietquocbui/repos/ResumeAnalyze commit -m "chore: point AGENT.md to skill, gitignore harness/batch-build"
+git -C /Users/vietquocbui/repos/ResumeLoop add agents/AGENT.md .gitignore
+git -C /Users/vietquocbui/repos/ResumeLoop commit -m "chore: point AGENT.md to skill, gitignore harness/batch-build"
 ```
 
 ---

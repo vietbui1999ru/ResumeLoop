@@ -26,7 +26,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const userId = session.user.id
 
   const { id } = await params
-  const body = await req.json() as { hidden?: number; apply_url?: string | null; tags?: string[] }
+  const body = await req.json() as { hidden?: number; apply_url?: string | null; tags?: string[]; role_title?: string }
   const db = await getAdapter()
 
   if ('hidden' in body) {
@@ -47,6 +47,12 @@ export async function PATCH(req: Request, { params }: Ctx) {
   if ('tags' in body && Array.isArray(body.tags)) {
     await db.run('UPDATE jd_jobs SET tags = ? WHERE id = ? AND user_id = ?',
       [JSON.stringify(body.tags), id, userId])
+  }
+
+  if ('role_title' in body) {
+    const title = body.role_title?.trim()
+    if (!title) return NextResponse.json({ error: 'role_title cannot be empty' }, { status: 400 })
+    await db.run('UPDATE jd_jobs SET role_title = ? WHERE id = ? AND user_id = ?', [title, id, userId])
   }
 
   return NextResponse.json({ ok: true })

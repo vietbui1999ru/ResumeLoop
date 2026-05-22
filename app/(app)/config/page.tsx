@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { Skeleton } from '@/components/Skeleton'
+import { BulletsPreview } from '@/components/BulletsPreview'
 import type { editor as MonacoEditorNS } from 'monaco-editor'
 import { parse as jsonSourceMap } from 'json-source-map'
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false })
@@ -13,165 +14,6 @@ interface Profile {
   name: string
   is_active: number
   created_at: string
-}
-
-// ── Char-limit bullet preview ─────────────────────────────────────────────────
-
-const MAX_BULLET = 116
-
-function charColor(len: number): string {
-  if (len > MAX_BULLET) return 'border-red-500 text-red-300 bg-red-950/20'
-  if (len > 100)        return 'border-amber-500 text-amber-200 bg-amber-950/10'
-  return 'border-zinc-700 text-zinc-300'
-}
-
-function BulletsPreview({ json, onJump }: { json: string; onJump?: (path: string) => void }) {
-  let parsed: {
-    experience?: Array<{ id: string; bullets: Record<string, string[]> }>
-    projects?:   Array<{ id: string; name?: string; bullets: string[] }>
-  } | null = null
-
-  try { parsed = JSON.parse(json) } catch { /* ignore parse errors */ }
-
-  if (!parsed) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-zinc-400 text-xs font-mono px-4">
-        Invalid JSON — fix syntax errors to see preview
-      </div>
-    )
-  }
-
-  const experience = parsed.experience ?? []
-  const projects   = parsed.projects ?? []
-
-  // skills structure: string[] | Record<string,string> | Record<string, Record<string,string>>
-  const rawSkills = (parsed as Record<string, unknown>).skills ?? []
-  type SkillRow = { variant?: string; label: string; value: string }
-  const skillRows: SkillRow[] = (() => {
-    if (Array.isArray(rawSkills)) {
-      return (rawSkills as unknown[]).map((v, i) =>
-        typeof v === 'string'
-          ? { label: `row ${i}`, value: v }
-          : { label: `row ${i}`, value: JSON.stringify(v) }
-      )
-    }
-    if (typeof rawSkills !== 'object' || rawSkills === null) return []
-    const rows: SkillRow[] = []
-    for (const [k, v] of Object.entries(rawSkills as Record<string, unknown>)) {
-      if (typeof v === 'string') {
-        rows.push({ label: k, value: v })
-      } else if (typeof v === 'object' && v !== null) {
-        for (const [cat, val] of Object.entries(v as Record<string, unknown>)) {
-          rows.push({ variant: k, label: cat, value: typeof val === 'string' ? val : JSON.stringify(val) })
-        }
-      }
-    }
-    return rows
-  })()
-
-  const allEmpty = experience.length === 0 && projects.length === 0 && skillRows.length === 0
-
-  if (allEmpty) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-zinc-400 text-xs font-mono px-4">
-        No entries found. Expected: experience[], projects[], skills[]
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5 text-xs font-mono">
-      {experience.length > 0 && (
-        <section>
-          <p className="text-zinc-500 uppercase tracking-widest text-2xs mb-2">Work</p>
-          {experience.map((exp, ei) => (
-            <div key={exp.id} className="mb-3">
-              <p
-                className="text-indigo-400 mb-1 cursor-pointer hover:text-indigo-300"
-                onClick={() => onJump?.(`/experience/${ei}`)}
-                title="Jump to JSON"
-              >{exp.id}</p>
-              {Object.entries(exp.bullets).map(([variant, bullets]) => (
-                <div key={variant} className="mb-2 ml-2">
-                  <p className="text-zinc-400 text-2xs mb-1">[{variant}]</p>
-                  {(bullets as string[]).map((b, bi) => {
-                    const len = b.length
-                    return (
-                      <div
-                        key={bi}
-                        className={`flex items-start gap-2 border-l-2 pl-2 py-0.5 mb-0.5 cursor-pointer hover:opacity-80 ${charColor(len)}`}
-                        onClick={() => onJump?.(`/experience/${ei}/bullets/${variant}/${bi}`)}
-                        title="Jump to JSON"
-                      >
-                        <span className="flex-1 leading-relaxed">{b}</span>
-                        <span className={`shrink-0 tabular-nums text-2xs ${len > MAX_BULLET ? 'text-red-400 font-bold' : len > 100 ? 'text-amber-500' : 'text-zinc-400'}`}>
-                          {len}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              ))}
-            </div>
-          ))}
-        </section>
-      )}
-
-      {projects.length > 0 && (
-        <section>
-          <p className="text-zinc-500 uppercase tracking-widest text-2xs mb-2">Projects</p>
-          {projects.map((proj, pi) => (
-            <div key={proj.id} className="mb-3">
-              <p
-                className="text-indigo-400 mb-1 cursor-pointer hover:text-indigo-300"
-                onClick={() => onJump?.(`/projects/${pi}`)}
-                title="Jump to JSON"
-              >{proj.name ?? proj.id}</p>
-              {(proj.bullets ?? []).map((b, bi) => {
-                const len = b.length
-                return (
-                  <div
-                    key={bi}
-                    className={`flex items-start gap-2 border-l-2 pl-2 py-0.5 mb-0.5 cursor-pointer hover:opacity-80 ${charColor(len)}`}
-                    onClick={() => onJump?.(`/projects/${pi}/bullets/${bi}`)}
-                    title="Jump to JSON"
-                  >
-                    <span className="flex-1 leading-relaxed">{b}</span>
-                    <span className={`shrink-0 tabular-nums text-2xs ${len > MAX_BULLET ? 'text-red-400 font-bold' : len > 100 ? 'text-amber-500' : 'text-zinc-400'}`}>
-                      {len}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          ))}
-        </section>
-      )}
-
-      {skillRows.length > 0 && (
-        <section>
-          <p className="text-zinc-500 uppercase tracking-widest text-2xs mb-2">Skills</p>
-          {skillRows.map((row, si) => (
-            <div
-              key={si}
-              className={`flex items-start gap-2 border-l-2 pl-2 py-0.5 mb-0.5 ${charColor(row.value.length)}`}
-            >
-              <span className="flex-1 leading-relaxed">
-                {row.variant && <span className="text-zinc-500 mr-1">[{row.variant}]</span>}
-                <span className="text-zinc-400 mr-1">{row.label}:</span>
-                {row.value}
-              </span>
-              <span className="shrink-0 text-zinc-400 text-2xs">{row.value.length}</span>
-            </div>
-          ))}
-        </section>
-      )}
-
-      <p className="text-zinc-500 text-2xs pt-2 border-t border-zinc-800">
-        ● {MAX_BULLET} char max · red = over · amber = 100–116 · counts live-update
-      </p>
-    </div>
-  )
 }
 
 // ── Diff helpers (reused from earlier implementation) ─────────────────────────
@@ -217,6 +59,7 @@ function collapseContext(lines: DiffLine[], ctx = 3): (DiffLine | { type: 'ellip
 function DiffView({ current, backup, onRestore, onClose }: {
   current: string; backup: string; onRestore: () => void; onClose: () => void
 }) {
+  const [confirming, setConfirming] = useState(false)
   const lines = computeDiff(current, backup)
   const collapsed = collapseContext(lines)
   const hasChanges = lines.some(l => l.type !== 'same')
@@ -229,12 +72,25 @@ function DiffView({ current, backup, onRestore, onClose }: {
             : 'No differences'}
         </span>
         <div className="flex gap-2">
-          {hasChanges && (
-            <button onClick={onRestore} className="text-xs px-2 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded">
+          {hasChanges && !confirming && (
+            <button onClick={() => setConfirming(true)} className="text-xs px-2 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded">
               Restore this version
             </button>
           )}
-          <button onClick={onClose} className="text-xs px-2 py-1 text-zinc-500 hover:text-zinc-300">Close</button>
+          {confirming && (
+            <>
+              <span className="text-xs text-amber-300 self-center">Replace current config?</span>
+              <button onClick={() => { setConfirming(false); onRestore() }} className="text-xs px-2 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded">
+                Yes, restore
+              </button>
+              <button onClick={() => setConfirming(false)} className="text-xs px-2 py-1 text-zinc-500 hover:text-zinc-300">
+                Cancel
+              </button>
+            </>
+          )}
+          {!confirming && (
+            <button onClick={onClose} className="text-xs px-2 py-1 text-zinc-500 hover:text-zinc-300">Close</button>
+          )}
         </div>
       </div>
       <pre className="overflow-auto max-h-80 text-xs font-mono p-2 leading-5">
@@ -245,6 +101,249 @@ function DiffView({ current, backup, onRestore, onClose }: {
           return <div key={idx} className={`px-1 whitespace-pre ${colors[l.type]}`}>{prefix}{l.text}</div>
         })}
       </pre>
+    </div>
+  )
+}
+
+// ── Candidate profile editor (form + AI modes) ────────────────────────────────
+
+interface CandidateProfile {
+  narrative?: string
+  self_assessment?: {
+    portrays_well?: string[]
+    known_gaps?: string[]
+    not_this?: string[]
+  }
+  target_posture?: {
+    primary_roles?: string[]
+    secondary_roles?: string[]
+    auth_urgency?: string
+    constraints?: string[]
+  }
+}
+
+// Per-item list editor — avoids the delimiter-collision bug of textarea-per-array
+function ListField({ label, items, onChange, placeholder }: {
+  label: string; items: string[]; onChange: (v: string[]) => void; placeholder?: string
+}) {
+  const inputCls = 'flex-1 bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-300 focus:outline-none focus:border-indigo-500 font-mono'
+  return (
+    <div className="space-y-1">
+      <label className="text-zinc-500 uppercase tracking-widest text-2xs">{label}</label>
+      <div className="space-y-1">
+        {items.map((item, i) => (
+          <div key={i} className="flex gap-1">
+            <input
+              type="text" value={item}
+              onChange={e => { const next = [...items]; next[i] = e.target.value; onChange(next) }}
+              placeholder={placeholder}
+              className={inputCls}
+            />
+            <button onClick={() => onChange(items.filter((_, j) => j !== i))}
+              className="text-zinc-600 hover:text-red-400 px-1 text-xs">×</button>
+          </div>
+        ))}
+        <button onClick={() => onChange([...items, ''])}
+          className="text-2xs text-zinc-600 hover:text-zinc-400">+ add</button>
+      </div>
+    </div>
+  )
+}
+
+function CandidateProfileEditor({
+  initial, onApply, onClose,
+}: { initial: CandidateProfile | null; onApply: (p: CandidateProfile) => void; onClose: () => void }) {
+  const [mode, setMode] = useState<'form' | 'ai'>('form')
+
+  // Form state — arrays stored directly, no \n-delimiter serialization
+  const [narrative,      setNarrative]      = useState(initial?.narrative ?? '')
+  const [portraysWell,   setPortraysWell]   = useState<string[]>(initial?.self_assessment?.portrays_well ?? [])
+  const [knownGaps,      setKnownGaps]      = useState<string[]>(initial?.self_assessment?.known_gaps ?? [])
+  const [notThis,        setNotThis]        = useState<string[]>(initial?.self_assessment?.not_this ?? [])
+  const [primaryRoles,   setPrimaryRoles]   = useState<string[]>(initial?.target_posture?.primary_roles ?? [])
+  const [secondaryRoles, setSecondaryRoles] = useState<string[]>(initial?.target_posture?.secondary_roles ?? [])
+  const [authUrgency,    setAuthUrgency]    = useState(initial?.target_posture?.auth_urgency ?? '')
+  const [constraints,    setConstraints]    = useState<string[]>(initial?.target_posture?.constraints ?? [])
+
+  // AI state
+  const [aiPrompt,  setAiPrompt]  = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError,   setAiError]   = useState('')
+  const [aiPreview, setAiPreview] = useState<CandidateProfile | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
+
+  const nonEmpty = (arr: string[]) => arr.map(s => s.trim()).filter(Boolean)
+
+  const buildFromForm = (): CandidateProfile => ({
+    narrative,
+    self_assessment: {
+      portrays_well: nonEmpty(portraysWell),
+      known_gaps:    nonEmpty(knownGaps),
+      not_this:      nonEmpty(notThis),
+    },
+    target_posture: {
+      primary_roles:   nonEmpty(primaryRoles),
+      secondary_roles: nonEmpty(secondaryRoles),
+      auth_urgency:    authUrgency.trim() || undefined,
+      constraints:     nonEmpty(constraints),
+    },
+  })
+
+  // Populate form fields from a CandidateProfile — used when AI result is applied to form
+  const populateForm = (p: CandidateProfile) => {
+    setNarrative(p.narrative ?? '')
+    setPortraysWell(p.self_assessment?.portrays_well ?? [])
+    setKnownGaps(p.self_assessment?.known_gaps ?? [])
+    setNotThis(p.self_assessment?.not_this ?? [])
+    setPrimaryRoles(p.target_posture?.primary_roles ?? [])
+    setSecondaryRoles(p.target_posture?.secondary_roles ?? [])
+    setAuthUrgency(p.target_posture?.auth_urgency ?? '')
+    setConstraints(p.target_posture?.constraints ?? [])
+  }
+
+  const generate = async () => {
+    if (!aiPrompt.trim()) return
+    abortRef.current?.abort()
+    const ac = new AbortController()
+    abortRef.current = ac
+    setAiLoading(true); setAiError(''); setAiPreview(null)
+    try {
+      const res = await fetch('/api/profile/candidate-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: aiPrompt }),
+        signal: ac.signal,
+      })
+      const data = await res.json()
+      if (!res.ok) { setAiError(data.error ?? 'Generation failed'); return }
+      const profile = data.candidate_profile as CandidateProfile
+      setAiPreview(profile)
+      // AI generates INTO form — switching to Form mode shows the result ready to tweak
+      populateForm(profile)
+    } catch (e) {
+      if ((e as Error).name === 'AbortError') return
+      setAiError('Generation failed — try again')
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const cancelGenerate = () => {
+    abortRef.current?.abort()
+    setAiLoading(false)
+  }
+
+  const applyAiPreview = () => {
+    if (!aiPreview) return
+    onApply(aiPreview)
+  }
+
+  const tabCls = (m: 'form' | 'ai') =>
+    `text-xs px-3 py-1 rounded-sm transition-colors ${mode === m ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'}`
+
+  const fieldCls = 'w-full bg-zinc-950 border border-zinc-700 rounded px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-indigo-500 resize-none font-mono'
+
+  return (
+    <div className="border border-indigo-700/60 rounded-lg overflow-hidden bg-zinc-950">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800/80 border-b border-zinc-700">
+        <span className="text-2xs text-indigo-400 uppercase tracking-widest font-mono">candidate_profile</span>
+        <div className="ml-2 flex gap-1">
+          <button className={tabCls('form')} onClick={() => setMode('form')}>Form</button>
+          <button className={tabCls('ai')}   onClick={() => setMode('ai')}>AI Generate</button>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          {mode === 'form' && (
+            <button onClick={() => onApply(buildFromForm())}
+              className="text-xs px-2 py-1 bg-indigo-600 hover:bg-indigo-500 rounded">Apply</button>
+          )}
+          <button onClick={onClose} className="text-xs text-zinc-500 hover:text-zinc-300">Cancel</button>
+        </div>
+      </div>
+
+      {/* Form mode */}
+      {mode === 'form' && (
+        <div className="p-3 grid grid-cols-2 gap-3 text-xs">
+          <div className="col-span-2 space-y-1">
+            <label className="text-zinc-500 uppercase tracking-widest text-2xs">Narrative</label>
+            <textarea rows={3} value={narrative} onChange={e => setNarrative(e.target.value)}
+              placeholder="2–3 sentence professional summary" className={fieldCls} />
+          </div>
+          <ListField label="Portrays well" items={portraysWell} onChange={setPortraysWell} placeholder="FastAPI + React deployments" />
+          <ListField label="Known gaps"    items={knownGaps}    onChange={setKnownGaps}    placeholder="Limited enterprise Java" />
+          <ListField label="Not this"      items={notThis}      onChange={setNotThis}       placeholder="Do not pitch as PM" />
+          <div className="space-y-1">
+            <label className="text-zinc-500 uppercase tracking-widest text-2xs">Work auth</label>
+            <input type="text" value={authUrgency} onChange={e => setAuthUrgency(e.target.value)}
+              placeholder="Authorized to work in the US."
+              className="w-full bg-zinc-950 border border-zinc-700 rounded px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-indigo-500 font-mono" />
+          </div>
+          <ListField label="Primary roles"   items={primaryRoles}   onChange={setPrimaryRoles}   placeholder="Software Engineer (Full-Stack)" />
+          <ListField label="Secondary roles" items={secondaryRoles} onChange={setSecondaryRoles} placeholder="SRE / DevOps Engineer" />
+          <ListField label="Constraints"     items={constraints}    onChange={setConstraints}    placeholder="Remote-first preferred" />
+        </div>
+      )}
+
+      {/* AI Generate mode */}
+      {mode === 'ai' && (
+        <div className="p-3 space-y-3">
+          <p className="text-2xs text-zinc-500">Describe yourself: background, skills, target roles, constraints. The AI will generate the full profile structure.</p>
+          <textarea
+            rows={6}
+            value={aiPrompt}
+            onChange={e => setAiPrompt(e.target.value)}
+            placeholder={"M.S. CS student graduating Dec 2025. Strong in FastAPI, React, TypeScript, Docker. Research in ML/RL. Want full-stack or AI engineer roles. Remote preferred. OPT status, no sponsorship needed yet."}
+            className={fieldCls}
+          />
+          <div className="flex items-center gap-2">
+            <button onClick={() => void generate()} disabled={aiLoading || !aiPrompt.trim()}
+              className="text-xs px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded disabled:opacity-40">
+              {aiLoading ? 'Generating…' : 'Generate'}
+            </button>
+            {aiLoading && (
+              <button onClick={cancelGenerate} className="text-xs px-2 py-1.5 text-zinc-500 hover:text-zinc-300">Cancel</button>
+            )}
+            {aiError && <span className="text-xs text-red-400">{aiError}</span>}
+          </div>
+
+          {aiPreview && (
+            <div className="border border-zinc-700 rounded p-3 space-y-2">
+              <p className="text-2xs text-zinc-400 uppercase tracking-widest">Preview — switch to Form to tweak before applying</p>
+              {aiPreview.narrative && <p className="text-xs text-zinc-300 leading-relaxed">{aiPreview.narrative}</p>}
+              <div className="grid grid-cols-3 gap-3 text-2xs">
+                <div>
+                  <p className="text-green-500 mb-1 uppercase tracking-widest">Portrays well</p>
+                  {(aiPreview.self_assessment?.portrays_well ?? []).map((s, i) => <p key={i} className="text-zinc-400">· {s}</p>)}
+                </div>
+                <div>
+                  <p className="text-amber-500 mb-1 uppercase tracking-widest">Known gaps</p>
+                  {(aiPreview.self_assessment?.known_gaps ?? []).map((s, i) => <p key={i} className="text-zinc-400">· {s}</p>)}
+                </div>
+                <div>
+                  <p className="text-red-500 mb-1 uppercase tracking-widest">Not this</p>
+                  {(aiPreview.self_assessment?.not_this ?? []).map((s, i) => <p key={i} className="text-zinc-400">· {s}</p>)}
+                </div>
+              </div>
+              {(aiPreview.target_posture?.primary_roles?.length ?? 0) > 0 && (
+                <p className="text-2xs text-zinc-500">Primary: {aiPreview.target_posture!.primary_roles!.join(', ')}</p>
+              )}
+              {(aiPreview.target_posture?.secondary_roles?.length ?? 0) > 0 && (
+                <p className="text-2xs text-zinc-500">Secondary: {aiPreview.target_posture!.secondary_roles!.join(', ')}</p>
+              )}
+              {aiPreview.target_posture?.auth_urgency && (
+                <p className="text-2xs text-zinc-500">Auth: {aiPreview.target_posture.auth_urgency}</p>
+              )}
+              {(aiPreview.target_posture?.constraints?.length ?? 0) > 0 && (
+                <p className="text-2xs text-zinc-500">Constraints: {aiPreview.target_posture!.constraints!.join(', ')}</p>
+              )}
+              <button onClick={applyAiPreview}
+                className="text-xs px-3 py-1.5 bg-green-700 hover:bg-green-600 rounded text-white">
+                Apply to Profile
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -323,21 +422,6 @@ function BackupPanel({ file, currentContent, onRestored }: {
 }
 
 // ── Candidate profile summary card ───────────────────────────────────────────
-
-interface CandidateProfile {
-  narrative?: string
-  self_assessment?: {
-    portrays_well?: string[]
-    known_gaps?: string[]
-    not_this?: string[]
-  }
-  target_posture?: {
-    primary_roles?: string[]
-    secondary_roles?: string[]
-    auth_urgency?: string
-    constraints?: string[]
-  }
-}
 
 function CandidateProfileCard({ json, onEdit }: { json: string; onEdit?: () => void }) {
   let profile: CandidateProfile | null = null
@@ -440,20 +524,36 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
   const [saving, setSaving]       = useState(false)
   const [status, setStatus]       = useState('')
   const [showBackups, setShowBackups] = useState(false)
+  const [monacoFailed, setMonacoFailed] = useState(false)
 
   const [showProfileSummaryEditor, setShowProfileSummaryEditor] = useState(false)
-  const [profileSummaryDraft, setProfileSummaryDraft] = useState('')
-  const [profileSummaryError, setProfileSummaryError] = useState('')
+  const [initialProfile,          setInitialProfile]           = useState<CandidateProfile | null>(null)
+  const [profileEditorKey,        setProfileEditorKey]         = useState(0)
 
   const profileEditorRef = useRef<MonacoEditorNS.IStandaloneCodeEditor | null>(null)
+  const monacoMountedRef = useRef(false)
 
   // Rebuild source map whenever draft changes — used for preview → Monaco jumps
   const sourceMap = useMemo(() => {
     try { return jsonSourceMap(draft) } catch { return null }
   }, [draft])
 
+  // Detect Monaco load failure via timeout — fires if onMount never called
+  useEffect(() => {
+    if (loading) return
+    const t = setTimeout(() => {
+      if (!monacoMountedRef.current) {
+        console.warn('[Monaco] load timeout — falling back to textarea editor')
+        setMonacoFailed(true)
+      }
+    }, 8000)
+    return () => clearTimeout(t)
+  }, [loading])
+
   const onProfileEditorMount = useCallback((ed: MonacoEditorNS.IStandaloneCodeEditor) => {
+    monacoMountedRef.current = true
     profileEditorRef.current = ed
+    console.log('[Monaco] mounted, profile id:', ed.getId())
   }, [])
 
   const jumpToJsonPath = useCallback((path: string) => {
@@ -471,26 +571,22 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
   const openProfileSummaryEditor = useCallback(() => {
     try {
       const parsed = JSON.parse(draft)
-      setProfileSummaryDraft(JSON.stringify(parsed.candidate_profile ?? {}, null, 2))
+      setInitialProfile(parsed.candidate_profile ?? null)
     } catch {
-      setProfileSummaryDraft('{}')
+      setInitialProfile(null)
     }
-    setProfileSummaryError('')
+    setProfileEditorKey(k => k + 1)  // force remount so stale form state is discarded
     setShowProfileSummaryEditor(v => !v)
   }, [draft])
 
-  const applyProfileSummaryEdit = useCallback(() => {
+  const applyProfileSummaryEdit = useCallback((updated: CandidateProfile) => {
     try {
-      const updated = JSON.parse(profileSummaryDraft)
-      const parsed  = JSON.parse(draft)
+      const parsed = JSON.parse(draft)
       parsed.candidate_profile = updated
       setDraft(JSON.stringify(parsed, null, 2))
       setShowProfileSummaryEditor(false)
-      setProfileSummaryError('')
-    } catch {
-      setProfileSummaryError('Invalid JSON — fix before applying')
-    }
-  }, [profileSummaryDraft, draft])
+    } catch { /* malformed draft — no-op */ }
+  }, [draft])
 
   const loadContent = useCallback(() => {
     setLoading(true)
@@ -551,29 +647,12 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
       <CandidateProfileCard json={draft} onEdit={openProfileSummaryEditor} />
 
       {showProfileSummaryEditor && (
-        <div className="border border-indigo-700/60 rounded-lg overflow-hidden bg-zinc-950">
-          <div className="flex items-center justify-between px-3 py-1.5 bg-zinc-800/80 border-b border-zinc-700">
-            <span className="text-2xs text-indigo-400 uppercase tracking-widest font-mono">candidate_profile</span>
-            <div className="flex items-center gap-2">
-              {profileSummaryError && <span className="text-xs text-red-400">{profileSummaryError}</span>}
-              <button
-                onClick={applyProfileSummaryEdit}
-                className="text-xs px-2 py-1 bg-indigo-600 hover:bg-indigo-500 rounded"
-              >Apply</button>
-              <button
-                onClick={() => setShowProfileSummaryEditor(false)}
-                className="text-xs text-zinc-500 hover:text-zinc-300"
-              >Cancel</button>
-            </div>
-          </div>
-          <textarea
-            value={profileSummaryDraft}
-            onChange={e => setProfileSummaryDraft(e.target.value)}
-            spellCheck={false}
-            rows={18}
-            className="w-full bg-zinc-950 text-zinc-300 text-xs font-mono p-3 resize-y focus:outline-none"
-          />
-        </div>
+        <CandidateProfileEditor
+          key={profileEditorKey}
+          initial={initialProfile}
+          onApply={applyProfileSummaryEdit}
+          onClose={() => setShowProfileSummaryEditor(false)}
+        />
       )}
 
       {/* Two-panel editor */}
@@ -595,6 +674,18 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
                 }`} />
               ))}
             </div>
+          ) : monacoFailed ? (
+            <div className="flex flex-col flex-1 min-h-0">
+              <p className="text-xs text-amber-400 px-3 py-1 shrink-0">
+                Monaco failed to load (CSP or network) — using plain editor
+              </p>
+              <textarea
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                spellCheck={false}
+                className="flex-1 bg-zinc-950 text-zinc-300 text-xs font-mono p-3 resize-none focus:outline-none"
+              />
+            </div>
           ) : (
             <MonacoEditor
               height="100%"
@@ -603,6 +694,15 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
               value={draft}
               onChange={v => setDraft(v ?? '')}
               onMount={onProfileEditorMount}
+              loading={
+                <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm">
+                  Loading editor…
+                </div>
+              }
+              beforeMount={monaco => {
+                console.log('[Monaco] beforeMount — init starting')
+                monaco.editor.defineTheme('vs-dark', { base: 'vs-dark', inherit: true, rules: [], colors: {} })
+              }}
               options={{
                 minimap: { enabled: false },
                 fontSize: 14,
@@ -781,6 +881,7 @@ export default function ConfigPage() {
   const [profiles, setProfiles]       = useState<Profile[]>([])
   const [selectedId, setSelectedId]   = useState<string | null>(null)
   const [profilesLoading, setProfilesLoading] = useState(true)
+  const [creatingDefault, setCreatingDefault] = useState(false)
   const [forkModal, setForkModal]     = useState(false)
   const [status, setStatus]           = useState('')
   const uploadRef                     = useRef<HTMLInputElement>(null)
@@ -799,11 +900,14 @@ export default function ConfigPage() {
   // If no profiles exist yet, auto-create one seeded from disk
   useEffect(() => {
     if (!profilesLoading && profiles.length === 0) {
+      setCreatingDefault(true)
       fetch('/api/profiles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: 'Default' }),
-      }).then(() => loadProfiles())
+      })
+        .then(() => loadProfiles())
+        .finally(() => setCreatingDefault(false))
     }
   }, [profilesLoading, profiles.length, loadProfiles])
 
@@ -893,7 +997,7 @@ export default function ConfigPage() {
         <div className="relative inline-block">
           <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Resume Profile</h2>
         </div>
-        {profilesLoading ? (
+        {profilesLoading || creatingDefault ? (
           <div className="text-zinc-500 text-sm">Loading profiles…</div>
         ) : (
           <>

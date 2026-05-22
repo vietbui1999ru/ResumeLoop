@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const isDev = process.env.NODE_ENV !== 'production'
+
 const nextConfig = {
   output: "standalone",
   serverExternalPackages: ["better-sqlite3"],
@@ -23,6 +25,28 @@ const nextConfig = {
           {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
+          },
+          {
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              // Next.js requires unsafe-inline for hydration scripts; unsafe-eval only needed for dev HMR
+              // jsdelivr.net is required by @monaco-editor/react for the Monaco loader
+              `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""} https://cdn.jsdelivr.net https://giscus.app`,
+              "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+              "img-src 'self' data: blob: https:",
+              // LLM API calls are server-side; connect-src covers browser fetch to /api/*
+              "connect-src 'self'",
+              "font-src 'self' data:",
+              "frame-ancestors 'none'",
+              // blob: needed for PDF iframe (PdfViewer creates a blob URL from server-fetched PDF)
+              "frame-src 'self' blob: https://giscus.app",
+              // Monaco editor spins up web workers via blob: URLs
+              "worker-src 'self' blob:",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+            ].join("; "),
           },
         ],
       },

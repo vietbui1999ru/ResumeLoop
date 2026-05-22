@@ -1,6 +1,7 @@
 'use client'
 import { useState, useCallback, useEffect } from 'react'
 import { useTourContext } from '@/contexts/TourContext'
+import { JobImportGuide } from '@/components/JobImportGuide'
 
 type Provider = 'anthropic' | 'openai' | 'google' | 'groq' | 'openrouter' | 'ollama'
 
@@ -40,22 +41,27 @@ function MiniPicker({
 
   const browse = useCallback(async (p: string) => {
     setBrowsePath(p)
-    const res = await fetch(`/api/fs?path=${encodeURIComponent(p)}`)
-    const data = await res.json()
-    if (res.ok) setFs(data)
-    else setFs({ ...data, dirs: [], md_count: 0, docx_count: 0 })
+    try {
+      const res = await fetch(`/api/fs?path=${encodeURIComponent(p)}`)
+      const data = await res.json() as FsInfo
+      if (res.ok) setFs(data)
+      else setFs({ ...data, dirs: [], md_count: 0, docx_count: 0 })
+    } catch { /* ignore */ }
   }, [])
 
   const create = async () => {
     setCreating(true)
-    const res = await fetch('/api/fs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: browsePath }),
-    })
-    const data = await res.json()
-    if (res.ok) { browse(data.path); onChange(data.path) }
-    setCreating(false)
+    try {
+      const res = await fetch('/api/fs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: browsePath }),
+      })
+      const data = await res.json() as FsInfo
+      if (res.ok) { browse(data.path); onChange(data.path) }
+    } catch { /* ignore */ } finally {
+      setCreating(false)
+    }
   }
 
   const select = () => { onChange(browsePath); setOpen(false) }
@@ -158,21 +164,30 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
   const [aiError, setAiError]     = useState('')
   const [saving, setSaving]       = useState(false)
   const [scanStatus, setScanStatus] = useState('')
+  const [showImportGuide, setShowImportGuide] = useState(false)
 
   // Load existing paths so the picker shows current values
   useEffect(() => {
-    fetch('/api/settings').then(r => r.json()).then((d: Record<string, unknown>) => {
-      if (typeof d.jobs_path === 'string')   setJobsPath(d.jobs_path)
-      if (typeof d.output_path === 'string') setOutputPath(d.output_path)
-    })
+    const ac = new AbortController()
+    fetch('/api/settings', { signal: ac.signal })
+      .then(r => r.ok ? r.json() as Promise<Record<string, unknown>> : null)
+      .then((d: Record<string, unknown> | null) => {
+        if (!d) return
+        if (typeof d.jobs_path === 'string')   setJobsPath(d.jobs_path)
+        if (typeof d.output_path === 'string') setOutputPath(d.output_path)
+      })
+      .catch(() => {})
+    return () => ac.abort()
   }, [])
 
   const saveFolder = async (patch: { jobs_path?: string; output_path?: string }) => {
-    await fetch('/api/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(patch),
-    })
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      })
+    } catch { /* ignore */ }
   }
 
   const allConfigured = Boolean(jobsPath && outputPath && (provider === 'ollama' || apiKey))
@@ -182,32 +197,37 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
     setSaving(true)
     setAiError('')
 
-    // Save AI provider
-    if (provider !== 'ollama') {
-      const res = await fetch('/api/settings/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, api_key: apiKey, set_active: true }),
-      })
-      if (!res.ok) {
-        const d = await res.json()
-        setAiError(d.error ?? 'AI key test failed')
-        setSaving(false)
-        return
+    try {
+      // Save AI provider
+      if (provider !== 'ollama') {
+        const res = await fetch('/api/settings/ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider, api_key: apiKey, set_active: true }),
+        })
+        if (!res.ok) {
+          const d = await res.json() as { error?: string }
+          setAiError(d.error ?? 'AI key test failed')
+          setSaving(false)
+          return
+        }
+      } else {
+        await fetch('/api/settings/ai', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: 'ollama' }),
+        })
       }
-    } else {
-      await fetch('/api/settings/ai', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider: 'ollama' }),
-      })
+
+      // Trigger scan
+      setScanStatus('Scanning…')
+      await fetch('/api/batch/scan', { method: 'POST' })
+
+      onComplete()
+    } catch (e) {
+      setAiError(String(e))
+      setSaving(false)
     }
-
-    // Trigger scan
-    setScanStatus('Scanning…')
-    await fetch('/api/batch/scan', { method: 'POST' })
-
-    onComplete()
   }
 
   return (
@@ -220,6 +240,20 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
           </div>
           <h2 className="text-xl font-semibold text-white">Set up ResumeLoop</h2>
           <p className="text-sm text-zinc-400 mt-1">Three things and you&apos;re scanning jobs.</p>
+        </div>
+
+        {/* Import guide callout */}
+        <div className="mb-4 flex items-center justify-between bg-zinc-900/60 border border-zinc-800 rounded-xl px-4 py-3">
+          <div>
+            <p className="text-xs font-medium text-zinc-300">Don&apos;t have .md job files yet?</p>
+            <p className="text-xs text-zinc-500">Use Obsidian Web Clipper to save jobs from any listing page</p>
+          </div>
+          <button
+            onClick={() => setShowImportGuide(true)}
+            className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors whitespace-nowrap ml-4"
+          >
+            How to →
+          </button>
         </div>
 
         {/* Steps */}
@@ -305,6 +339,8 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
           )}
         </div>
       </div>
+
+      {showImportGuide && <JobImportGuide onClose={() => setShowImportGuide(false)} />}
     </div>
   )
 }

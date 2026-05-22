@@ -98,13 +98,13 @@ CMD ["node", "server.js"]
 - [ ] **Step 2: Verify build locally**
 
 ```bash
-docker build -t resumeanalyze:test .
+docker build -t resumeloop:test .
 ```
 
 Expected: build completes with two stages printed. Final image should be <400MB (vs ~700MB single-stage).
 
 ```bash
-docker images resumeanalyze:test --format "{{.Size}}"
+docker images resumeloop:test --format "{{.Size}}"
 ```
 
 - [ ] **Step 3: Smoke-test the container**
@@ -113,7 +113,7 @@ docker images resumeanalyze:test --format "{{.Size}}"
 docker run --rm -p 3010:3000 \
   -e AUTH_SECRET=test-secret-32-chars-minimum-here \
   -e NEXTAUTH_URL=http://localhost:3010 \
-  resumeanalyze:test
+  resumeloop:test
 ```
 
 Expected: server starts, `curl http://localhost:3010/api/health` returns `{"ok":true,...}`.
@@ -145,7 +145,7 @@ git commit -m "build: multi-stage Dockerfile — builder + runner; fix harness p
 
 services:
   app:
-    image: ${ECR_REGISTRY}/resumeanalyze:${IMAGE_TAG:-latest}
+    image: ${ECR_REGISTRY}/resumeloop:${IMAGE_TAG:-latest}
     ports:
       - "3010:3000"
     env_file:
@@ -182,8 +182,8 @@ ECR_REGISTRY=<account-id>.dkr.ecr.us-east-1.amazonaws.com
 IMAGE_TAG=latest
 OBSIDIAN_JOBS_PATH=/home/<user>/Obsidian/References/Jobs
 OUTPUT_PATH=/home/<user>/resume-output
-DB_PATH=/home/<user>/resumeanalyze/resume.db
-PIPELINE_DATA_PATH=/home/<user>/resumeanalyze/pipeline/master_resume_data.json
+DB_PATH=/home/<user>/resumeloop/resume.db
+PIPELINE_DATA_PATH=/home/<user>/resumeloop/pipeline/master_resume_data.json
 
 # ── Auth ─────────────────────────────────────────────────────────────────────
 AUTH_SECRET=<random-string-min-32-chars>
@@ -346,8 +346,8 @@ git commit -m "ci: add PR test pipeline — lint, typecheck, test, audit, build"
 **Context:** Replace the existing App Runner deploy workflow. On merge to main: (1) OIDC auth to AWS, (2) build + push Docker image to ECR with sha tag + `latest`, (3) join homelab's Tailscale network, (4) SSH into homelab, pull new image, restart compose, verify health.
 
 Homelab prerequisites (manual one-time setup, documented in Task 7):
-- AWS IAM user `resumeanalyze-homelab` with `AmazonEC2ContainerRegistryReadOnly` policy, credentials in `~/.aws/credentials` on homelab
-- `docker-compose.prod.yml` and `.env.prod` at `~/resumeanalyze/` on homelab
+- AWS IAM user `resumeloop-homelab` with `AmazonEC2ContainerRegistryReadOnly` policy, credentials in `~/.aws/credentials` on homelab
+- `docker-compose.prod.yml` and `.env.prod` at `~/resumeloop/` on homelab
 - SSH public key of the GitHub Actions deploy key added to `~/.ssh/authorized_keys`
 
 **Files:**
@@ -372,7 +372,7 @@ on:
 
 env:
   AWS_REGION: us-east-1
-  ECR_REPOSITORY: resumeanalyze
+  ECR_REPOSITORY: resumeloop
 
 jobs:
   build-push:
@@ -438,7 +438,7 @@ jobs:
           ssh -i ~/.ssh/deploy_key \
               -o StrictHostKeyChecking=no \
               "$HOMELAB_USER@$HOMELAB_HOST" \
-              "cd ~/resumeanalyze && \
+              "cd ~/resumeloop && \
                aws ecr get-login-password --region us-east-1 \
                  | docker login --username AWS --password-stdin $ECR_REGISTRY && \
                IMAGE_TAG=$IMAGE_TAG ECR_REGISTRY=$ECR_REGISTRY \
@@ -488,13 +488,13 @@ Replaces SSM-only policy with Secrets Manager + S3 + ECR pull (for future AWS co
         "secretsmanager:GetSecretValue",
         "secretsmanager:DescribeSecret"
       ],
-      "Resource": "arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeanalyze/prod/*"
+      "Resource": "arn:aws:secretsmanager:us-east-1:<ACCOUNT_ID>:secret:resumeloop/prod/*"
     },
     {
       "Sid": "S3Outputs",
       "Effect": "Allow",
       "Action": ["s3:PutObject", "s3:GetObject"],
-      "Resource": "arn:aws:s3:::resumeanalyze-outputs/*"
+      "Resource": "arn:aws:s3:::resumeloop-outputs/*"
     },
     {
       "Sid": "ECRPull",
@@ -516,7 +516,7 @@ One-time script to provision all required AWS resources. Run once per environmen
 
 ```bash
 #!/usr/bin/env bash
-# infra/setup-aws.sh — provision AWS resources for ResumeAnalyze
+# infra/setup-aws.sh — provision AWS resources for ResumeLoop
 # Run once: bash infra/setup-aws.sh
 # Requires: aws cli v2, jq, AWS credentials with admin permissions
 
@@ -524,9 +524,9 @@ set -euo pipefail
 
 REGION="us-east-1"
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-ECR_REPO="resumeanalyze"
-S3_BUCKET="resumeanalyze-outputs-${ACCOUNT_ID}"
-SECRET_PREFIX="resumeanalyze/prod"
+ECR_REPO="resumeloop"
+S3_BUCKET="resumeloop-outputs-${ACCOUNT_ID}"
+SECRET_PREFIX="resumeloop/prod"
 
 echo "Account: $ACCOUNT_ID  Region: $REGION"
 
@@ -569,7 +569,7 @@ echo "Creating Secrets Manager placeholders..."
 for SECRET_NAME in APP_MODE DATABASE_URL ENCRYPTION_KEY AUTH_SECRET NEXTAUTH_URL S3_BUCKET AWS_REGION; do
   aws secretsmanager create-secret \
     --name "${SECRET_PREFIX}/${SECRET_NAME}" \
-    --description "ResumeAnalyze ${SECRET_NAME}" \
+    --description "ResumeLoop ${SECRET_NAME}" \
     --secret-string "REPLACE_ME" \
     --region "$REGION" 2>/dev/null \
     || echo "Secret ${SECRET_NAME} already exists"
@@ -577,7 +577,7 @@ done
 
 # ── GitHub Actions OIDC role ──────────────────────────────────────────────────
 echo "Creating GitHub Actions OIDC role..."
-GITHUB_REPO="vietbui1999ru/ResumeAnalyze"
+GITHUB_REPO="${GITHUB_REPO:-YOUR_GITHUB_USERNAME/ResumeLoop}"
 
 TRUST_POLICY=$(cat <<EOF
 {
@@ -602,13 +602,13 @@ EOF
 )
 
 aws iam create-role \
-  --role-name "GitHubActionsResumeAnalyze" \
+  --role-name "GitHubActionsResumeLoop" \
   --assume-role-policy-document "$TRUST_POLICY" 2>/dev/null \
   || echo "IAM role already exists"
 
 # Attach ECR push permissions
 aws iam put-role-policy \
-  --role-name "GitHubActionsResumeAnalyze" \
+  --role-name "GitHubActionsResumeLoop" \
   --policy-name "ECRPush" \
   --policy-document '{
     "Version": "2012-10-17",
@@ -628,7 +628,7 @@ aws iam put-role-policy \
     }]
   }'
 
-ROLE_ARN=$(aws iam get-role --role-name "GitHubActionsResumeAnalyze" --query "Role.Arn" --output text)
+ROLE_ARN=$(aws iam get-role --role-name "GitHubActionsResumeLoop" --query "Role.Arn" --output text)
 ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com"
 
 echo ""
@@ -639,7 +639,7 @@ echo "ECR registry: ${ECR_REGISTRY}"
 echo "S3 bucket:    ${S3_BUCKET}"
 echo ""
 echo "Fill Secrets Manager values:"
-echo "  aws secretsmanager update-secret --secret-id resumeanalyze/prod/AUTH_SECRET --secret-string '<value>'"
+echo "  aws secretsmanager update-secret --secret-id resumeloop/prod/AUTH_SECRET --secret-string '<value>'"
 ```
 
 - [ ] **Step 3: Make script executable**
@@ -678,7 +678,7 @@ The app runs on homelab (Proxmox LXC) and is accessed via Tailscale. The image i
 
 - Docker + Docker Compose plugin installed on the LXC
 - AWS CLI v2 installed: `apk add aws-cli` or equivalent
-- IAM user `resumeanalyze-homelab` with `AmazonEC2ContainerRegistryReadOnly` policy
+- IAM user `resumeloop-homelab` with `AmazonEC2ContainerRegistryReadOnly` policy
   - Run `aws configure` on the LXC with those credentials
 - Tailscale installed and joined to your tailnet
 - SSH key pair: add deploy key public key to `~/.ssh/authorized_keys`
@@ -686,8 +686,8 @@ The app runs on homelab (Proxmox LXC) and is accessed via Tailscale. The image i
 ### One-time setup
 
 ```bash
-mkdir -p ~/resumeanalyze/pipeline
-cd ~/resumeanalyze
+mkdir -p ~/resumeloop/pipeline
+cd ~/resumeloop
 
 # Copy docker-compose.prod.yml from the repo
 # Copy .env.prod.example → .env.prod, fill in values
@@ -701,7 +701,7 @@ touch resume.db
 ### Manual deploy
 
 ```bash
-cd ~/resumeanalyze
+cd ~/resumeloop
 ECR_REGISTRY=<account-id>.dkr.ecr.us-east-1.amazonaws.com
 aws ecr get-login-password --region us-east-1 \
   | docker login --username AWS --password-stdin $ECR_REGISTRY
@@ -730,26 +730,26 @@ Find the "SSM parameters" section and replace references to `aws ssm put-paramet
 ```bash
 # Fill in placeholder secrets created by infra/setup-aws.sh
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/APP_MODE \
+  --secret-id resumeloop/prod/APP_MODE \
   --secret-string "cloud"
 
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/AUTH_SECRET \
+  --secret-id resumeloop/prod/AUTH_SECRET \
   --secret-string "$(openssl rand -hex 32)"
 
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/ENCRYPTION_KEY \
+  --secret-id resumeloop/prod/ENCRYPTION_KEY \
   --secret-string "$(openssl rand -hex 32)"
 
 # Neon connection string from Neon dashboard
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/DATABASE_URL \
+  --secret-id resumeloop/prod/DATABASE_URL \
   --secret-string "postgresql://..."
 
 # S3 bucket (output of setup-aws.sh)
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/S3_BUCKET \
-  --secret-string "resumeanalyze-outputs-<account-id>"
+  --secret-id resumeloop/prod/S3_BUCKET \
+  --secret-string "resumeloop-outputs-<account-id>"
 ```
 
 - [ ] **Step 3: Add Secrets Manager operations to docs/aws-maintenance.md**
@@ -763,7 +763,7 @@ Add a **Secrets** section:
 
 ```bash
 aws secretsmanager list-secrets \
-  --filter Key=name,Values=resumeanalyze/prod \
+  --filter Key=name,Values=resumeloop/prod \
   --query 'SecretList[].Name'
 ```
 
@@ -771,7 +771,7 @@ aws secretsmanager list-secrets \
 
 ```bash
 aws secretsmanager update-secret \
-  --secret-id resumeanalyze/prod/AUTH_SECRET \
+  --secret-id resumeloop/prod/AUTH_SECRET \
   --secret-string "$(openssl rand -hex 32)"
 ```
 
@@ -781,7 +781,7 @@ After rotating `AUTH_SECRET` or `ENCRYPTION_KEY`, restart the container — all 
 
 ```bash
 aws secretsmanager get-secret-value \
-  --secret-id resumeanalyze/prod/AUTH_SECRET \
+  --secret-id resumeloop/prod/AUTH_SECRET \
   --query SecretString --output text
 ```
 ```

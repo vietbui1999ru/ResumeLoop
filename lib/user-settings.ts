@@ -132,12 +132,11 @@ export async function listProviderHints(userId: string): Promise<ProviderHint[]>
 }
 
 export function maskKey(key: string): string {
-  if (key.length < 4) return '••••'
-  const last4 = key.slice(-4)
-  // Show provider prefix up to the first separator (-, _, :) or 8 chars, then mask
+  if (!key) return '••••'
+  // Show only the provider prefix (up to first separator or 8 chars) — no trailing chars
   const prefixEnd = Math.min(key.search(/[-_:]/), 8)
   const prefix = prefixEnd > 0 ? key.slice(0, prefixEnd) : key.slice(0, 4)
-  return `${prefix}-••••••••••••-${last4}`
+  return `${prefix}-••••••••••••`
 }
 
 function keyHint(key: string): string {

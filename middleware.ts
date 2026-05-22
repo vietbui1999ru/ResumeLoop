@@ -6,13 +6,25 @@ import type { NextAuthRequest } from 'next-auth'
 // Use Edge-safe config only — no DB, no native modules
 const { auth } = NextAuth(authConfig)
 
+// Edge-safe in-process IP rate limiter — 300 requests/min per IP across all API routes.
+// Provides DoS protection. In multi-instance deployments this is per-instance;
+// for stricter global limits use Upstash (configured in checkRateLimitAsync).
+const _apiStore = new Map<string, { count: number; resetAt: number }>()
+
+function checkApiRateLimit(ip: string): boolean {
+  const now   = Date.now()
+  const entry = _apiStore.get(ip)
+  if (!entry || now > entry.resetAt) {
+    _apiStore.set(ip, { count: 1, resetAt: now + 60_000 })
+    return true
+  }
+  if (entry.count >= 300) return false
+  entry.count++
+  return true
+}
+
 function buildSafeOrigins(): Set<string> {
   const origins = new Set<string>()
-  // localhost only safe in non-production; production origin comes from env vars below
-  if (process.env.NODE_ENV !== 'production') {
-    origins.add('http://localhost:3000')
-    origins.add('http://127.0.0.1:3000')
-  }
   for (const envKey of ['NEXTAUTH_URL', 'AUTH_URL', 'NEXT_PUBLIC_BASE_URL']) {
     const val = process.env[envKey]
     if (val) {
@@ -23,6 +35,16 @@ function buildSafeOrigins(): Set<string> {
 }
 
 const SAFE_ORIGINS = buildSafeOrigins()
+
+// In dev, any localhost port is a safe origin — the CSRF guard targets cross-domain
+// requests, not different ports on the same machine.
+const IS_DEV = process.env.NODE_ENV !== 'production'
+const LOCALHOST_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/
+
+function isSafeOrigin(origin: string): boolean {
+  if (IS_DEV && LOCALHOST_RE.test(origin)) return true
+  return SAFE_ORIGINS.has(origin)
+}
 
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
@@ -37,8 +59,31 @@ function isPublicPath(pathname: string): boolean {
   )
 }
 
+const MOBILE_UA_RE = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i
+
+function isMobile(ua: string | null): boolean {
+  if (!ua) return false
+  return MOBILE_UA_RE.test(ua)
+}
+
 export default auth((req: NextAuthRequest) => {
   const { pathname } = req.nextUrl
+
+  // Global IP rate limit for all API routes
+  if (pathname.startsWith('/api/')) {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+    if (!checkApiRateLimit(ip)) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    }
+  }
+
+  // Block mobile — desktop-only until mobile layout is implemented
+  if (pathname !== '/not-supported' && !pathname.startsWith('/api/') && !pathname.startsWith('/_next/')) {
+    const ua = req.headers.get('user-agent')
+    if (isMobile(ua)) {
+      return NextResponse.redirect(new URL('/not-supported', req.url))
+    }
+  }
 
   // CSRF guard: non-auth API mutations must originate from a safe origin.
   // Missing Origin is also rejected — legitimate browser fetches always send it.
@@ -50,7 +95,7 @@ export default auth((req: NextAuthRequest) => {
     if (!sourceOrigin && referer) {
       try { sourceOrigin = new URL(referer).origin } catch { /* malformed referer */ }
     }
-    if (!sourceOrigin || !SAFE_ORIGINS.has(sourceOrigin)) {
+    if (!sourceOrigin || !isSafeOrigin(sourceOrigin)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
   }

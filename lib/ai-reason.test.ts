@@ -9,8 +9,8 @@ vi.mock('./ai-usage',       () => ({ logAiUsage: vi.fn().mockResolvedValue(undef
 const GOOD_INPUT = {
   track:        'systems',
   workVariant:  'systems',
-  workIds:      ['gitlab', 'carboncopies', 'udayton'],
-  projects:     ['homelab', 'eth_switch', 'claude_tui'],
+  workIds:      ['startup', 'university', 'internship'],
+  projects:     ['api_platform', 'llm_assistant', 'infra_dashboard'],
   personaTitle: 'Software Engineer — distributed systems',
   tagline:      'Software Engineer building distributed systems with Go',
   skillsRows:   ['Go · Python · Rust', 'React · FastAPI', 'Docker · k8s', 'PostgreSQL · SQLite', 'Prometheus · Grafana'],
@@ -33,19 +33,19 @@ describe('validateResult', () => {
     expect(() => validateResult({ ...GOOD_INPUT })).not.toThrow()
   })
 
-  it('throws if workIds length !== 3', async () => {
+  it('throws if workIds is empty', async () => {
     const { validateResult } = await import('./ai-reason')
-    expect(() => validateResult({ ...GOOD_INPUT, workIds: ['only-one'] })).toThrow('workIds')
+    expect(() => validateResult({ ...GOOD_INPUT, workIds: [] })).toThrow('workIds')
   })
 
-  it('throws if projects length !== 3', async () => {
+  it('throws if projects is empty', async () => {
     const { validateResult } = await import('./ai-reason')
-    expect(() => validateResult({ ...GOOD_INPUT, projects: ['a', 'b'] })).toThrow('projects')
+    expect(() => validateResult({ ...GOOD_INPUT, projects: [] })).toThrow('projects')
   })
 
-  it('throws if skillsRows length !== 5', async () => {
+  it('throws if skillsRows is empty', async () => {
     const { validateResult } = await import('./ai-reason')
-    expect(() => validateResult({ ...GOOD_INPUT, skillsRows: ['Go'] })).toThrow('skillsRows')
+    expect(() => validateResult({ ...GOOD_INPUT, skillsRows: [] })).toThrow('skillsRows')
   })
 
   it('throws if tagline is missing', async () => {
@@ -78,6 +78,59 @@ describe('validateResult', () => {
   })
 })
 
+// ── validateResultAgainstProfile ─────────────────────────────────────────────
+
+describe('validateResultAgainstProfile', () => {
+  const makeProfile = (workIds: string[], projectIds: string[]) => JSON.stringify({
+    experience: workIds.map(id => ({ id, bullets: { genai: ['B'] } })),
+    projects:   projectIds.map(id => ({ id, bullets: ['P'] })),
+  })
+
+  it('passes when all IDs exist in profile', async () => {
+    const { validateResultAgainstProfile } = await import('./ai-reason')
+    const profile = makeProfile(['j1', 'j2'], ['p1', 'p2'])
+    expect(() => validateResultAgainstProfile(
+      { ...GOOD_INPUT, workIds: ['j1', 'j2'], projects: ['p1'] },
+      profile,
+    )).not.toThrow()
+  })
+
+  it('throws when work ID is unknown', async () => {
+    const { validateResultAgainstProfile } = await import('./ai-reason')
+    const profile = makeProfile(['j1', 'j2'], ['p1'])
+    expect(() => validateResultAgainstProfile(
+      { ...GOOD_INPUT, workIds: ['j1', 'ghost'], projects: ['p1'] },
+      profile,
+    )).toThrow(/unknown work ID.*ghost/)
+  })
+
+  it('throws when project ID is unknown', async () => {
+    const { validateResultAgainstProfile } = await import('./ai-reason')
+    const profile = makeProfile(['j1'], ['p1', 'p2'])
+    expect(() => validateResultAgainstProfile(
+      { ...GOOD_INPUT, workIds: ['j1'], projects: ['p1', 'phantom'] },
+      profile,
+    )).toThrow(/unknown project ID.*phantom/)
+  })
+
+  it('is a no-op when profile has no experience (enum not enforceable)', async () => {
+    const { validateResultAgainstProfile } = await import('./ai-reason')
+    const profile = makeProfile([], ['p1'])
+    expect(() => validateResultAgainstProfile(
+      { ...GOOD_INPUT, workIds: ['any_id'], projects: ['p1'] },
+      profile,
+    )).not.toThrow()
+  })
+
+  it('is a no-op on malformed profile JSON', async () => {
+    const { validateResultAgainstProfile } = await import('./ai-reason')
+    expect(() => validateResultAgainstProfile(
+      { ...GOOD_INPUT, workIds: ['j1'], projects: ['p1'] },
+      '{ bad json',
+    )).not.toThrow()
+  })
+})
+
 // ── reasonForJob (mocked AI SDK) ──────────────────────────────────────────────
 
 describe('reasonForJob', () => {
@@ -91,13 +144,37 @@ describe('reasonForJob', () => {
     expect(result.tagline.length).toBeLessThanOrEqual(76)
   })
 
-  it('throws if no resume_decision tool call returned', async () => {
+  it('throws if no resume_decision tool call returned and no parseable text', async () => {
     const { generateText } = await import('ai')
     vi.mocked(generateText).mockResolvedValueOnce({
-      toolCalls: [],
+      toolCalls: [], text: '', finishReason: 'stop',
       usage: { inputTokens: 0, outputTokens: 0 },
     } as never)
     const { reasonForJob } = await import('./ai-reason')
     await expect(reasonForJob('jd')).rejects.toThrow('No resume_decision')
+  })
+
+  it('falls back to JSON text when toolCalls is empty (Gemini text mode)', async () => {
+    const { generateText } = await import('ai')
+    vi.mocked(generateText).mockResolvedValueOnce({
+      toolCalls: [],
+      text: JSON.stringify(GOOD_INPUT),
+      finishReason: 'stop',
+      usage: { inputTokens: 10, outputTokens: 20 },
+    } as never)
+    const { reasonForJob } = await import('./ai-reason')
+    const result = await reasonForJob('jd')
+    expect(result.track).toBe('systems')
+    expect(result.workIds).toHaveLength(3)
+  })
+
+  it('error message includes finishReason and text length on total failure', async () => {
+    const { generateText } = await import('ai')
+    vi.mocked(generateText).mockResolvedValueOnce({
+      toolCalls: [], text: 'not json', finishReason: 'length',
+      usage: { inputTokens: 0, outputTokens: 0 },
+    } as never)
+    const { reasonForJob } = await import('./ai-reason')
+    await expect(reasonForJob('jd')).rejects.toThrow('finishReason=length')
   })
 })

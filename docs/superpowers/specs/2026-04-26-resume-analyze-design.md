@@ -1,4 +1,4 @@
-# ResumeAnalyze — Full-Stack App Design
+# ResumeLoop — Full-Stack App Design
 
 **Date:** 2026-04-26  
 **Status:** Approved  
@@ -165,7 +165,7 @@ App calls `POST http://localhost:4000/chat/completions` (OpenAI-compat). Swap mo
 ## 7. File Structure
 
 ```
-ResumeAnalyze/
+ResumeLoop/
 ├── app/
 │   ├── page.tsx                  -- dashboard
 │   ├── jobs/page.tsx             -- job list + batch trigger

@@ -307,7 +307,7 @@ import { CHAT_TOOLS, handleReadFile, handleProposeEdit, type FileKey } from '@/l
 import { PATHS } from '@/lib/paths'
 import fs from 'fs'
 
-const SYSTEM_PROMPT = `You are a resume profile editor for Quoc-Viet Bui.
+const SYSTEM_PROMPT = `You are a resume profile editor for the candidate.
 
 Files you can read and edit:
 - master_resume_data: work experience bullets, projects, skills variants (JSON)

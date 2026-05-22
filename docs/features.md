@@ -1,13 +1,13 @@
 ---
 title: "Feature Guide"
-description: "User-facing guide to every feature in ResumeAnalyze — dashboard, jobs list, resume generation, chat, settings, and auth."
+description: "User-facing guide to every feature in ResumeLoop — dashboard, jobs list, resume generation, chat, settings, and auth."
 tags: [guide, features, overview]
 updated: 2026-05-11
 ---
 
 # Feature Guide
 
-ResumeAnalyze is a personal dashboard that turns job description Markdown files into tailored, ATS-optimized DOCX resumes. This guide covers every feature from first login to downloading a finished resume.
+ResumeLoop is a personal dashboard that turns job description Markdown files into tailored, ATS-optimized DOCX resumes. This guide covers every feature from first login to downloading a finished resume.
 
 ---
 

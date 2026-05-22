@@ -11,23 +11,27 @@ import {
   UserCircle,
   HelpCircle,
   Heart,
+  Star,
 } from 'lucide-react'
 import { useTourContext } from '@/contexts/TourContext'
 
 const NAV = [
-  { href: '/jobs', label: 'Jobs', Icon: Briefcase },
-  { href: '/', label: 'Dashboard', Icon: LayoutDashboard },
-  { href: '/chat', label: 'Chat', Icon: MessageSquare },
-  { href: '/config', label: 'Config', Icon: FileText },
-  { href: '/settings', label: 'Settings', Icon: Settings2 },
+  { href: '/jobs',     label: 'Jobs',      Icon: Briefcase },
+  { href: '/chat',     label: 'Chat',      Icon: MessageSquare },
+  { href: '/',         label: 'Dashboard', Icon: LayoutDashboard },
+  { href: '/config',   label: 'Config',    Icon: FileText },
+  { href: '/settings', label: 'Settings',  Icon: Settings2 },
+  { href: '/account',  label: 'Account',   Icon: UserCircle },
 ]
 
 const PAGE_LABELS: Record<string, string> = {
-  '/': 'Dashboard',
-  '/jobs': 'Jobs',
-  '/settings': 'Settings',
-  '/chat': 'Chat',
-  '/config': 'Config',
+  '/':          'Dashboard',
+  '/jobs':      'Jobs',
+  '/settings':  'Settings',
+  '/chat':      'Chat',
+  '/config':    'Config',
+  '/account':   'Account',
+  '/feedback':  'Feedback',
 }
 
 export function Sidebar() {
@@ -36,7 +40,6 @@ export function Sidebar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  // Close dropdown on outside click
   useEffect(() => {
     if (!menuOpen) return
     const handler = (e: MouseEvent) => {
@@ -51,9 +54,9 @@ export function Sidebar() {
   const hasUnseen = pagesWithUnseen.length > 0
 
   return (
-    <nav className="w-12 shrink-0 border-r border-zinc-800 bg-surface-card flex flex-col items-center py-3 gap-1 h-full">
+    <nav className="w-16 shrink-0 border-r border-zinc-800 bg-surface-card flex flex-col items-center py-3 gap-0.5 h-full">
       {/* Logo mark */}
-      <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center mb-2 shrink-0">
+      <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center mb-3 shrink-0">
         <span className="text-2xs font-bold text-white tracking-tight">RA</span>
       </div>
 
@@ -64,18 +67,18 @@ export function Sidebar() {
           <Link
             key={href}
             href={href}
-            title={label}
-            aria-label={label}
             aria-current={active ? 'page' : undefined}
-            className={`relative w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-100 ${active
-              ? 'bg-surface-raised text-indigo-400'
-              : 'text-text-muted hover:text-text-secondary hover:bg-surface-raised'
-              }`}
+            className={`relative flex flex-col items-center gap-0.5 w-full px-1 py-1.5 rounded-lg transition-colors duration-100 ${
+              active
+                ? 'bg-surface-raised text-indigo-400'
+                : 'text-text-muted hover:text-text-secondary hover:bg-surface-raised'
+            }`}
           >
             {active && (
               <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 bg-indigo-500 rounded-r-full -ml-px" />
             )}
-            <Icon size={16} strokeWidth={1.75} />
+            <Icon size={18} strokeWidth={1.75} />
+            <span className="text-2xs leading-none">{label}</span>
           </Link>
         )
       })}
@@ -83,13 +86,25 @@ export function Sidebar() {
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Donation link — replace DONATION_URL when Ko-fi/etc. is set up */}
+      {/* Feedback page */}
+      <Link
+        href="/feedback"
+        title="Give feedback"
+        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-100 ${
+          pathname === '/feedback'
+            ? 'text-indigo-400 bg-surface-raised'
+            : 'text-text-muted hover:text-indigo-400 hover:bg-surface-raised'
+        }`}
+      >
+        <Star size={16} strokeWidth={1.75} />
+      </Link>
+
+      {/* Donation link */}
       <a
         href="https://ko-fi.com/memeconnoisseur"
         target="_blank"
         rel="noopener noreferrer"
         title="Support this project ($5)"
-        aria-label="Support this project"
         className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-pink-400 hover:bg-surface-raised transition-colors duration-100"
       >
         <Heart size={16} strokeWidth={1.75} />
@@ -97,7 +112,6 @@ export function Sidebar() {
 
       {/* Tour help button + beacon + dropdown */}
       <div className="relative" ref={menuRef}>
-        {/* animate-ping beacon ring when unseen steps remain */}
         {hasUnseen && (
           <span className="absolute top-0.5 right-0.5 flex h-2 w-2 pointer-events-none">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75" />
@@ -119,7 +133,6 @@ export function Sidebar() {
           <HelpCircle size={16} strokeWidth={1.75} />
         </button>
 
-        {/* Unseen pages dropdown */}
         {menuOpen && hasUnseen && (
           <div className="absolute bottom-full left-full mb-1 ml-1 w-44 bg-surface-card border border-zinc-700 rounded-lg shadow-xl shadow-black/50 py-1 z-[90]">
             <p className="px-3 py-1.5 text-2xs font-semibold text-zinc-500 uppercase tracking-wider">
@@ -148,15 +161,6 @@ export function Sidebar() {
           </div>
         )}
       </div>
-
-      <Link
-        href="/account"
-        title="Account"
-        aria-label="Account"
-        className="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-text-muted hover:text-text-secondary transition-colors duration-100"
-      >
-        <UserCircle size={18} strokeWidth={1.75} />
-      </Link>
     </nav>
   )
 }

@@ -1,13 +1,13 @@
 ---
 title: "AI Provider Configuration"
-description: "How to configure each supported AI provider in ResumeAnalyze — API keys, models, Ollama setup, and security notes."
+description: "How to configure each supported AI provider in ResumeLoop — API keys, models, Ollama setup, and security notes."
 tags: [reference, settings, ai, ollama]
 updated: 2026-05-11
 ---
 
 # AI Provider Configuration
 
-ResumeAnalyze supports six LLM providers. One provider is active at a time and is used for all AI operations: resume reasoning (`ai-reason` pipeline stage), cover letter generation, and Chat.
+ResumeLoop supports six LLM providers. One provider is active at a time and is used for all AI operations: resume reasoning (`ai-reason` pipeline stage), cover letter generation, and Chat.
 
 > **Note:** The Chat feature currently requires **Anthropic** to be set as the active provider. Other providers work for generation and cover letters but not for Chat.
 
@@ -109,7 +109,7 @@ Ollama runs models locally on your machine. No API key is needed; instead you co
    - `mistral:7b` — capable for structured JSON output tasks
    - `gemma4:e2b` — default; solid reasoning performance
 
-4. In ResumeAnalyze Settings, select **Ollama (local)** as the provider, enter the base URL, and click **Fetch models** to discover available models automatically.
+4. In ResumeLoop Settings, select **Ollama (local)** as the provider, enter the base URL, and click **Fetch models** to discover available models automatically.
 
 ### Supported base URLs
 

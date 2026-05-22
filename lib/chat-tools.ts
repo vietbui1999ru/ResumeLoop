@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { createPatch } from 'diff'
-import type Anthropic from '@anthropic-ai/sdk'
+import { jsonSchema } from 'ai'
 import { getSession } from './sessions'
 
 const ROOT = process.cwd()
@@ -15,32 +15,23 @@ export const FILE_MAP: Record<string, string> = {
 
 export type FileKey = keyof typeof FILE_MAP
 
-export const CHAT_TOOLS: Anthropic.Tool[] = [
-  {
-    name: 'read_file',
-    description: 'Read a profile file. Use before proposing edits.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        file: { type: 'string', enum: Object.keys(FILE_MAP) },
-      },
-      required: ['file'],
-    },
+export const READ_FILE_SCHEMA = jsonSchema<{ file: FileKey }>({
+  type: 'object',
+  properties: {
+    file: { type: 'string', enum: Object.keys(FILE_MAP) },
   },
-  {
-    name: 'propose_edit',
-    description: 'Propose a change to a profile file. The user must Accept before the file is written.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        file:        { type: 'string', enum: Object.keys(FILE_MAP) },
-        description: { type: 'string', description: 'One-sentence summary of what changes and why' },
-        new_content: { type: 'string', description: 'Full new file content (entire file, not a patch)' },
-      },
-      required: ['file', 'description', 'new_content'],
-    },
+  required: ['file'],
+})
+
+export const PROPOSE_EDIT_SCHEMA = jsonSchema<{ file: FileKey; description: string; new_content: string }>({
+  type: 'object',
+  properties: {
+    file:        { type: 'string', enum: Object.keys(FILE_MAP) },
+    description: { type: 'string', description: 'One-sentence summary of what changes and why' },
+    new_content: { type: 'string', description: 'Full new file content (entire file, not a patch)' },
   },
-]
+  required: ['file', 'description', 'new_content'],
+})
 
 export async function handleReadFile(file: FileKey, sessionId = 'default', userId = 'default'): Promise<string> {
   const MAX_CHARS = file === 'master_resume_data' ? 120000 : 8000

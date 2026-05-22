@@ -73,8 +73,8 @@ Apply visa rules from CLAUDE.md:
 Map role to "Work Track Variants" and "Role-Track Project Picks" tables in CLAUDE.md. Select and print:
 ```
 Track: systems
-Work:  gitlab (systems), carboncopies (systems), udayton (systems)
-Projects: zmk, jetson, homelab
+Work:  <id1> (systems), <id2> (systems), <id3> (systems)
+Projects: <proj1>, <proj2>, <proj3>
 ```
 
 ### 2d. BULLETS
@@ -122,7 +122,7 @@ Finalize `harness/batch-build/{company}_{role}.js` with all content:
 const {build, T, TL} = require('./buildv2');
 
 build({
-  file: '{Company}_{Role}_VietBui',
+  file: '{Company}_{Role}_Resume',
   tagline: TL('{tagline ≤76c}'),
   work: [
     { id: '{id}', bullets: [ T('...'), T('...'), T('...'), T('...'), T('...') ] },
@@ -169,7 +169,7 @@ Fix surgically — do not regenerate unflagged sections.
 ### 2i. OUTPUT
 
 ```bash
-mv "harness/batch-build/{Company}_{Role}_VietBui.docx" \
+mv "harness/batch-build/{Company}_{Role}_Resume.docx" \
    "${OUTPUT_PATH}/{company}_{role}_vietbui.docx"
 ```
 

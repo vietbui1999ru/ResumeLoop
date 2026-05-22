@@ -16,8 +16,13 @@ function gauge(name: string, value: number, labels?: Record<string, string>): st
 }
 
 export async function GET(req: NextRequest) {
-  // Token auth — checked before any DB work
+  // Token auth — checked before any DB work.
+  // In cloud mode, METRICS_TOKEN must be set — fail closed if missing to avoid exposing
+  // internal metrics (user counts, AI spend) without a token.
   const token = process.env.METRICS_TOKEN
+  if (isCloud() && !token) {
+    return new Response('Unauthorized — METRICS_TOKEN not configured', { status: 401 })
+  }
   if (token) {
     const auth   = req.headers.get('authorization') ?? ''
     const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : ''

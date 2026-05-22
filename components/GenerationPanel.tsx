@@ -59,6 +59,7 @@ export default function GenerationPanel({
 
   const startedRef      = useRef<Set<string>>(new Set())
   const abortFnsRef     = useRef<Map<string, () => void>>(new Map())
+  const evtSourcesRef   = useRef<Map<string, EventSource>>(new Map())
   const onDoneRef       = useRef(onDone)
   const onErrorRef      = useRef(onError)
   const onStageRef      = useRef(onStageUpdate)
@@ -71,6 +72,13 @@ export default function GenerationPanel({
     onCloseRef.current = onClose
   })
 
+  useEffect(() => {
+    return () => {
+      evtSourcesRef.current.forEach(es => es.close())
+      evtSourcesRef.current.clear()
+    }
+  }, [])
+
   // Detect new IDs appended to queue and start them
   useEffect(() => {
     const newIds = queue.filter(id => !startedRef.current.has(id))
@@ -81,11 +89,12 @@ export default function GenerationPanel({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queue])
 
-  // Auto-close panel when all jobs are done
+  // Auto-close panel only when all jobs succeeded — keep open on any failure
   useEffect(() => {
     if (queue.length === 0) return
-    const allDone = queue.every(id => progress.get(id)?.done)
-    if (!allDone) return
+    const allDone   = queue.every(id => progress.get(id)?.done)
+    const anyFailed = queue.some(id => progress.get(id)?.failed)
+    if (!allDone || anyFailed) return
     const timer = setTimeout(() => onCloseRef.current(), 3000)
     return () => clearTimeout(timer)
   }, [progress, queue])
@@ -101,9 +110,11 @@ export default function GenerationPanel({
 
   async function runJob(jobId: string) {
     const evtSource = new EventSource(`/api/generate/${jobId}/stream?sessionId=${sessionId}`)
+    evtSourcesRef.current.set(jobId, evtSource)
 
     abortFnsRef.current.set(jobId, () => {
       evtSource.close()
+      evtSourcesRef.current.delete(jobId)
       updateProgress(jobId, { aborted: true, done: true })
       abortFnsRef.current.delete(jobId)
       onDoneRef.current(jobId)
@@ -133,6 +144,7 @@ export default function GenerationPanel({
           updateProgress(jobId, { done: true, outputId: event.data.outputId as string })
           setCollapsedJobs(prev => new Set(prev).add(jobId))  // auto-collapse on success
           abortFnsRef.current.delete(jobId)
+          evtSourcesRef.current.delete(jobId)
           onDoneRef.current(jobId)
           evtSource.close()
           resolve()
@@ -142,13 +154,14 @@ export default function GenerationPanel({
           updateProgress(jobId, { failed: true, done: true })
           // stay expanded on failure — do NOT add to collapsedJobs
           abortFnsRef.current.delete(jobId)
+          evtSourcesRef.current.delete(jobId)
           onErrorRef.current(jobId, (event.data.message as string) ?? event.stage)
           evtSource.close()
           resolve()
         }
       }
 
-      evtSource.onerror = () => { evtSource.close(); resolve() }
+      evtSource.onerror = () => { evtSource.close(); evtSourcesRef.current.delete(jobId); resolve() }
     })
   }
 
@@ -170,11 +183,15 @@ export default function GenerationPanel({
   const stageSummary = (ev: SSEEvent): string => {
     if (ev.data.tagline)    return `tagline: "${String(ev.data.tagline)}"`
     if (ev.data.script)     return String(ev.data.script)
-    if (ev.data.violations) return (ev.data.violations as string[]).join(', ')
-    if (ev.data.fixed)      return (ev.data.fixed as string[]).join(', ')
+    if (ev.data.violations) return (ev.data.violations as string[]).join('\n')
+    if (ev.data.fixed)      return (ev.data.fixed as string[]).join('\n')
     if (ev.data.message)    return String(ev.data.message)
     return ''
   }
+
+  const sanitizeError = (msg: string) =>
+    msg.replace(/\/api\/[a-zA-Z0-9\-_/[\]?=&]+/g, '[endpoint]')
+       .replace(/https?:\/\/[^\s)]+/g, '[url]')
 
   const toggleCollapsed = (jobId: string) =>
     setCollapsedJobs(prev => {
@@ -207,6 +224,7 @@ export default function GenerationPanel({
 
   return (
     <motion.div
+      data-tour="generation-panel"
       initial={{ y: '100%', opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: '100%', opacity: 0 }}
@@ -283,13 +301,30 @@ export default function GenerationPanel({
               {/* Stage log — hidden when collapsed */}
               {!isCollapsed && jp?.stages && jp.stages.length > 0 && (
                 <div className="mt-2 space-y-0.5 border-t border-zinc-800 pt-2">
-                  {jp.stages.map(ev => (
-                    <div key={`${ev.stage}-${ev.status}`} className="flex gap-2 text-xs items-start">
-                      <StageDot status={ev.status} />
-                      <span className="text-zinc-400 w-24 shrink-0">{ev.stage}</span>
-                      <span className="text-zinc-500 truncate max-w-xs">{stageSummary(ev)}</span>
-                    </div>
-                  ))}
+                  {jp.stages.map(ev => {
+                    const summary = stageSummary(ev)
+                    const isFail  = ev.status === 'fail'
+                    return (
+                      <div key={`${ev.stage}-${ev.status}`} className="flex gap-2 text-xs items-start">
+                        <StageDot status={ev.status} />
+                        <span className="text-zinc-400 w-24 shrink-0">{ev.stage}</span>
+                        {isFail ? (
+                          <div className="flex-1 relative group min-w-0">
+                            <pre className="text-red-400 text-xs whitespace-pre-wrap break-words select-all">
+                              {sanitizeError(summary)}
+                            </pre>
+                            <button
+                              onClick={() => void navigator.clipboard.writeText(sanitizeError(summary))}
+                              aria-label="Copy error"
+                              className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:ring-1 focus-visible:ring-indigo-500 transition-opacity text-xs text-zinc-500 hover:text-zinc-300 bg-zinc-900 px-1 rounded"
+                            >copy</button>
+                          </div>
+                        ) : (
+                          <span className="text-zinc-500 truncate max-w-xs">{summary}</span>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               )}
 
@@ -319,6 +354,7 @@ export default function GenerationPanel({
                   <button
                     onClick={() => void submitRating(jobId)}
                     disabled={r.rating === 0}
+                    title={r.rating === 0 ? 'Select a rating (1–3) to submit' : 'Submit feedback'}
                     className="text-xs px-2 py-0.5 bg-indigo-600 hover:bg-indigo-500 rounded disabled:opacity-40"
                   >
                     Submit

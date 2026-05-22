@@ -13,7 +13,7 @@
  *   { file, tagline, work[{id,bullets[]}], projects[{name,url,stack,date,bullets[]}], skills[{label,vals}] }
  *   OR legacy: { file, tagline, carb[5], udra[5], projects[...], skills[...] }
  *
- * WORK_META IDs: 'gitlab' | 'carboncopies' | 'udayton' | 'augustana'
+ * WORK_META IDs: add employer id→metadata entries here for legacy id-only scripts (v2.3+ scripts carry inline metadata)
  *
  * PARA COUNT formula (dynamic):
  *   3  header   : name + contact + tagline
@@ -47,36 +47,56 @@ const LN  = 252;     // line spacing twips
 const TAB = 10710;
 const MG  = 648;     // margins ~0.45"
 const BG  = 'F1F1F5';
-const OUT = '/sessions/bold-dazzling-hopper/mnt/Resume Templates';
+const OUT = path.join(process.cwd(), 'output');
 
 // ── WORK METADATA LOOKUP ─────────────────────────────────────────────────────
-// To add employer: add entry here + bullets in master_resume_data.json
+// To add employer: add entry here + bullets in master_resume_data.json.
+// haiku_generate.js scripts use {id, bullets} only — metadata resolved here.
+// Inline metadata in the data object always takes priority (backward compat).
+// Replace id keys and values with your real employer data in your local environment.
+// These match the work IDs in master_resume_data.json.
 const WORK_META = {
-  gitlab: {
+  job1: {
     title:    'Open Source Contributor',
-    company:  'GitLab / CodePath',
+    company:  'OpenDev / TechPath',
     location: 'Remote, US',
-    dates:    'Feb. 2026 \u2013 Present'
+    dates:    'Feb. 2025 – Present'
   },
-  carboncopies: {
-    title:    'Complex Systems Research Engineer',
-    company:  'Carboncopies Foundation',
+  job2: {
+    title:    'Research Software Engineer',
+    company:  'SimLab Foundation',
     location: 'Remote, US',
-    dates:    'Jul. 2025 \u2013 Present'
+    dates:    'Jul. 2024 – Present'
   },
-  udayton: {
+  job3: {
     title:    'Graduate Research Assistant',
-    company:  'University of Dayton',
-    location: 'Dayton, OH',
-    dates:    'Aug. 2023 \u2013 Aug. 2025'
+    company:  'State University',
+    location: 'Anytown, OH',
+    dates:    'Aug. 2022 – Aug. 2024'
   },
-  augustana: {
+  job4: {
     title:    'Research Assistant & Peer Tutor',
-    company:  'Augustana College',
-    location: 'Rock Island, IL',
-    dates:    'Aug. 2020 \u2013 May 2023'
+    company:  'Liberal Arts College',
+    location: 'Anytown, IL',
+    dates:    'Aug. 2018 – May 2022'
   }
 };
+
+// ── CANDIDATE DEFAULTS ───────────────────────────────────────────────────────
+// Used when data.contact / data.education / data.name are not supplied
+// (e.g. haiku_generate.js scripts that only set file/tagline/work/projects/skills).
+// Replace with real candidate data in your local environment — do not commit PII.
+const DEFAULT_CONTACT = {
+  phone:     '555-555-0100',
+  email:     'alex.chen@example.com',
+  linkedin:  'https://linkedin.com/in/alexchen',
+  portfolio: 'https://alexchen.dev'
+};
+const DEFAULT_NAME = 'Alex Chen';
+const DEFAULT_EDUCATION = [
+  { line: 'State University – Master of Science in Computer Science',      dates: 'Aug. 2022 – Dec. 2024' },
+  { line: 'Liberal Arts College – B.A. Applied Mathematics & Computer Science', dates: 'Aug. 2018 – May 2022' }
+];
 
 // ── VALIDATORS (all exported) ─────────────────────────────────────────────────
 // T()  — bullet hard cap: 116 chars WITH spaces
@@ -186,22 +206,26 @@ const sl = (l, t) => new Paragraph({
   spacing: {after: 0, line: LN, lineRule: 'auto'}
 });
 
-// ── CONTACT ROW (static) ─────────────────────────────────────────────────────
-const contactRuns = [
-  new TextRun({text: '309 631 4531', font: F, size: SC}),
-  new TextRun({text: ' | ', font: F, size: SC}),
-  new TextRun({text: 'buiquocviet99@gmail.com', font: F, size: SC}),
-  new TextRun({text: ' | ', font: F, size: SC}),
-  new ExternalHyperlink({
-    link: 'https://www.linkedin.com/in/vietbui99',
-    children: [new TextRun({text: 'LinkedIn', font: F, size: SC, style: 'Hyperlink'})]
-  }),
-  new TextRun({text: ' | ', font: F, size: SC}),
-  new ExternalHyperlink({
-    link: 'https://vietbui1999ru.github.io/',
-    children: [new TextRun({text: 'Portfolio', font: F, size: SC, style: 'Hyperlink'})]
-  }),
-];
+// ── CONTACT ROW (dynamic) ─────────────────────────────────────────────────────
+function buildContactRuns(c) {
+  const runs = [];
+  const sep = () => new TextRun({text: ' | ', font: F, size: SC});
+  const addText = txt => { if (runs.length) runs.push(sep()); runs.push(new TextRun({text: txt, font: F, size: SC})); };
+  const addLink = (label, href) => {
+    const full = href && !href.startsWith('http') ? `https://${href}` : (href || '');
+    if (runs.length) runs.push(sep());
+    if (full) {
+      runs.push(new ExternalHyperlink({link: full, children: [new TextRun({text: label, font: F, size: SC, style: 'Hyperlink'})]}));
+    } else {
+      runs.push(new TextRun({text: label, font: F, size: SC}));
+    }
+  };
+  if (c.phone)     addText(c.phone);
+  if (c.email)     addText(c.email);
+  if (c.linkedin)  addLink('LinkedIn',  c.linkedin);
+  if (c.portfolio) addLink('Portfolio', c.portfolio);
+  return runs;
+}
 
 // ── PROJECT METADATA LOOKUP (from master_resume_data.json) ───────────────────
 let _PROJECT_LOOKUP = null;
@@ -224,13 +248,13 @@ function makeDoc(data) {
   if (data.work) {
     workEntries = data.work;
     workEntries.forEach((w, i) => {
-      if (!WORK_META[w.id])
-        throw new Error(`Unknown work id "${w.id}". Valid: ${Object.keys(WORK_META).join(', ')}`);
+      const hasMeta = (w.title && w.company) || WORK_META[w.id];
+      if (!hasMeta)
+        throw new Error(`work[${i}] "${w.id}": provide title+company+location+dates inline, or add id to WORK_META`);
       if (!Array.isArray(w.bullets) || w.bullets.length === 0)
         throw new Error(`work[${i}] (${w.id}) must have at least 1 bullet`);
     });
   } else {
-    // Legacy: carb = carboncopies, udra = udayton
     if (!data.carb || !data.udra) throw new Error('Provide data.work OR data.carb + data.udra');
     if (data.carb.length !== 5) throw new Error(`carb must have 5 bullets, got ${data.carb.length}`);
     if (data.udra.length !== 5) throw new Error(`udra must have 5 bullets, got ${data.udra.length}`);
@@ -248,39 +272,50 @@ function makeDoc(data) {
     p.bullets.forEach(b => T(b));
   });
 
+  // Education: data.education takes priority; fall back to DEFAULT_EDUCATION for haiku-generated scripts
+  const eduData = data.education ?? DEFAULT_EDUCATION;
+  const eduLines = eduData.map((e, i) =>
+    el(e.line || e.display, e.dates, i === eduData.length - 1 ? 40 : 0)
+  );
+
   const children = [
-    // HEADER (3)
-    nh('Quoc-Viet Bui'),
-    cl(contactRuns),
+    // HEADER — defaults used when haiku-generated scripts omit name/contact
+    nh(data.name || DEFAULT_NAME),
+    cl(buildContactRuns(data.contact || DEFAULT_CONTACT)),
     tl(TL(tagline)),
 
-    // EDUCATION (3)
+    // EDUCATION
     sh('Education'),
-    el('University of Dayton \u2013 Master of Science in Computer Science',    'Aug. 2023 \u2013 Dec. 2025'),
-    el('Augustana College \u2013 B.A. Applied Mathematics & Computer Science', 'Aug. 2019 \u2013 May 2023', 40),
+    ...eduLines,
 
     // WORK EXPERIENCE
     sh('Work Experience'),
     ...workEntries.flatMap(w => {
-      const m = WORK_META[w.id];
-      return [wl(m.title, m.company, m.location, m.dates), ...w.bullets.map(bl)];
+      // Inline metadata takes priority; fall back to WORK_META for legacy IDs
+      const m = WORK_META[w.id] || {};
+      const title    = w.title    || m.title;
+      const company  = w.company  || m.company;
+      const location = w.location || m.location;
+      const dates    = w.dates    || m.dates;
+      return [wl(title, company, location, dates), ...w.bullets.map(bl)];
     }),
 
-    // PROJECTS — supports {id, bullets} (id-lookup) or {name, url, stack, date, bullets} (explicit)
+    // PROJECTS — inline name takes priority; ID-based lookup as fallback
     sh('Relevant Projects'),
     ...projects.flatMap((p, i) => {
       let name, url, stack, date;
-      if (p.id) {
+      if (p.name) {
+        // Inline metadata — generated scripts always use this path
+        name = p.name; url = p.url || null; stack = p.stack || ''; date = p.date || '';
+      } else if (p.id) {
         const meta = getProjectLookup()[p.id];
         if (!meta) throw new Error(`Unknown project id "${p.id}". Available: ${Object.keys(getProjectLookup()).join(', ')}`);
         name  = meta.name;
         url   = meta.url   || null;
         stack = meta.short_stack && meta.short_stack !== 'undefined' ? meta.short_stack : '';
         date  = meta.dates || '';
-      } else {
-        name = p.name; url = p.url || null; stack = p.stack || ''; date = p.date || '';
       }
-      if (!name) throw new Error(`project[${i}]: missing name (pass id or explicit name)`);
+      if (!name) throw new Error(`project[${i}]: missing name (pass name inline or id for lookup)`);
       return [ph(name, url, stack, date), ...p.bullets.map(bl)];
     }),
 

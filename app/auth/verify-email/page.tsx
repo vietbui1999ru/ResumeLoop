@@ -9,9 +9,11 @@ function VerifyContent() {
 
   useEffect(() => {
     if (!token) { setStatus('error'); return }
-    fetch(`/api/auth/verify-email?token=${encodeURIComponent(token)}`)
-      .then(r => setStatus(r.ok ? 'ok' : 'error'))
-      .catch(() => setStatus('error'))
+    const ac = new AbortController()
+    fetch(`/api/auth/verify-email?token=${encodeURIComponent(token)}`, { signal: ac.signal })
+      .then(r => { if (!ac.signal.aborted) setStatus(r.ok ? 'ok' : 'error') })
+      .catch(e => { if ((e as DOMException)?.name !== 'AbortError') setStatus('error') })
+    return () => ac.abort()
   }, [token])
 
   if (status === 'loading') return <p className="text-sm text-zinc-400">Verifying…</p>
