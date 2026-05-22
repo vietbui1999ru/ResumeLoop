@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { auth } from '@/lib/auth'
 import { getAdapter } from '@/lib/db-adapter'
-import fs from 'fs'
-import { PATHS } from '@/lib/paths'
 
 export interface Profile {
   id: string

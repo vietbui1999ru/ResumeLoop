@@ -3,7 +3,7 @@ import { auth }                  from '@/lib/auth'
 import { listIngestionSources }  from '@/lib/ingest/db'
 import { mergePartials }         from '@/lib/ingest/merge'
 
-export async function POST(req: Request) {
+export async function POST(_req: Request) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const userId = session.user.id

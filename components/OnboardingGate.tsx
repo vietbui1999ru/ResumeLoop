@@ -5,7 +5,10 @@ import { useRouter, usePathname } from 'next/navigation'
 export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const router   = useRouter()
   const pathname = usePathname()
-  const skip     = pathname.startsWith('/onboarding') || pathname.startsWith('/auth')
+  const NEEDS_PROFILE = ['/', '/chat']
+  const skip = !NEEDS_PROFILE.some(p => pathname === p || pathname.startsWith(p + '/'))
+            || pathname.startsWith('/onboarding')
+            || pathname.startsWith('/auth')
   const [checking, setChecking] = useState(!skip)
 
   useEffect(() => {
