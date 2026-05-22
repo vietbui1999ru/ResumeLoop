@@ -1,7 +1,80 @@
 import { NextResponse }   from 'next/server'
+import { lookup }         from 'node:dns/promises'
 import { auth }           from '@/lib/auth'
 import { createIngestionSource, updateIngestionSource } from '@/lib/ingest/db'
 import { extractFromUrl } from '@/lib/ingest/extract-url'
+
+const BLOCKED_HOSTS = new Set([
+  'localhost',
+  'metadata.google.internal',
+])
+
+function normalizeHost(hostname: string): string {
+  const host = hostname.toLowerCase()
+  return host.startsWith('[') && host.endsWith(']') ? host.slice(1, -1) : host
+}
+
+function isDisallowedHost(hostname: string): boolean {
+  const host = normalizeHost(hostname)
+  if (BLOCKED_HOSTS.has(host)) return true
+
+  // IPv4
+  if (/^0\./.test(host)) return true
+  if (/^10\./.test(host)) return true
+  if (/^127\./.test(host)) return true
+  if (/^169\.254\./.test(host)) return true
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return true
+  if (/^192\.168\./.test(host)) return true
+  if (/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host)) return true
+  if (host === '169.254.169.254' || host === '169.254.170.2') return true
+
+  // IPv6
+  if (host === '::1') return true
+  if (/^fe[89ab][0-9a-f]:/i.test(host)) return true // link-local fe80::/10
+  if (/^f[cd][0-9a-f]{2}:/i.test(host)) return true // unique-local fc00::/7
+
+  // IPv4-mapped IPv6
+  if (/^::ffff:/i.test(host)) {
+    const mapped = host.replace(/^::ffff:/i, '')
+    return isDisallowedHost(mapped)
+  }
+
+  return false
+}
+
+async function assertPublicHost(hostname: string): Promise<void> {
+  const host = normalizeHost(hostname)
+  if (isDisallowedHost(host)) throw new Error('disallowed-host')
+
+  // If hostname is not a direct IP, resolve DNS and block private/link-local targets.
+  if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(host) && !host.includes(':')) {
+    const resolved = await lookup(host, { all: true, verbatim: true })
+    if (!resolved.length || resolved.some(r => isDisallowedHost(r.address))) {
+      throw new Error('disallowed-host')
+    }
+  }
+}
+
+async function validateRedirectChain(rawUrl: string): Promise<string> {
+  let current = new URL(rawUrl)
+  for (let i = 0; i < 5; i += 1) {
+    if (!['http:', 'https:'].includes(current.protocol)) throw new Error('invalid-url')
+    await assertPublicHost(current.hostname)
+
+    const resp = await fetch(current.toString(), {
+      method: 'GET',
+      redirect: 'manual',
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ResumeLoop/1.0)' },
+      signal: AbortSignal.timeout(8_000),
+    })
+    if (resp.status < 300 || resp.status >= 400) return current.toString()
+
+    const location = resp.headers.get('location')
+    if (!location) return current.toString()
+    current = new URL(location, current)
+  }
+  throw new Error('too-many-redirects')
+}
 
 export async function POST(req: Request) {
   const session = await auth()
@@ -11,20 +84,21 @@ export async function POST(req: Request) {
   const body = await req.json() as { url?: string }
   if (!body.url?.trim()) return NextResponse.json({ error: 'url required' }, { status: 400 })
 
-  let validUrl: string
+  let parsed: URL
   try {
-    const parsed = new URL(body.url)
-    if (!['http:', 'https:'].includes(parsed.protocol)) {
-      return NextResponse.json({ error: 'Only http:// and https:// URLs are allowed' }, { status: 400 })
-    }
-    const h = parsed.hostname.toLowerCase()
-    const blocked = ['localhost', '127.0.0.1', '0.0.0.0', '::1', '169.254.169.254', '169.254.170.2', 'metadata.google.internal']
-    if (blocked.includes(h) || /^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(h)) {
-      return NextResponse.json({ error: 'URL points to a disallowed host' }, { status: 400 })
-    }
-    validUrl = parsed.toString()
+    parsed = new URL(body.url)
   } catch {
     return NextResponse.json({ error: 'Invalid URL' }, { status: 400 })
+  }
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    return NextResponse.json({ error: 'Only http:// and https:// URLs are allowed' }, { status: 400 })
+  }
+
+  let validUrl: string
+  try {
+    validUrl = await validateRedirectChain(parsed.toString())
+  } catch {
+    return NextResponse.json({ error: 'URL points to a disallowed host' }, { status: 400 })
   }
 
   const source = await createIngestionSource(userId, 'url', validUrl)
