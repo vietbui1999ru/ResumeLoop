@@ -57,6 +57,10 @@ infra/*.tfstate
 infra/*.tfstate.backup
 .terraform/
 
+# Homelab secrets & environment
+secrets/
+.env.homelab
+
 # Proprietary reference docs — not tracked in git
 docs/reference/ats-optimization-guidelines.md
 docs/reference/CLAUDE-full.md
