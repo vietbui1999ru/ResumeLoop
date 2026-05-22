@@ -5,6 +5,9 @@ import { logAiUsage }      from '../ai-usage'
 import { getAdapter }      from '../db-adapter'
 import type { SparseProfile } from './types'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyToolCall = { toolName: string; input: any }
+
 export async function getFirecrawlKey(userId: string): Promise<string | null> {
   const db  = await getAdapter()
   const row = await db.queryOne<{ value: string }>(
@@ -16,7 +19,7 @@ export async function getFirecrawlKey(userId: string): Promise<string | null> {
 export async function scrapeUrl(url: string, firecrawlKey: string | null): Promise<string> {
   if (firecrawlKey) {
     try {
-      const { default: FirecrawlApp } = await import('@mendable/firecrawl-js') as {
+      const { default: FirecrawlApp } = await import('@mendable/firecrawl-js') as unknown as {
         default: new (opts: { apiKey: string }) => {
           scrapeUrl: (url: string, opts: object) => Promise<{ success: boolean; markdown?: string; error?: string }>
         }
@@ -55,17 +58,14 @@ export async function extractFromUrl(url: string, userId: string): Promise<Spars
   const firecrawlKey = await getFirecrawlKey(userId)
   const pageContent  = await scrapeUrl(url, firecrawlKey)
 
-  const cfg = await getActiveConfig(userId)
-  if (!cfg) throw new Error('No AI provider configured. Go to Settings → AI to add an API key.')
-
   const result = await generateText({
-    model:    getModel(cfg),
-    system:   SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: `URL: ${url}\n\nPage content:\n\n${pageContent}` }],
+    model:           await getModel(userId),
+    system:          SYSTEM_PROMPT,
+    messages:        [{ role: 'user', content: `URL: ${url}\n\nPage content:\n\n${pageContent}` }],
     tools: {
       extract_profile: {
         description: 'Extract professional profile data from the scraped page',
-        parameters:  jsonSchema<SparseProfile>({
+        inputSchema: jsonSchema<SparseProfile>({
           type: 'object',
           properties: {
             contact: {
@@ -111,15 +111,18 @@ export async function extractFromUrl(url: string, userId: string): Promise<Spars
         }),
       },
     },
-    toolChoice: 'required',
-    maxTokens:  2500,
+    toolChoice:      'required',
+    maxOutputTokens: 2500,
   })
 
-  const call = result.toolCalls.find(t => t.toolName === 'extract_profile')
+  const call = (result.toolCalls as AnyToolCall[]).find(t => t.toolName === 'extract_profile')
   if (!call) throw new Error('AI did not call extract_profile tool')
 
-  await logAiUsage(userId, cfg.provider, cfg.model, 'ingest-url',
-    result.usage?.inputTokens ?? 0, result.usage?.outputTokens ?? 0)
+  const cfg = await getActiveConfig(userId)
+  if (cfg) {
+    logAiUsage(userId, cfg.provider, cfg.model, 'ingest-url',
+      result.usage?.inputTokens ?? 0, result.usage?.outputTokens ?? 0).catch(() => {})
+  }
 
-  return call.args as SparseProfile
+  return call.input as SparseProfile
 }

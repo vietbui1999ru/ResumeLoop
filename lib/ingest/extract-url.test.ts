@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('ai', () => ({ generateText: vi.fn(), jsonSchema: (s: unknown) => s }))
 vi.mock('../ai-client',     () => ({ getModel: vi.fn().mockReturnValue('mock-model') }))
 vi.mock('../user-settings', () => ({ getActiveConfig: vi.fn().mockResolvedValue({ provider: 'anthropic', model: 'claude-sonnet-4-6' }) }))
-vi.mock('../ai-usage',      () => ({ logAiUsage: vi.fn() }))
+vi.mock('../ai-usage',      () => ({ logAiUsage: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('../db-adapter', () => ({
   getAdapter: vi.fn().mockResolvedValue({
     queryOne: vi.fn().mockResolvedValue(null),  // no firecrawl key stored
@@ -13,7 +13,7 @@ vi.mock('../db-adapter', () => ({
 import { generateText } from 'ai'
 import { scrapeUrl, extractFromUrl } from './extract-url'
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks() })
 
 describe('scrapeUrl', () => {
   it('strips HTML when no Firecrawl key', async () => {
@@ -35,7 +35,7 @@ describe('extractFromUrl', () => {
     } as never)
 
     vi.mocked(generateText).mockResolvedValueOnce({
-      toolCalls: [{ toolName: 'extract_profile', args: {
+      toolCalls: [{ toolName: 'extract_profile', input: {
         contact:    { name: 'Jane Doe', website: 'https://janedoe.com' },
         experience: [{ id: 'acme', company: 'Acme Corp', title: 'Engineer',
                        bullets: { genai: ['Built distributed systems using Go and Kubernetes'] } }],

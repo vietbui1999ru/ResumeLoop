@@ -4,6 +4,9 @@ import { getActiveConfig } from '../user-settings'
 import { logAiUsage }      from '../ai-usage'
 import type { SparseProfile, IngestionSource, MergeResult, ConflictEntry } from './types'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyToolCall = { toolName: string; input: any }
+
 const SYSTEM_PROMPT = `You merge multiple partial resume profiles into one complete profile.
 Rules:
 - Most-specific-wins: prefer the most detailed/concrete value for each scalar field
@@ -28,17 +31,14 @@ export async function mergePartials(
     `Source ${i + 1} (id: ${s.id}, type: ${s.type}):\n${JSON.stringify(s.extractedPartial, null, 2)}`
   ).join('\n\n---\n\n')
 
-  const cfg = await getActiveConfig(userId)
-  if (!cfg) throw new Error('No AI provider configured. Go to Settings → AI to add an API key.')
-
   const result = await generateText({
-    model:    getModel(cfg),
-    system:   SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: `Merge these profile partials:\n\n${partialsText}` }],
+    model:           await getModel(userId),
+    system:          SYSTEM_PROMPT,
+    messages:        [{ role: 'user', content: `Merge these profile partials:\n\n${partialsText}` }],
     tools: {
       merge_profiles: {
         description: 'Produce a merged profile and list any conflicts',
-        parameters:  jsonSchema<MergeToolOutput>({
+        inputSchema: jsonSchema<MergeToolOutput>({
           type: 'object', required: ['merged', 'conflicts'],
           properties: {
             merged: {
@@ -107,16 +107,19 @@ export async function mergePartials(
         }),
       },
     },
-    toolChoice: 'required',
-    maxTokens:  3000,
+    toolChoice:      'required',
+    maxOutputTokens: 3000,
   })
 
-  const call = result.toolCalls.find(t => t.toolName === 'merge_profiles')
+  const call = (result.toolCalls as AnyToolCall[]).find(t => t.toolName === 'merge_profiles')
   if (!call) throw new Error('AI did not call merge_profiles tool')
 
-  await logAiUsage(userId, cfg.provider, cfg.model, 'ingest-merge',
-    result.usage?.inputTokens ?? 0, result.usage?.outputTokens ?? 0)
+  const cfg = await getActiveConfig(userId)
+  if (cfg) {
+    logAiUsage(userId, cfg.provider, cfg.model, 'ingest-merge',
+      result.usage?.inputTokens ?? 0, result.usage?.outputTokens ?? 0).catch(() => {})
+  }
 
-  const { merged, conflicts } = call.args as MergeToolOutput
+  const { merged, conflicts } = call.input as MergeToolOutput
   return { profile: merged, conflicts }
 }

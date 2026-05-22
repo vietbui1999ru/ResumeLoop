@@ -3,12 +3,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('ai', () => ({ generateText: vi.fn(), jsonSchema: (s: unknown) => s }))
 vi.mock('../ai-client',     () => ({ getModel: vi.fn().mockReturnValue('mock-model') }))
 vi.mock('../user-settings', () => ({ getActiveConfig: vi.fn().mockResolvedValue({ provider: 'anthropic', model: 'claude-sonnet-4-6' }) }))
-vi.mock('../ai-usage',      () => ({ logAiUsage: vi.fn() }))
+vi.mock('../ai-usage',      () => ({ logAiUsage: vi.fn().mockResolvedValue(undefined) }))
 
 import { generateText } from 'ai'
 import { extractFromGithub, parseGithubInput } from './extract-github'
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks() })
 
 describe('parseGithubInput', () => {
   it('detects profile URL', () =>
@@ -32,7 +32,7 @@ describe('extractFromGithub', () => {
       .mockResolvedValue({ ok: false })        // repo READMEs — 404 is OK
 
     vi.mocked(generateText).mockResolvedValueOnce({
-      toolCalls: [{ toolName: 'extract_profile', args: {
+      toolCalls: [{ toolName: 'extract_profile', input: {
         contact:  { name: 'Jane Doe', github: 'https://github.com/janedoe' },
         projects: [{ id: 'my-api', name: 'my-api', short_stack: 'Go', bullets: ['Built REST API serving 10k requests/day using Go and PostgreSQL'] }],
       }}],

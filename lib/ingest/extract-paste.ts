@@ -4,6 +4,9 @@ import { getActiveConfig } from '../user-settings'
 import { logAiUsage }      from '../ai-usage'
 import type { SparseProfile } from './types'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyToolCall = { toolName: string; input: any }
+
 const MIN_LENGTH = 20
 
 const SYSTEM_PROMPT = `You extract professional profile data from freeform text.
@@ -66,28 +69,28 @@ export async function extractFromPaste(
 ): Promise<SparseProfile> {
   if (text.trim().length < MIN_LENGTH) throw new Error('Input too short to extract meaningful data')
 
-  const cfg = await getActiveConfig(userId)
-  if (!cfg) throw new Error('No AI provider configured. Go to Settings → AI to add an API key.')
-
   const result = await generateText({
-    model:    getModel(cfg),
-    system:   SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: `Extract profile data from this text:\n\n${text.slice(0, 20_000)}` }],
+    model:           await getModel(userId),
+    system:          SYSTEM_PROMPT,
+    messages:        [{ role: 'user', content: `Extract profile data from this text:\n\n${text.slice(0, 20_000)}` }],
     tools: {
       extract_profile: {
         description: 'Extract structured profile data from the provided text',
-        parameters:  jsonSchema<SparseProfile>(PROFILE_SCHEMA),
+        inputSchema: jsonSchema<SparseProfile>(PROFILE_SCHEMA),
       },
     },
-    toolChoice: 'required',
-    maxTokens:  2000,
+    toolChoice:      'required',
+    maxOutputTokens: 2000,
   })
 
-  const call = result.toolCalls.find(t => t.toolName === 'extract_profile')
+  const call = (result.toolCalls as AnyToolCall[]).find(t => t.toolName === 'extract_profile')
   if (!call) throw new Error('AI did not call extract_profile tool not called')
 
-  await logAiUsage(userId, cfg.provider, cfg.model, 'ingest-paste',
-    result.usage?.inputTokens ?? 0, result.usage?.outputTokens ?? 0)
+  const cfg = await getActiveConfig(userId)
+  if (cfg) {
+    logAiUsage(userId, cfg.provider, cfg.model, 'ingest-paste',
+      result.usage?.inputTokens ?? 0, result.usage?.outputTokens ?? 0).catch(() => {})
+  }
 
-  return call.args as SparseProfile
+  return call.input as SparseProfile
 }

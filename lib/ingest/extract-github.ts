@@ -4,6 +4,9 @@ import { getActiveConfig } from '../user-settings'
 import { logAiUsage }      from '../ai-usage'
 import type { SparseProfile } from './types'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyToolCall = { toolName: string; input: any }
+
 const GH_API = 'https://api.github.com'
 const GH_HEADERS = {
   'Accept':               'application/vnd.github+json',
@@ -94,17 +97,14 @@ export async function extractFromGithub(input: string, userId: string): Promise<
     ),
   ].filter(Boolean).join('\n')
 
-  const cfg = await getActiveConfig(userId)
-  if (!cfg) throw new Error('No AI provider configured. Go to Settings → AI to add an API key.')
-
   const result = await generateText({
-    model:    getModel(cfg),
-    system:   SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: githubContent }],
+    model:           await getModel(userId),
+    system:          SYSTEM_PROMPT,
+    messages:        [{ role: 'user', content: githubContent }],
     tools: {
       extract_profile: {
         description: 'Extract profile data from the provided GitHub information',
-        parameters:  jsonSchema<SparseProfile>({
+        inputSchema: jsonSchema<SparseProfile>({
           type: 'object',
           properties: {
             contact: {
@@ -133,15 +133,18 @@ export async function extractFromGithub(input: string, userId: string): Promise<
         }),
       },
     },
-    toolChoice: 'required',
-    maxTokens:  2000,
+    toolChoice:      'required',
+    maxOutputTokens: 2000,
   })
 
-  const call = result.toolCalls.find(t => t.toolName === 'extract_profile')
+  const call = (result.toolCalls as AnyToolCall[]).find(t => t.toolName === 'extract_profile')
   if (!call) throw new Error('AI did not call extract_profile tool')
 
-  await logAiUsage(userId, cfg.provider, cfg.model, 'ingest-github',
-    result.usage?.inputTokens ?? 0, result.usage?.outputTokens ?? 0)
+  const cfg = await getActiveConfig(userId)
+  if (cfg) {
+    logAiUsage(userId, cfg.provider, cfg.model, 'ingest-github',
+      result.usage?.inputTokens ?? 0, result.usage?.outputTokens ?? 0).catch(() => {})
+  }
 
-  return call.args as SparseProfile
+  return call.input as SparseProfile
 }

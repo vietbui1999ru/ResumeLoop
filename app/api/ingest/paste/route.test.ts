@@ -12,7 +12,7 @@ import { createIngestionSource, updateIngestionSource } from '@/lib/ingest/db'
 import { extractFromPaste }           from '@/lib/ingest/extract-paste'
 import { POST }                       from './route'
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks() })
 
 it('returns 401 when not authenticated', async () => {
   vi.mocked(auth).mockResolvedValueOnce(null as never)

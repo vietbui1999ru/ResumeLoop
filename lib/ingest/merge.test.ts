@@ -3,13 +3,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('ai', () => ({ generateText: vi.fn(), jsonSchema: (s: unknown) => s }))
 vi.mock('../ai-client',     () => ({ getModel: vi.fn().mockReturnValue('mock-model') }))
 vi.mock('../user-settings', () => ({ getActiveConfig: vi.fn().mockResolvedValue({ provider: 'anthropic', model: 'claude-sonnet-4-6' }) }))
-vi.mock('../ai-usage',      () => ({ logAiUsage: vi.fn() }))
+vi.mock('../ai-usage',      () => ({ logAiUsage: vi.fn().mockResolvedValue(undefined) }))
 
 import { generateText } from 'ai'
 import { mergePartials } from './merge'
 import type { SparseProfile, IngestionSource } from './types'
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks() })
 
 const makeSrc = (id: string, partial: SparseProfile): IngestionSource => ({
   id, userId: 'u1', type: 'paste', inputRaw: '', status: 'done',
@@ -19,7 +19,7 @@ const makeSrc = (id: string, partial: SparseProfile): IngestionSource => ({
 describe('mergePartials', () => {
   it('returns merged profile and empty conflicts', async () => {
     vi.mocked(generateText).mockResolvedValueOnce({
-      toolCalls: [{ toolName: 'merge_profiles', args: {
+      toolCalls: [{ toolName: 'merge_profiles', input: {
         merged: {
           contact:  { name: 'Jane Doe', email: 'jane@example.com' },
           projects: [{ id: 'my-api', name: 'my-api', short_stack: 'Go', bullets: ['Built REST API'] }],
@@ -42,7 +42,7 @@ describe('mergePartials', () => {
 
   it('surfaces conflicts when AI reports them', async () => {
     vi.mocked(generateText).mockResolvedValueOnce({
-      toolCalls: [{ toolName: 'merge_profiles', args: {
+      toolCalls: [{ toolName: 'merge_profiles', input: {
         merged:    { contact: { name: 'Jane Doe' } },
         conflicts: [{
           field: 'contact.name',

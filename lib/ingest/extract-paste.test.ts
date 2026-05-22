@@ -3,19 +3,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('ai', () => ({ generateText: vi.fn(), jsonSchema: (s: unknown) => s }))
 vi.mock('../ai-client',     () => ({ getModel: vi.fn().mockReturnValue('mock-model') }))
 vi.mock('../user-settings', () => ({ getActiveConfig: vi.fn().mockResolvedValue({ provider: 'anthropic', model: 'claude-sonnet-4-6' }) }))
-vi.mock('../ai-usage',      () => ({ logAiUsage: vi.fn() }))
+vi.mock('../ai-usage',      () => ({ logAiUsage: vi.fn().mockResolvedValue(undefined) }))
 
 import { generateText } from 'ai'
 import { extractFromPaste } from './extract-paste'
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => { vi.clearAllMocks() })
 
 describe('extractFromPaste', () => {
   it('returns sparse profile from tool call', async () => {
     vi.mocked(generateText).mockResolvedValueOnce({
       toolCalls: [{
         toolName: 'extract_profile',
-        args: {
+        input: {
           contact:    { name: 'Jane Doe', email: 'jane@example.com' },
           experience: [{
             id: 'acme', title: 'Engineer', company: 'Acme Corp',
