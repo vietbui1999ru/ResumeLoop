@@ -1,0 +1,18 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: slack-resumeloop
+    receivers:
+      - uid: slack-main
+        type: slack
+        settings:
+          url: "${SLACK_WEBHOOK_URL}"
+          title: |
+            {{ if eq .Status "firing" }}🔴{{ else }}✅{{ end }} {{ .CommonLabels.alertname }}
+          text: |
+            {{ range .Alerts }}
+            *Status:* {{ .Status }}
+            *Summary:* {{ .Annotations.summary }}
+            {{ end }}
+        disableResolveMessage: false

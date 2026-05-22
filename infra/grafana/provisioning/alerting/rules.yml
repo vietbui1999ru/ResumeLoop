@@ -1,0 +1,90 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: resumeloop
+    folder: ResumeLoop
+    interval: 1m
+    rules:
+
+      - uid: resumeloop-app-down
+        title: AppDown
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus-homelab
+            relativeTimeRange: { from: 300, to: 0 }
+            model:
+              expr: resumeloop_up
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: "__expr__"
+            model:
+              type: math
+              expression: "$A < 1"
+              refId: C
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 2m
+        annotations:
+          summary: "ResumeLoop is unreachable — Prometheus cannot scrape the metrics endpoint"
+        labels:
+          severity: critical
+
+      - uid: resumeloop-generation-failure-rate
+        title: GenerationFailureRate
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus-homelab
+            relativeTimeRange: { from: 300, to: 0 }
+            model:
+              expr: resumeloop_outputs_with_docx_total / resumeloop_outputs_total
+              instant: true
+              refId: A
+          - refId: B
+            datasourceUid: prometheus-homelab
+            relativeTimeRange: { from: 300, to: 0 }
+            model:
+              expr: resumeloop_outputs_total
+              instant: true
+              refId: B
+          - refId: C
+            datasourceUid: "__expr__"
+            model:
+              type: math
+              expression: "$A < 0.8 && $B > 0"
+              refId: C
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "Less than 80% of generation runs produced a DOCX — check AI provider or DOCX pipeline"
+        labels:
+          severity: warning
+
+      - uid: resumeloop-token-spike
+        title: TokenSpike
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus-homelab
+            relativeTimeRange: { from: 300, to: 0 }
+            model:
+              expr: resumeloop_ai_tokens_total
+              instant: true
+              refId: A
+          - refId: C
+            datasourceUid: "__expr__"
+            model:
+              type: math
+              expression: "$A > 100000"
+              refId: C
+        noDataState: NoData
+        execErrState: Error
+        for: 0m
+        annotations:
+          summary: "Cumulative AI token usage exceeded 100k — check for runaway generation or abuse"
+        labels:
+          severity: warning
