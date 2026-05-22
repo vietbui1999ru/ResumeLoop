@@ -1,5 +1,6 @@
 import { NextResponse }   from 'next/server'
 import { lookup }         from 'node:dns/promises'
+import { isIP }           from 'node:net'
 import { auth }           from '@/lib/auth'
 import { createIngestionSource, updateIngestionSource } from '@/lib/ingest/db'
 import { extractFromUrl } from '@/lib/ingest/extract-url'
@@ -8,6 +9,7 @@ const BLOCKED_HOSTS = new Set([
   'localhost',
   'metadata.google.internal',
 ])
+const MAX_REDIRECTS = 5
 
 function normalizeHost(hostname: string): string {
   const host = hostname.toLowerCase()
@@ -26,7 +28,6 @@ function isDisallowedHost(hostname: string): boolean {
   if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return true
   if (/^192\.168\./.test(host)) return true
   if (/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host)) return true
-  if (host === '169.254.169.254' || host === '169.254.170.2') return true
 
   // IPv6
   if (host === '::1') return true
@@ -34,10 +35,7 @@ function isDisallowedHost(hostname: string): boolean {
   if (/^f[cd][0-9a-f]{2}:/i.test(host)) return true // unique-local fc00::/7
 
   // IPv4-mapped IPv6
-  if (/^::ffff:/i.test(host)) {
-    const mapped = host.replace(/^::ffff:/i, '')
-    return isDisallowedHost(mapped)
-  }
+  if (/^::ffff:/i.test(host)) return true
 
   return false
 }
@@ -47,7 +45,7 @@ async function assertPublicHost(hostname: string): Promise<void> {
   if (isDisallowedHost(host)) throw new Error('disallowed-host')
 
   // If hostname is not a direct IP, resolve DNS and block private/link-local targets.
-  if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(host) && !host.includes(':')) {
+  if (isIP(host) === 0) {
     const resolved = await lookup(host, { all: true, verbatim: true })
     if (!resolved.length || resolved.some(r => isDisallowedHost(r.address))) {
       throw new Error('disallowed-host')
@@ -57,7 +55,7 @@ async function assertPublicHost(hostname: string): Promise<void> {
 
 async function validateRedirectChain(rawUrl: string): Promise<string> {
   let current = new URL(rawUrl)
-  for (let i = 0; i < 5; i += 1) {
+  for (let i = 0; i < MAX_REDIRECTS; i += 1) {
     if (!['http:', 'https:'].includes(current.protocol)) throw new Error('invalid-url')
     await assertPublicHost(current.hostname)
 

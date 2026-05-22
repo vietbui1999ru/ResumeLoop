@@ -36,6 +36,21 @@ it('blocks hostnames that resolve to private IPs', async () => {
   expect(await res.json()).toEqual({ error: 'URL points to a disallowed host' })
 })
 
+it('blocks hostnames that resolve to mixed public/private IPs', async () => {
+  vi.mocked(lookup).mockResolvedValueOnce([
+    { address: '93.184.216.34', family: 4 },
+    { address: '192.168.1.10', family: 4 },
+  ] as never)
+
+  const res = await POST(new Request('http://localhost', {
+    method: 'POST',
+    body: JSON.stringify({ url: 'https://example.com' }),
+  }))
+
+  expect(res.status).toBe(400)
+  expect(await res.json()).toEqual({ error: 'URL points to a disallowed host' })
+})
+
 it('blocks redirects to private/metadata endpoints', async () => {
   vi.stubGlobal('fetch', vi.fn()
     .mockResolvedValueOnce(new Response('', {
@@ -47,6 +62,16 @@ it('blocks redirects to private/metadata endpoints', async () => {
   const res = await POST(new Request('http://localhost', {
     method: 'POST',
     body: JSON.stringify({ url: 'https://example.com' }),
+  }))
+
+  expect(res.status).toBe(400)
+  expect(await res.json()).toEqual({ error: 'URL points to a disallowed host' })
+})
+
+it('blocks IPv4-mapped IPv6 loopback addresses', async () => {
+  const res = await POST(new Request('http://localhost', {
+    method: 'POST',
+    body: JSON.stringify({ url: 'http://[::ffff:127.0.0.1]/' }),
   }))
 
   expect(res.status).toBe(400)
