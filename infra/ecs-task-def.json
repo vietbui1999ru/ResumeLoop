@@ -31,6 +31,14 @@
         {
           "name": "AUTH_URL",
           "value": "https://resumeloop.me"
+        },
+        {
+          "name": "OTEL_EXPORTER_OTLP_ENDPOINT",
+          "value": "http://HOMELAB_PUBLIC_IP:4318"
+        },
+        {
+          "name": "OTEL_EXPORTER_OTLP_PROTOCOL",
+          "value": "http/protobuf"
         }
       ],
       "secrets": [
@@ -89,6 +97,10 @@
         {
           "name": "LOGS_API_KEY",
           "valueFrom": "arn:aws:secretsmanager:us-east-1:985526967036:secret:resumeloop/prod/LOGS_API_KEY-AxHLpq"
+        },
+        {
+          "name": "OTEL_EXPORTER_OTLP_HEADERS",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:985526967036:secret:resumeloop/prod/OTEL_BEARER_TOKEN-XXXXXX"
         }
       ],
       "logConfiguration": {
