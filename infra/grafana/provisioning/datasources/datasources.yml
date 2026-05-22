@@ -1,0 +1,22 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus-homelab
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+
+  - name: Tempo
+    type: tempo
+    uid: tempo-homelab
+    url: http://tempo:3200
+    editable: false
+    jsonData:
+      tracesToLogsV2:
+        customQuery: false
+      serviceMap:
+        datasourceUid: prometheus-homelab
+      nodeGraph:
+        enabled: true
