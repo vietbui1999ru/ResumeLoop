@@ -4,11 +4,16 @@
 # Logs:   docker compose -f infra/docker-compose.homelab.yml logs -f
 #
 # Prerequisites:
-#   1. Copy .env.homelab.example to .env.homelab and fill in values
-#   2. Create secrets/metrics_token on the host before first run:
-#        mkdir -p secrets && echo -n "YOUR_METRICS_TOKEN" > secrets/metrics_token && chmod 600 secrets/metrics_token
-#   3. Forward port 4318 on your router to this host (OTEL Collector — public-facing)
-#   4. Access Grafana via Tailscale: http://<tailscale-ip>:3000
+#   1. Run setup: bash infra/setup-homelab.sh (creates .env.homelab + secrets/metrics_token)
+#   2. Forward port 4318 on your router to this host (OTEL Collector — public-facing)
+#   3. Access Grafana via Tailscale: http://<tailscale-ip>:3000
+#
+# Security note: ECS sends OTLP traces to port 4318 over plain HTTP (no TLS).
+# The bearer token protects against unauthenticated trace injection.
+# This is an accepted trade-off for a personal homelab with no domain/TLS cert.
+# Upgrade path: add a TLS reverse proxy (nginx/caddy) in front of the collector.
+#
+# Run from REPO ROOT: docker compose -f infra/docker-compose.homelab.yml --env-file .env.homelab up -d
 
 services:
   prometheus:
