@@ -1,3 +1,9 @@
+# Alert rules are managed by Grafana (see infra/grafana/provisioning/alerting/rules.yml).
+# Prometheus handles metric storage and scraping only; Grafana evaluates alert conditions.
+#
+# Prerequisites for docker-compose: host must create secrets/metrics_token before `docker compose up`.
+# See infra/docker-compose.homelab.yml and .env.homelab.example for setup instructions.
+
 global:
   scrape_interval: 60s
   scrape_timeout: 15s
@@ -7,8 +13,6 @@ scrape_configs:
   - job_name: resumeloop
     scheme: https
     metrics_path: /api/metrics/prometheus
-    scrape_interval: 60s
-    scrape_timeout: 15s
 
     authorization:
       type: Bearer
