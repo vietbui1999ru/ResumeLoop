@@ -275,6 +275,7 @@ interface Settings {
   jobs_path:            string
   output_path:          string
   outreach_path:        string
+  firecrawl_configured: boolean
   jobs_path_exists:     boolean
   output_path_exists:   boolean
   outreach_path_exists: boolean
@@ -458,6 +459,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null)
   const [settingsError, setSettingsError] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [newFirecrawlKey, setNewFirecrawlKey] = useState('')
   const [saveStatus, setSaveStatus] = useState('')
   const [showImportGuide, setShowImportGuide] = useState(false)
 
@@ -471,7 +473,7 @@ export default function SettingsPage() {
       .catch(() => setSettingsError(true))
   }, [])
 
-  const save = async (patch: Partial<Pick<Settings, 'jobs_path' | 'output_path' | 'outreach_path'>>) => {
+  const save = async (patch: Partial<Pick<Settings, 'jobs_path' | 'output_path' | 'outreach_path'> & { firecrawl_key?: string }>) => {
     if (!settings) return
     const next = { ...settings, ...patch }
     setSettings(next)
@@ -631,6 +633,35 @@ export default function SettingsPage() {
         Paths are stored in the database and override <code>.env.local</code> values.
         In Docker, use container-side paths (e.g. <code>/jobs</code>, <code>/output</code>).
       </p>
+
+      <div className="space-y-3">
+        <h2 className="text-xs font-semibold text-zinc-500 uppercase">Integrations</h2>
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-zinc-300">
+            Firecrawl API Key
+            <span className="ml-2 text-xs text-zinc-500">(optional — richer URL scraping)</span>
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="password"
+              value={newFirecrawlKey}
+              onChange={e => setNewFirecrawlKey(e.target.value)}
+              onBlur={() => {
+                if (newFirecrawlKey.trim()) {
+                  void save({ firecrawl_key: newFirecrawlKey.trim() })
+                  setNewFirecrawlKey('')
+                  setSettings(s => s ? { ...s, firecrawl_configured: true } : s)
+                }
+              }}
+              placeholder={settings.firecrawl_configured ? 'key saved — paste new key to replace' : 'fc-...'}
+              className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm text-zinc-200 font-mono"
+            />
+          </div>
+          <p className="text-xs text-zinc-500">
+            Get a key at firecrawl.dev. Without a key, URL ingestion uses basic HTML fetch.
+          </p>
+        </div>
+      </div>
 
       {showImportGuide && <JobImportGuide onClose={() => setShowImportGuide(false)} />}
     </div>

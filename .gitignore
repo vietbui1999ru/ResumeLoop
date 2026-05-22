@@ -19,6 +19,9 @@ test.db-shm
 # Pipeline working dir
 pipeline/batch-build/
 
+# Council outputs (local tool, not source)
+.council/
+
 # Harness working dir
 harness/batch-build/
 

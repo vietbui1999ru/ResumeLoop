@@ -223,6 +223,19 @@ export const NEON_SCHEMA = `
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (prompt_key, version)
   );
+
+  CREATE TABLE IF NOT EXISTS ingestion_sources (
+    id                TEXT PRIMARY KEY,
+    user_id           TEXT NOT NULL,
+    type              TEXT NOT NULL,
+    input_raw         TEXT NOT NULL,
+    status            TEXT NOT NULL DEFAULT 'pending',
+    extracted_partial TEXT,
+    error_msg         TEXT,
+    created_at        BIGINT NOT NULL DEFAULT extract(epoch from now())::bigint
+  );
+  CREATE INDEX IF NOT EXISTS idx_ingest_sources_user
+    ON ingestion_sources(user_id, created_at DESC);
 `
 
 const NEON_DEMO_SEED = `

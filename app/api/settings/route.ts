@@ -27,12 +27,13 @@ export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body: { jobs_path?: string; output_path?: string; outreach_path?: string } = await req.json()
+  const body: { jobs_path?: string; output_path?: string; outreach_path?: string; firecrawl_key?: string } = await req.json()
 
   try {
     if (body.jobs_path     !== undefined) await setSetting('jobs_path',     body.jobs_path.trim())
     if (body.output_path   !== undefined) await setSetting('output_path',   body.output_path.trim())
     if (body.outreach_path !== undefined) await setSetting('outreach_path', body.outreach_path.trim())
+    if (body.firecrawl_key !== undefined) await setSetting('firecrawl_key', body.firecrawl_key.trim())
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 })
   }

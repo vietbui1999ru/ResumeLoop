@@ -204,6 +204,20 @@ export function initSchema(db: DB): void {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       UNIQUE (prompt_key, version)
     );
+
+    CREATE TABLE IF NOT EXISTS ingestion_sources (
+      id                TEXT PRIMARY KEY,
+      user_id           TEXT NOT NULL,
+      type              TEXT NOT NULL CHECK(type IN ('url', 'github', 'paste')),
+      input_raw         TEXT NOT NULL,
+      status            TEXT NOT NULL DEFAULT 'pending'
+                          CHECK(status IN ('pending', 'processing', 'done', 'failed')),
+      extracted_partial TEXT,
+      error_msg         TEXT,
+      created_at        INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_ingest_sources_user
+      ON ingestion_sources(user_id, created_at DESC);
   `)
 
   // Migrate existing DBs that predate session_id column on jd_outputs
