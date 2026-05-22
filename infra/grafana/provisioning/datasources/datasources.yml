@@ -14,8 +14,7 @@ datasources:
     url: http://tempo:3200
     editable: false
     jsonData:
-      tracesToLogsV2:
-        customQuery: false
+      # tracesToLogsV2 omitted — no Loki in this stack. Add when Loki is deployed.
       serviceMap:
         datasourceUid: prometheus-homelab
       nodeGraph:
