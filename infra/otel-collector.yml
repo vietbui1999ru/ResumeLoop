@@ -1,3 +1,11 @@
+# OTEL Collector — public-facing trace receiver for ResumeLoop.
+# Port 4318 (OTLP HTTP) receives traces from ECS Fargate over the public internet.
+# Auth: bearer token via ${OTEL_BEARER_TOKEN} env var (set in .env.homelab).
+# Trace pipeline: ECS → Collector (auth + batch) → Tempo (internal gRPC).
+# Metrics pipeline: not used here — Prometheus scrapes app directly.
+#
+# Sampling and resource enrichment are follow-up improvements; not in scope for initial setup.
+
 extensions:
   bearertokenauth:
     token: "${OTEL_BEARER_TOKEN}"
@@ -19,6 +27,8 @@ exporters:
   otlp:
     endpoint: tempo:4317
     tls:
+      # Internal Docker network only — Tempo port 4317 is not publicly exposed.
+      # Upgrade to mTLS if this stack ever moves to a multi-tenant or shared network.
       insecure: true
 
 service:
