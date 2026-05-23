@@ -60,7 +60,7 @@ export async function getSetting(key: StoredKey): Promise<string> {
 }
 
 export async function setSetting(key: StoredKey, value: string): Promise<void> {
-  if (isCloud()) return  // No-op in cloud — filesystem paths are meaningless on ECS
+  if (isCloud() && key.endsWith('_path')) return
   if (value !== '' && key.endsWith('_path')) validateSafeDir(value)
   const db = await getAdapter()
   await db.run(
