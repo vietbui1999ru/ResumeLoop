@@ -10,6 +10,7 @@ import { getModel } from '@/lib/ai-client'
 import { auth } from '@/lib/auth'
 import { checkRateLimitBucket } from '@/lib/rate-limit'
 import { ensureDefaultSession } from '@/lib/sessions'
+import { GRILL_SYSTEM_PROMPT } from '@/lib/grill-prompt'
 
 const BASE_SYSTEM_PROMPT = `You are a resume profile editor for the user's master resume data.
 
@@ -97,7 +98,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
   }
 
-  const { sessionId, message } = (await req.json()) as { sessionId: string; message: string }
+  const { sessionId, message, is_first_session } = (await req.json()) as { sessionId: string; message: string; is_first_session?: boolean }
   if (!sessionId || !message)
     return NextResponse.json({ error: 'sessionId and message required' }, { status: 400 })
   if (message.length > 10_000)
@@ -137,9 +138,14 @@ export async function POST(req: Request) {
         const history = await loadHistory(db, realSessionId, userId)
         const messages = buildModelMessages(history)
 
+        let systemPrompt = buildSystemPrompt()
+        if (is_first_session) {
+          systemPrompt = `${GRILL_SYSTEM_PROMPT}\n\n${systemPrompt}`
+        }
+
         const result = streamText({
           model,
-          system: buildSystemPrompt(),
+          system: systemPrompt,
           stopWhen: stepCountIs(8),
           messages,
           tools: {

@@ -161,19 +161,20 @@ function PageProgress({ step }: { step: TourStepDef }) {
 }
 
 export function TourOverlay() {
-  const { activeStep, advance, skipPage } = useTourContext()
+  const { activeStep, advance, back, skipToNextPage, skipStep, history } = useTourContext()
   const rect    = useTargetRect(activeStep?.target ?? null, !!activeStep)
   const nextRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (!activeStep) return
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape')                          skipPage()
-      if (e.key === 'Enter' || e.key === 'ArrowRight') advance()
+      if (e.key === 'Escape')                           skipToNextPage()
+      if (e.key === 'ArrowLeft')                         back()
+      if (e.key === 'Enter' || e.key === 'ArrowRight')  advance()
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [activeStep, advance, skipPage])
+  }, [activeStep, advance, back, skipToNextPage])
 
   useEffect(() => {
     if (activeStep) nextRef.current?.focus()
@@ -206,21 +207,41 @@ export function TourOverlay() {
         <p className="text-xs text-zinc-300 leading-relaxed mb-4">{activeStep.body}</p>
 
         <div className="flex items-center justify-between gap-2">
-          <button
-            onClick={skipPage}
-            className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
-            aria-label="Skip tour for this page"
-          >
-            Skip this page
-          </button>
-          <button
-            ref={nextRef}
-            onClick={advance}
-            className="text-xs px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            aria-label={isLast ? 'Finish tour for this page' : 'Next tour step'}
-          >
-            {isLast ? 'Done ✓' : 'Next →'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={back}
+              disabled={history.length === 0}
+              className="text-xs text-zinc-500 hover:text-zinc-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              aria-label="Go to previous step"
+            >
+              ← Prev
+            </button>
+            <button
+              onClick={skipStep}
+              className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+              aria-label="Dismiss this step"
+            >
+              Later
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={skipToNextPage}
+              className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+              aria-label="Skip all steps on this page"
+            >
+              Skip page
+            </button>
+            <button
+              ref={nextRef}
+              onClick={advance}
+              className="text-xs px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              aria-label={isLast ? 'Finish tour for this page' : 'Next tour step'}
+            >
+              {isLast ? 'Done ✓' : 'Next →'}
+            </button>
+          </div>
         </div>
       </div>
     </>
