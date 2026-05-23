@@ -1,0 +1,46 @@
+# ── Base + system packages ────────────────────────────────────────────────────
+# bookworm-slim matches the prod Dockerfile base — same libc, no surprises.
+FROM node:22-bookworm-slim
+
+# git + openssh-client: branch management and GitHub push via deploy key
+# curl + ca-certificates: health checks and HTTPS in scripts
+# procps: ps/kill for Claude's subprocess management
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    openssh-client \
+    curl \
+    ca-certificates \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Claude Code CLI ───────────────────────────────────────────────────────────
+# Global install gives the `claude` binary on PATH.
+# Pin to a version once you know which one works — for now track latest.
+RUN npm install -g @anthropic-ai/claude-code
+
+# ── Playwright ────────────────────────────────────────────────────────────────
+# install-deps: OS-level libs Chromium needs (libnss3, libxss1, fonts, etc.)
+# install chromium: downloads Playwright's bundled Chromium into this layer.
+# Both run at build time so container starts are instant — no 150MB download on up.
+RUN npx -y playwright install-deps chromium
+RUN npx -y playwright install chromium
+
+# ── Git + SSH ─────────────────────────────────────────────────────────────────
+WORKDIR /workspace
+
+# Bake in github.com's host key so Claude can push without an interactive prompt.
+# safe.directory lets git trust the mounted volume owned by a different UID.
+RUN mkdir -p /root/.ssh \
+    && ssh-keyscan -H github.com >> /root/.ssh/known_hosts \
+    && chmod 700 /root/.ssh \
+    && git config --global user.email "claude-agent@homelab" \
+    && git config --global user.name "Claude Agent" \
+    && git config --global --add safe.directory /workspace
+
+# ── Entrypoint ────────────────────────────────────────────────────────────────
+COPY claude-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+# Default: keep the container alive so `docker exec -it` can drop in.
+CMD ["tail", "-f", "/dev/null"]
