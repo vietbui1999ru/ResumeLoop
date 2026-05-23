@@ -761,14 +761,19 @@ function PdfPanel({ jobId, hasPdf, hasDocx }: { jobId: string; hasPdf: boolean; 
   }
   if (!hasPdf) {
     return (
-      <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm px-4 text-center">
-        PDF not yet generated. It will appear here automatically after the next resume generation.
+      <div className="flex-1 flex flex-col items-center justify-center gap-3 px-4">
+        <div className="w-full max-w-xs space-y-2">
+          <div className="h-3 bg-zinc-700 rounded animate-pulse" />
+          <div className="h-3 bg-zinc-700 rounded animate-pulse w-4/5" />
+          <div className="h-3 bg-zinc-700 rounded animate-pulse w-3/5" />
+        </div>
+        <p className="text-zinc-500 text-sm">Generating PDF…</p>
       </div>
     )
   }
   return (
     <div className="flex-1 relative min-h-0">
-      <PdfViewer url={`/api/jobs/${jobId}/preview`} />
+      <PdfViewer url={`/api/jobs/${jobId}/output/pdf`} />
     </div>
   )
 }
