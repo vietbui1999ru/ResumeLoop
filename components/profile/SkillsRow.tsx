@@ -3,6 +3,12 @@ import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, horizontalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
+function toArray(v: unknown): string[] {
+  if (Array.isArray(v)) return v as string[]
+  if (typeof v === 'string') return v.split(/[,·]/).map(s => s.trim()).filter(Boolean)
+  return []
+}
+
 interface Props {
   skills: Record<string, string[]>
   onChange: (newSkills: Record<string, string[]>) => void
@@ -45,7 +51,7 @@ export function SkillsRow({ skills, onChange }: Props) {
       <SortableContext items={keys} strategy={horizontalListSortingStrategy}>
         <div className="flex flex-wrap gap-2">
           {keys.map(k => (
-            <SkillChip key={k} id={k} label={k} vals={skills[k] ?? []} />
+            <SkillChip key={k} id={k} label={k} vals={toArray(skills[k])} />
           ))}
         </div>
       </SortableContext>
