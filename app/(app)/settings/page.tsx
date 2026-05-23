@@ -461,6 +461,8 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [newFirecrawlKey, setNewFirecrawlKey] = useState('')
   const [saveStatus, setSaveStatus] = useState('')
+  const [firecrawlSaving, setFirecrawlSaving] = useState(false)
+  const [firecrawlStatus, setFirecrawlStatus] = useState('')
   const [showImportGuide, setShowImportGuide] = useState(false)
 
   useEffect(() => {
@@ -472,6 +474,18 @@ export default function SettingsPage() {
       })
       .catch(() => setSettingsError(true))
   }, [])
+
+  const saveFirecrawlKey = async () => {
+    if (!newFirecrawlKey.trim()) return
+    setFirecrawlSaving(true)
+    setFirecrawlStatus('')
+    await save({ firecrawl_key: newFirecrawlKey.trim() })
+    setNewFirecrawlKey('')
+    setSettings(s => s ? { ...s, firecrawl_configured: true } : s)
+    setFirecrawlSaving(false)
+    setFirecrawlStatus('Saved')
+    setTimeout(() => setFirecrawlStatus(''), 3000)
+  }
 
   const save = async (patch: Partial<Pick<Settings, 'jobs_path' | 'output_path' | 'outreach_path'> & { firecrawl_key?: string }>) => {
     if (!settings) return
@@ -641,21 +655,25 @@ export default function SettingsPage() {
             Firecrawl API Key
             <span className="ml-2 text-xs text-zinc-500">(optional — richer URL scraping)</span>
           </label>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <input
               type="password"
               value={newFirecrawlKey}
               onChange={e => setNewFirecrawlKey(e.target.value)}
-              onBlur={() => {
-                if (newFirecrawlKey.trim()) {
-                  void save({ firecrawl_key: newFirecrawlKey.trim() })
-                  setNewFirecrawlKey('')
-                  setSettings(s => s ? { ...s, firecrawl_configured: true } : s)
-                }
-              }}
+              onKeyDown={e => e.key === 'Enter' && void saveFirecrawlKey()}
               placeholder={settings.firecrawl_configured ? 'key saved — paste new key to replace' : 'fc-...'}
               className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm text-zinc-200 font-mono"
             />
+            {firecrawlStatus && (
+              <span className="text-xs text-green-400 shrink-0">{firecrawlStatus}</span>
+            )}
+            <button
+              onClick={() => void saveFirecrawlKey()}
+              disabled={firecrawlSaving || !newFirecrawlKey.trim()}
+              className="text-sm px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded disabled:opacity-40 shrink-0"
+            >
+              {firecrawlSaving ? 'Saving…' : 'Save'}
+            </button>
           </div>
           <p className="text-xs text-zinc-500">
             Get a key at firecrawl.dev. Without a key, URL ingestion uses basic HTML fetch.
