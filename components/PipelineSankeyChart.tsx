@@ -1,6 +1,7 @@
 'use client'
 import { useRef, useState } from 'react'
 import { Sankey, Tooltip, ResponsiveContainer, Layer, Rectangle } from 'recharts'
+import { CHART_COLORS, SURFACE_COLORS, BORDER_COLORS, SEMANTIC_COLORS } from '@/lib/tokens'
 
 export interface PipelineData {
   scraped: number
@@ -14,17 +15,17 @@ export interface PipelineData {
 }
 
 const NODE_COLORS: Record<string, string> = {
-  Scraped:        '#6366f1',
-  'Visa Kill':    '#f43f5e',
-  Proceed:        '#818cf8',
-  Pending:        '#71717a',
-  'Resume Built': '#3b82f6',
-  Other:          '#52525b',
-  Applied:        '#fbbf24',
-  Interviewed:    '#fb923c',
-  'No Response':  '#52525b',
-  Rejected:       '#f87171',
-  Offer:          '#4ade80',
+  Scraped:        CHART_COLORS.scraped,
+  'Visa Kill':    CHART_COLORS.visaKill,
+  Proceed:        CHART_COLORS.proceed,
+  Pending:        CHART_COLORS.pending,
+  'Resume Built': CHART_COLORS.resumeBuilt,
+  Other:          CHART_COLORS.other,
+  Applied:        CHART_COLORS.applied,
+  Interviewed:    CHART_COLORS.interviewed,
+  'No Response':  CHART_COLORS.other,
+  Rejected:       CHART_COLORS.rejected,
+  Offer:          CHART_COLORS.offer,
 }
 
 function buildSankeyData(p: PipelineData) {
@@ -90,7 +91,7 @@ function SankeyNode(props: {
   const { x = 0, y = 0, width = 0, height = 0, payload, containerWidth = 600 } = props
   const name = payload?.name ?? ''
   const value = payload?.value ?? 0
-  const color = NODE_COLORS[name] ?? '#6366f1'
+  const color = NODE_COLORS[name] ?? CHART_COLORS.scraped
   const isRight = x + width > containerWidth * 0.65
 
   return (
@@ -115,9 +116,9 @@ function SankeyTooltip({ active, payload }: { active?: boolean; payload?: Array<
   const d = payload[0]?.payload
   if (!d) return null
   return (
-    <div style={{ background: '#18181b', border: '1px solid #3f3f46', borderRadius: 6, padding: '6px 10px', fontSize: 14, color: '#e4e4e7' }}>
+    <div style={{ background: SURFACE_COLORS.card, border: `1px solid ${BORDER_COLORS.default}`, borderRadius: 6, padding: '6px 10px', fontSize: 14, color: '#e4e4e7' }}>
       {d.source?.name} → {d.target?.name}
-      <span style={{ marginLeft: 8, color: '#818cf8', fontFamily: 'monospace' }}>{d.value}</span>
+      <span style={{ marginLeft: 8, color: SEMANTIC_COLORS.accentLight, fontFamily: 'monospace' }}>{d.value}</span>
     </div>
   )
 }
@@ -126,7 +127,7 @@ type ExportFormat = 'png' | 'jpg' | 'pdf'
 
 async function exportCard(el: HTMLElement, format: ExportFormat) {
   const html2canvas = (await import('html2canvas')).default
-  const canvas = await html2canvas(el, { backgroundColor: '#18181b', scale: 2, useCORS: true })
+  const canvas = await html2canvas(el, { backgroundColor: SURFACE_COLORS.card, scale: 2, useCORS: true })
 
   if (format === 'png') {
     const a = document.createElement('a')
@@ -203,7 +204,7 @@ export function PipelineSankeyChart({ data }: { data: PipelineData }) {
           nodePadding={16}
           nodeWidth={14}
           margin={{ top: 8, right: 140, bottom: 8, left: 140 }}
-          link={{ stroke: '#3f3f46', fill: '#3f3f46', fillOpacity: 0.5 }}
+          link={{ stroke: BORDER_COLORS.default, fill: BORDER_COLORS.default, fillOpacity: 0.5 }}
         >
           <Tooltip content={<SankeyTooltip />} />
         </Sankey>
