@@ -2,7 +2,7 @@
 title: "Database Reference"
 description: "Schema, migrations, and operational guide for ResumeLoop's SQLite (local) and Neon Postgres (cloud) databases."
 tags: [database, sqlite, neon, postgres, schema]
-updated: 2026-05-11
+updated: 2026-05-21
 ---
 
 # Database Reference
@@ -119,6 +119,7 @@ This means you can upgrade by simply restarting — the schema catches up automa
 | `outreach_items` | whole table | Added after initial release |
 | `resume_profiles` | whole table | Named resume profile variants |
 | `jd_jobs`, `jd_outputs`, `jd_metrics`, `chat_messages`, `resume_sessions` | `user_id` | Multi-tenancy column added after initial release |
+| `ingestion_sources` | whole table | Onboarding ingestion sources + extracted partials |
 
 ---
 
@@ -306,6 +307,29 @@ One row per outreach contact (person or company) associated with a job.
 
 ---
 
+### `ingestion_sources`
+
+One row per ingestion source submitted during onboarding. Stores the raw input, extraction status, and the AI-extracted `SparseProfile` partial.
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | TEXT PK | UUID |
+| `user_id` | TEXT NOT NULL | Owning user |
+| `type` | TEXT NOT NULL | Source type: `url`, `github`, or `paste` |
+| `input_raw` | TEXT NOT NULL | The raw input submitted by the user (URL, username, or pasted text) |
+| `status` | TEXT NOT NULL | `pending` → `processing` → `done` \| `failed` |
+| `extracted_partial` | TEXT | JSON-serialized `SparseProfile` (set when `status = 'done'`) |
+| `error_msg` | TEXT | Error description (set when `status = 'failed'`) |
+| `created_at` | INTEGER NOT NULL | Unix timestamp (seconds) |
+
+Indexed on `(user_id, created_at DESC)` for efficient per-user listing.
+
+**SQLite constraint:** `type` is checked against `('url', 'github', 'paste')` and `status` against `('pending', 'processing', 'done', 'failed')`. Neon uses unconstrained `TEXT` (constraints live in application code).
+
+See [`docs/ingest.md`](ingest.md) for the extraction and merge flow.
+
+---
+
 ### `users`
 
 User accounts. Passwords are bcrypt-hashed (cost factor 10).
@@ -433,4 +457,16 @@ SELECT role, content, created_at
 FROM chat_messages
 WHERE session_id = '<SESSION_ID>'
 ORDER BY created_at ASC;
+
+-- Onboarding ingestion sources by status
+SELECT user_id, type, status, COUNT(*) AS count
+FROM ingestion_sources
+GROUP BY user_id, type, status
+ORDER BY user_id, status;
+
+-- Users who have not yet completed onboarding (sources but no profile)
+SELECT DISTINCT i.user_id
+FROM ingestion_sources i
+LEFT JOIN resume_profiles p ON p.user_id = i.user_id
+WHERE p.id IS NULL;
 ```

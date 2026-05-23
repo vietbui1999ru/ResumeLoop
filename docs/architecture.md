@@ -3,7 +3,7 @@ title: "Architecture"
 type: explanation
 description: "System design, data flow, key files, and design decisions behind ResumeLoop."
 tags: [architecture, data-flow, design]
-updated: 2026-05-11
+updated: 2026-05-21
 ---
 
 # Architecture
@@ -18,6 +18,28 @@ Both modes share the same application code. The `DbAdapter` interface (`lib/db-a
 ---
 
 ## Data Flow
+
+### Onboarding ingestion path
+
+```
+User input (paste / GitHub / URL)
+        │
+        │  POST /api/ingest/{paste|github|url}
+        ▼
+  lib/ingest/extract-{paste,github,url}.ts
+        │  AI tool-use (generateText + toolChoice: 'required')
+        │  → SparseProfile (partial — only fields found in input)
+        ▼
+  ingestion_sources table (status: done | failed)
+        │
+        │  POST /api/ingest/merge
+        ▼
+  lib/ingest/merge.ts
+        │  AI merges all 'done' partials: most-specific-wins + additive arrays
+        │  → MergeResult { profile: SparseProfile, conflicts: ConflictEntry[] }
+        ▼
+  User accepts → resume_profiles table
+```
 
 ### Scan path (write)
 
@@ -117,9 +139,16 @@ The database is a **cache**, not the source of truth.
 | `lib/settings.ts` | `app_settings` read/write; path validation |
 | `lib/crypto.ts` | AES-256 encryption for stored API keys |
 | `lib/actions.ts` | Canonical `ActionStage` values |
+| `lib/ingest/types.ts` | `SparseProfile`, `IngestionSource`, `MergeResult` — ingest type definitions |
+| `lib/ingest/db.ts` | `ingestion_sources` CRUD (`createIngestionSource`, `updateIngestionSource`, `listIngestionSources`, `deleteIngestionSource`) |
+| `lib/ingest/extract-paste.ts` | Freeform text → AI → `SparseProfile` |
+| `lib/ingest/extract-github.ts` | GitHub API fetch → AI → `SparseProfile` (projects + narrative only) |
+| `lib/ingest/extract-url.ts` | Firecrawl/fetch-fallback scrape → AI → `SparseProfile` |
+| `lib/ingest/merge.ts` | `SparseProfile[]` → AI → `MergeResult` (most-specific-wins + conflict flagging) |
 | `master_resume_data.json` | All bullets, projects, work experience, skills — single source of truth |
 | `buildv2.js` | DOCX generation engine |
 | `harness/validate.js` | Hard-limit checker (tagline ≤76, bullets ≤116) |
+| `instrumentation.ts` | Next.js OTEL SDK registration (`@vercel/otel`) — trace export to homelab Collector |
 
 ---
 
@@ -134,21 +163,50 @@ app/
 │   ├── jobs/[id]/
 │   │   ├── cover-letter/ streaming cover letter
 │   │   └── outreach/     outreach items CRUD + AI drafts
+│   ├── ingest/           Onboarding ingestion
+│   │   ├── paste/        POST — freeform text extraction
+│   │   ├── github/       POST — GitHub profile/repo extraction
+│   │   ├── url/          POST — web page extraction (Firecrawl or fetch)
+│   │   ├── merge/        POST — AI merge of all done sources
+│   │   └── sources/      GET list + DELETE per source
 │   ├── chat/             streaming chat + profile apply
 │   ├── sessions/         CRUD for resume sessions
-│   ├── settings/         folder paths + AI provider config
+│   ├── settings/         folder paths + AI provider config (incl. Firecrawl key)
 │   ├── metrics/          aggregated dashboard stats
-│   ├── github/           GitHub repo ingestion
+│   ├── github/           GitHub repo ingestion (legacy chat tab)
 │   └── auth/             NextAuth handlers
+├── (app)/onboarding/     Onboarding board page (gate: zero profiles)
 ├── jobs/                 Jobs list page
 ├── settings/             Settings page
 ├── chat/                 Chat + GitHub ingestion page
 └── auth/                 Sign in / sign up pages
 
-lib/                      Business logic (no React)
-components/               Client components
+lib/
+├── ingest/               Onboarding ingestion library
+│   ├── types.ts          SparseProfile, IngestionSource, MergeResult types
+│   ├── db.ts             ingestion_sources CRUD
+│   ├── extract-paste.ts  text → AI → SparseProfile
+│   ├── extract-github.ts GitHub API → AI → SparseProfile
+│   ├── extract-url.ts    Firecrawl/fetch → AI → SparseProfile
+│   └── merge.ts          SparseProfile[] → AI → MergeResult
+└── …                     Other business logic (no React)
+
+components/
+└── onboarding/           Onboarding UI components
+    ├── SmartInput.tsx    Auto-detecting input (paste / GitHub / URL)
+    ├── SourceCard.tsx    Per-source status card with extracted summary
+    ├── SourceBoard.tsx   Board of all source cards + merge trigger
+    ├── ProfileReview.tsx Merged profile preview before accept
+    └── ConflictBanner.tsx Conflict resolution UI
+
 docs/                     Documentation
-infra/                    AWS CDK / Terraform infra
+infra/
+├── prometheus/           Prometheus config
+├── grafana/              Grafana provisioning (datasources, dashboards, alerting)
+├── tempo.yml             Tempo trace storage config
+├── otel-collector.yml    OTEL Collector (bearer token auth + Tempo export)
+└── docker-compose.homelab.yml  4-service homelab observability stack
+instrumentation.ts        Next.js OTEL SDK registration (project root)
 ```
 
 ---

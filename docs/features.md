@@ -1,13 +1,47 @@
 ---
 title: "Feature Guide"
-description: "User-facing guide to every feature in ResumeLoop — dashboard, jobs list, resume generation, chat, settings, and auth."
+description: "User-facing guide to every feature in ResumeLoop — onboarding, dashboard, jobs list, resume generation, chat, settings, and auth."
 tags: [guide, features, overview]
-updated: 2026-05-11
+updated: 2026-05-21
 ---
 
 # Feature Guide
 
 ResumeLoop is a personal dashboard that turns job description Markdown files into tailored, ATS-optimized DOCX resumes. This guide covers every feature from first login to downloading a finished resume.
+
+---
+
+## Onboarding
+
+New users are automatically redirected to `/onboarding` until they have at least one resume profile. The onboarding board lets you inject your own data from multiple sources and merge it into a profile — no demo seed data.
+
+### Adding sources
+
+The **SmartInput** box on the onboarding page detects what you paste and routes it to the correct extractor automatically:
+
+| What you paste | Detected as | What happens |
+|---|---|---|
+| `https://github.com/username` or bare `username` | GitHub | Fetches public profile + top 6 repos via GitHub API |
+| Any other `https://…` URL | URL | Scrapes the page (Firecrawl if configured, fetch fallback otherwise) |
+| Anything else | Text | Sends the text directly to the AI extractor |
+
+You can add as many sources as you like. Each source shows a status card:
+- **Extracting…** (amber pulse) — AI is processing
+- **Done** (green) — extraction succeeded; card shows a summary of what was found
+- **Failed** (red) — shows the error message; fix the input and re-submit
+
+### Merging
+
+Once at least one source shows **Done**, click **Merge sources**. The AI combines all done sources into a single profile using these rules:
+- **Scalar fields** (name, email, location): most-specific-wins
+- **Arrays** (experience, projects): additive — all unique entries are kept, deduplicated by ID
+- **Conflicts**: when two sources disagree on the same field, a conflict banner appears for you to resolve manually
+
+### Accepting
+
+After reviewing the merged profile and resolving any conflicts, click **Accept profile**. This creates a `resume_profile` record in the database and unlocks the rest of the app.
+
+> For detailed API and schema documentation, see [`docs/ingest.md`](ingest.md).
 
 ---
 
@@ -418,6 +452,12 @@ Configure which LLM provider and model the pipeline uses for reasoning and cover
 5. Click **Test & Save**. The app makes a live one-token request to verify the key before saving.
 
 The button is disabled until an API key is entered (Ollama does not require one).
+
+### Firecrawl API Key
+
+An optional API key for [Firecrawl](https://firecrawl.dev) — a web scraping service that handles JavaScript-rendered pages. Used by the URL ingestion source in onboarding.
+
+Enter a key starting with `fc-` and click **Save**. Without a key, URL ingestion uses a plain `fetch` + HTML-stripping fallback that works for most static sites. See [`docs/ingest.md`](ingest.md) for details.
 
 ### Sign out
 
