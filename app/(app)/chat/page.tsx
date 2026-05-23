@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import ChatDiff from '@/components/ChatDiff'
 import GithubIngest from '@/components/GithubIngest'
 import { BulletsPreview } from '@/components/BulletsPreview'
@@ -28,6 +29,7 @@ interface Message {
 
 export default function ChatPage() {
   const { activeSessionId: sessionId, setActiveSessionId } = useSession()
+  const searchParams = useSearchParams()
   const [sessions, setSessions] = useState<Session[]>([])
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -36,6 +38,8 @@ export default function ChatPage() {
   const [profileJson, setProfileJson] = useState('')
   const [activeProfileId, setActiveProfileId] = useState<string | undefined>(undefined)
   const [bulletsOpen, setBulletsOpen] = useState(true)
+  const [grillMode, setGrillMode] = useState(false)
+  const [hydrated, setHydrated] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const streamAbortRef = useRef<AbortController | null>(null)
 
@@ -67,7 +71,19 @@ export default function ChatPage() {
     return loadSessions()
   }, [loadSessions])
 
-  useEffect(() => { void loadProfile() }, [loadProfile])
+  useEffect(() => {
+    void loadProfile()
+    setHydrated(true)
+  }, [loadProfile])
+
+  useEffect(() => {
+    if (!hydrated) return
+    if (searchParams.get('grill') === '1') {
+      setGrillMode(true)
+    } else if (sessions.length === 0) {
+      setGrillMode(true)
+    }
+  }, [sessions, searchParams, hydrated])
 
   useEffect(() => {
     return () => { streamAbortRef.current?.abort() }
@@ -96,7 +112,7 @@ export default function ChatPage() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, message: text }),
+        body: JSON.stringify({ sessionId, message: text, is_first_session: grillMode }),
         signal: ac.signal,
       })
       if (!res.body) {
@@ -119,9 +135,15 @@ export default function ChatPage() {
           try {
             const event: ChatEvent = JSON.parse(part.slice(6))
             if (event.type === 'text') {
-              setMessages(prev =>
-                prev.map(m => (m.id === assistantId ? { ...m, text: m.text + event.delta } : m))
-              )
+              setMessages(prev => {
+                const updated = prev.map(m => (m.id === assistantId ? { ...m, text: m.text + event.delta } : m))
+                // Check if message contains grill complete JSON
+                const assistantMsg = updated.find(m => m.id === assistantId)
+                if (assistantMsg && assistantMsg.text.includes('{"grill_complete": true}')) {
+                  setGrillMode(false)
+                }
+                return updated
+              })
             } else if (event.type === 'diff') {
               setMessages(prev =>
                 prev.map(m =>
@@ -247,6 +269,30 @@ export default function ChatPage() {
           </div>
         ) : (
           <>
+            {grillMode && (
+              <div className="flex items-center gap-3 px-6 py-3 bg-indigo-950/60 border-b border-indigo-800/40 flex-shrink-0">
+                <span className="text-sm text-indigo-300 font-medium">Getting to know your work history</span>
+                <button
+                  onClick={() => setGrillMode(false)}
+                  className="ml-auto text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                >
+                  Skip →
+                </button>
+              </div>
+            )}
+
+            {grillMode && messages.length === 0 && (
+              <div className="px-6 py-3 border-b border-zinc-800 flex-shrink-0">
+                <button
+                  onClick={() => setTab('import')}
+                  className="text-xs text-indigo-400 hover:text-indigo-300 underline transition-colors"
+                >
+                  Import from GitHub first →
+                </button>
+                <span className="text-xs text-zinc-500 ml-2">then we'll ask about your work</span>
+              </div>
+            )}
+
             <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
               {messages.map(m => (
                 <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
