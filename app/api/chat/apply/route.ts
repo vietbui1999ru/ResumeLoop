@@ -57,6 +57,27 @@ export async function POST(req: Request) {
   }
 
   await updateSessionData(sessionId, new_content, userId)
+
+  const activeProfile = await db.queryOne<{ id: string; data: string }>(
+    'SELECT id, data FROM resume_profiles WHERE user_id = ? AND is_active = 1 LIMIT 1',
+    [userId],
+  )
+  if (activeProfile) {
+    let mergedContent = new_content
+    try {
+      const incoming = JSON.parse(new_content) as Record<string, unknown>
+      const existing = JSON.parse(activeProfile.data) as Record<string, unknown>
+      if (!incoming._meta && existing._meta) {
+        incoming._meta = existing._meta
+        mergedContent = JSON.stringify(incoming, null, 2)
+      }
+    } catch { /* malformed existing data — write new_content as-is */ }
+    await db.run(
+      'UPDATE resume_profiles SET data = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [mergedContent, activeProfile.id],
+    )
+  }
+
   await db.run('DELETE FROM app_settings WHERE key = ?', [pendingKey])
   return NextResponse.json({ ok: true, applied: true, file })
 }
