@@ -19,6 +19,66 @@
 }
 
 @layer base {
+  /* === Design Tokens ===
+   * Bare RGB channels for surface/text/border/semantic — enables Tailwind opacity
+   * modifiers (bg-surface-card/50). Full hex for chart palette — Recharts only.
+   * To change a value: update here AND the matching export in lib/tokens.ts.
+   */
+  :root {
+    /* Surface */
+    --color-surface-base:    9 9 11;
+    --color-surface-card:    24 24 27;
+    --color-surface-raised:  39 39 42;
+    --color-surface-overlay: 63 63 70;
+
+    /* Border */
+    --color-border-subtle:   28 28 31;
+    --color-border-default:  63 63 70;
+    --color-border-strong:   82 82 91;
+
+    /* Text */
+    --color-text-primary:    250 250 250;
+    --color-text-secondary:  161 161 170;
+    --color-text-muted:      82 82 91;
+
+    /* Semantic */
+    --color-accent:          99 102 241;
+    --color-accent-light:    129 140 248;
+    --color-accent-subtle:   30 27 75;
+    --color-error:           248 113 113;
+    --color-success:         74 222 128;
+    --color-warning:         251 191 36;
+
+    /* Chart palette — full hex, consumed by lib/tokens.ts → Recharts only */
+    --color-chart-scraped:      #6366f1;
+    --color-chart-proceed:      #818cf8;
+    --color-chart-resume-built: #3b82f6;
+    --color-chart-applied:      #fbbf24;
+    --color-chart-interviewed:  #fb923c;
+    --color-chart-offer:        #4ade80;
+    --color-chart-rejected:     #f87171;
+    --color-chart-visa-kill:    #f43f5e;
+    --color-chart-pending:      #71717a;
+    --color-chart-other:        #52525b;
+
+    /* Typography */
+    --font-sans: system-ui, -apple-system, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, monospace;
+
+    /* Border Radius */
+    --radius-sm:   0.25rem;
+    --radius-md:   0.375rem;
+    --radius-lg:   0.5rem;
+    --radius-xl:   0.75rem;
+    --radius-2xl:  1rem;
+    --radius-full: 9999px;
+
+    /* Shadows */
+    --shadow-sm:    0 1px 2px rgb(0 0 0 / 0.5);
+    --shadow-card:  0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.5);
+    --shadow-modal: 0 25px 50px -12px rgb(0 0 0 / 0.7);
+  }
+
   html {
     --font-scale: 1.15; /* medium default */
     font-size: calc(var(--font-scale) * 100%);
