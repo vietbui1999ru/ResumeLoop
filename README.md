@@ -17,6 +17,7 @@ Live at **[resumeloop.me](https://resumeloop.me)** · [Try Demo](https://resumel
 - **Outreach** — import LinkedIn/alumni contact files per job, get AI contact summaries and draft emails + LinkedIn messages
 - **Sessions** — maintain multiple resume profile variants (e.g. one for systems roles, one for GenAI)
 - **Personal info** — edit name, phone, location, LinkedIn, portfolio, and work authorization from the account page; writes into the active resume profile's `contact` block
+- **Profile ingestion** — `/onboarding` builds your resume profile from any combination of: a GitHub handle, a LinkedIn/portfolio URL (Firecrawl-powered scrape with raw fetch fallback), or pasted text; extracts structured data, merges sources with most-specific-wins conflict resolution, and flags conflicts for review before saving
 - **Onboarding tour** — interactive step-by-step guide covering every major workflow; restartable from any page
 - **Feedback** — community bug reports and feature requests via GitHub Discussions (Giscus)
 
@@ -211,22 +212,32 @@ Auth state is pre-established via `e2e/auth.setup.ts` and reused across specs �
 | `contexts/SessionContext.tsx` | Chat session management — supports multiple independent sessions per user |
 | `components/BulletsPreview.tsx` | Live bullets editor panel in Chat (Rendered / Markdown / JSON tabs) |
 | `components/GithubIngest.tsx` | GitHub repo sync for Chat context |
+| `components/onboarding/SmartInput.tsx` | Auto-detects input type (GitHub handle / URL / paste) and routes to the correct ingest endpoint |
+| `components/onboarding/SourceBoard.tsx` | Multi-source ingestion board — add, preview, and merge sources before saving profile |
+| `components/onboarding/ProfileReview.tsx` | Editable profile review step — shows extracted fields and inline conflict warnings |
+| `lib/ingest/extract-url.ts` | Firecrawl scrape + raw fetch fallback; strips HTML and returns structured sparse profile |
+| `lib/ingest/extract-github.ts` | GitHub public API → repos + README → LLM-extracted sparse profile |
+| `lib/ingest/extract-paste.ts` | Raw text → LLM-extracted sparse profile |
+| `lib/ingest/merge.ts` | Most-specific-wins merge strategy + conflict detection across multiple sources |
 | `instrumentation.node.ts` | In-process cron — runs demo cleanup every 6 hours at server startup |
 | `middleware.ts` | Global rate limit + mobile redirect + auth guard |
 | `infra/setup-alb.sh` | One-shot ALB provisioning script |
+| `infra/otel-collector.yml` | OTel Collector config — receives traces from app, forwards to Tempo with bearer auth |
+| `infra/tempo.yml` | Tempo trace storage config with metrics generator for span-to-metric derivation |
+| `infra/prometheus/prometheus.yml` | Prometheus scrape config for app + infra metrics |
 | `CLAUDE.md` | Candidate profile, hard constraints, role-track table (agentic context) |
 
 ## By the numbers
 
 | Metric | Count |
 |---|---|
-| TypeScript files | 295 |
-| Lines of code (TS/TSX) | ~30,800 |
-| API routes | 53 |
-| React components | 27 |
-| Lib modules | 46 |
-| Vitest test files | 52 |
+| TypeScript files | 315 |
+| Lines of code (TS/TSX) | ~27,000 |
+| API routes | 58 |
+| React components | 33 |
+| Lib modules | 53 |
+| Vitest test files | 53 |
 | Playwright E2E spec files | 6 |
 | npm dependencies | 53 (35 prod + 18 dev) |
-| Git commits | 273 |
-| Project age | ~5 weeks |
+| Git commits | 293 |
+| Project age | ~6 weeks |
