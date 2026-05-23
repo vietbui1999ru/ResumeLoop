@@ -289,7 +289,7 @@ export default function ChatPage() {
                 >
                   Import from GitHub first →
                 </button>
-                <span className="text-xs text-zinc-500 ml-2">then we'll ask about your work</span>
+                <span className="text-xs text-zinc-500 ml-2">then we&apos;ll ask about your work</span>
               </div>
             )}
 
