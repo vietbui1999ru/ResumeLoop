@@ -38,6 +38,7 @@
   "exclude": [
     "node_modules",
     "pipeline/batch-build",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "docs"
   ]
 }

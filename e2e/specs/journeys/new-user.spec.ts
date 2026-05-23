@@ -10,7 +10,8 @@ const TOUR_IDS = [
 test.describe('New user journey', () => {
   test.use({ storageState: { cookies: [], origins: [] } })
 
-  test('new user signs up and submits first job', { timeout: 60000 }, async ({ page }) => {
+  test('new user signs up and submits first job', async ({ page }) => {
+    test.setTimeout(60000)
     await page.addInitScript((ids: string[]) => {
       for (const id of ids) localStorage.setItem(`tour2_seen_${id}`, '1')
     }, TOUR_IDS)
