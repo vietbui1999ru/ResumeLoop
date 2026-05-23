@@ -1,11 +1,24 @@
 'use client'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
+import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Skeleton } from '@/components/Skeleton'
 import { BulletsPreview } from '@/components/BulletsPreview'
+import { ExperienceCard } from '@/components/profile/ExperienceCard'
+import { ProjectCard } from '@/components/profile/ProjectCard'
+import { SkillsRow } from '@/components/profile/SkillsRow'
+import { JsonDiffPreview } from '@/components/profile/JsonDiffPreview'
 import type { editor as MonacoEditorNS } from 'monaco-editor'
 import { parse as jsonSourceMap } from 'json-source-map'
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false })
+
+interface ProfileData {
+  experience?: Array<{ id: string; title: string; company: string; dates?: string; bullets: string[] | Record<string, string[]> }>
+  projects?: Array<{ id: string; name: string; dates?: string; short_stack?: string; bullets: string[] }>
+  skills?: Record<string, string[]>
+  _meta?: { excluded_ids?: string[]; [key: string]: unknown }
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -518,13 +531,15 @@ function CandidateProfileCard({ json, onEdit }: { json: string; onEdit?: () => v
 // ── Two-panel Monaco editor (JSON + bullets preview) ─────────────────────────
 
 function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => void }) {
-  const [, setContent]            = useState('')
+  const [content, setContent]     = useState('')
   const [draft, setDraft]         = useState('')
   const [loading, setLoading]     = useState(true)
   const [saving, setSaving]       = useState(false)
   const [status, setStatus]       = useState('')
   const [showBackups, setShowBackups] = useState(false)
   const [monacoFailed, setMonacoFailed] = useState(false)
+  const [configView, setConfigView] = useState<'cards' | 'json'>('cards')
+  const [pendingJson, setPendingJson] = useState<string | null>(null)
 
   const [showProfileSummaryEditor, setShowProfileSummaryEditor] = useState(false)
   const [initialProfile,          setInitialProfile]           = useState<CandidateProfile | null>(null)
@@ -598,19 +613,61 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
 
   useEffect(() => { loadContent() }, [loadContent])
 
-  const save = async () => {
+  const profileData = useMemo<ProfileData>(() => {
+    try { return JSON.parse(draft) as ProfileData } catch { return {} }
+  }, [draft])
+
+  const excludedIds = useMemo(
+    () => new Set<string>(profileData._meta?.excluded_ids ?? []),
+    [profileData._meta?.excluded_ids]
+  )
+
+  const save = async (json?: string) => {
+    const payload = json ?? draft
     setSaving(true); setStatus('')
     const res = await fetch(`/api/profiles/${profile.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ data: draft }),
+      body: JSON.stringify({ data: payload }),
     })
     const d = await res.json()
-    if (res.ok) { setContent(draft); setStatus('Saved'); onSaved() }
+    if (res.ok) { setContent(payload); setDraft(payload); setStatus('Saved'); onSaved() }
     else setStatus(`Error: ${d.error}`)
     setSaving(false)
     setTimeout(() => setStatus(''), 3000)
   }
+
+  const handleToggleExclude = useCallback(async (id: string) => {
+    const current = profileData._meta?.excluded_ids ?? []
+    const next = current.includes(id) ? current.filter(x => x !== id) : [...current, id]
+    const updated = { ...profileData, _meta: { ...profileData._meta, excluded_ids: next } }
+    await save(JSON.stringify(updated, null, 2))
+  }, [profileData])
+
+  const handleExperienceDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const exp = profileData.experience ?? []
+    const oldIdx = exp.findIndex(e => e.id === active.id)
+    const newIdx = exp.findIndex(e => e.id === over.id)
+    const updated = { ...profileData, experience: arrayMove(exp, oldIdx, newIdx) }
+    await save(JSON.stringify(updated, null, 2))
+  }, [profileData])
+
+  const handleProjectDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const projs = profileData.projects ?? []
+    const oldIdx = projs.findIndex(p => p.id === active.id)
+    const newIdx = projs.findIndex(p => p.id === over.id)
+    const updated = { ...profileData, projects: arrayMove(projs, oldIdx, newIdx) }
+    await save(JSON.stringify(updated, null, 2))
+  }, [profileData])
+
+  const handleSkillsReorder = useCallback(async (newSkills: Record<string, string[]>) => {
+    const updated = { ...profileData, skills: newSkills }
+    await save(JSON.stringify(updated, null, 2))
+  }, [profileData])
 
   return (
     <div className="space-y-3">
@@ -627,7 +684,7 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
             Backups
           </button>
           <button
-            onClick={() => void save()}
+            onClick={() => configView === 'json' ? setPendingJson(draft) : void save()}
             disabled={saving || loading}
             className="text-xs px-3 py-1 bg-indigo-600 hover:bg-indigo-500 rounded disabled:opacity-40"
           >
@@ -655,8 +712,92 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
         />
       )}
 
-      {/* Two-panel editor */}
-      <div className="grid grid-cols-[3fr_2fr] gap-0 border border-zinc-700 rounded-lg overflow-hidden" style={{ height: 520 }}>
+      {/* Tab switcher */}
+      <div className="flex gap-1 p-1 bg-zinc-900 rounded-lg w-fit">
+        <button
+          onClick={() => setConfigView('cards')}
+          className={`px-3 py-1.5 text-xs rounded-md transition-colors ${configView === 'cards' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}
+        >
+          Cards
+        </button>
+        <button
+          onClick={() => setConfigView('json')}
+          className={`px-3 py-1.5 text-xs rounded-md transition-colors ${configView === 'json' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}
+        >
+          JSON (Advanced)
+        </button>
+      </div>
+
+      {/* Cards view */}
+      {configView === 'cards' && !loading && (
+        <div className="space-y-6">
+          {(profileData.experience?.length ?? 0) > 0 && (
+            <section>
+              <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-widest mb-3">Experience</h3>
+              <DndContext collisionDetection={closestCenter} onDragEnd={handleExperienceDragEnd}>
+                <SortableContext items={profileData.experience!.map(e => e.id)} strategy={verticalListSortingStrategy}>
+                  <div className="space-y-2">
+                    {profileData.experience!.map(entry => (
+                      <ExperienceCard
+                        key={entry.id}
+                        entry={entry}
+                        excluded={excludedIds.has(entry.id)}
+                        onToggle={id => { void handleToggleExclude(id) }}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </section>
+          )}
+
+          {(profileData.projects?.length ?? 0) > 0 && (
+            <section>
+              <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-widest mb-3">Projects</h3>
+              <DndContext collisionDetection={closestCenter} onDragEnd={handleProjectDragEnd}>
+                <SortableContext items={profileData.projects!.map(p => p.id)} strategy={verticalListSortingStrategy}>
+                  <div className="space-y-2">
+                    {profileData.projects!.map(entry => (
+                      <ProjectCard
+                        key={entry.id}
+                        entry={entry}
+                        excluded={excludedIds.has(entry.id)}
+                        onToggle={id => { void handleToggleExclude(id) }}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </section>
+          )}
+
+          {profileData.skills && Object.keys(profileData.skills).length > 0 && (
+            <section>
+              <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-widest mb-3">Skills — drag to reorder</h3>
+              <SkillsRow skills={profileData.skills} onChange={newSkills => { void handleSkillsReorder(newSkills) }} />
+            </section>
+          )}
+
+          {!profileData.experience?.length && !profileData.projects?.length && !profileData.skills && (
+            <p className="text-sm text-zinc-500">
+              No profile data yet. Switch to <button onClick={() => setConfigView('json')} className="text-indigo-400 underline">JSON tab</button> to add your resume data.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* JSON diff preview */}
+      {pendingJson !== null && (
+        <JsonDiffPreview
+          oldJson={content || '{}'}
+          newJson={pendingJson}
+          onAccept={async () => { await save(pendingJson); setPendingJson(null) }}
+          onReject={() => setPendingJson(null)}
+        />
+      )}
+
+      {/* Two-panel editor (JSON tab only) */}
+      {configView === 'json' && <div className="grid grid-cols-[3fr_2fr] gap-0 border border-zinc-700 rounded-lg overflow-hidden" style={{ height: 520 }}>
         {/* Monaco */}
         <div className="border-r border-zinc-700 flex flex-col min-h-0">
           <div className="px-3 py-1.5 bg-zinc-800 border-b border-zinc-700 flex items-center gap-2 shrink-0">
@@ -724,7 +865,7 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
           </div>
           <BulletsPreview json={draft} onJump={jumpToJsonPath} />
         </div>
-      </div>
+      </div>}
     </div>
   )
 }
