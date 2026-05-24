@@ -10,13 +10,46 @@ export interface Output {
   job_fit: number; docx_path: string; built_at: string
 }
 
-export function OutputHistoryTable({ outputs }: { outputs: Output[] }) {
+export function OutputHistoryTable({ outputs: initialOutputs }: { outputs: Output[] }) {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null)
+  const [outputs, setOutputs] = useState<Output[]>(initialOutputs)
+  const [refreshing, setRefreshing] = useState(false)
+
+  async function refresh() {
+    setRefreshing(true)
+    try {
+      const res = await fetch('/api/metrics')
+      if (res.ok) {
+        const data = await res.json() as { outputs: Output[] }
+        setOutputs(data.outputs ?? [])
+      }
+    } catch { /* ignore */ } finally {
+      setRefreshing(false)
+    }
+  }
 
   return (
     <>
       <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-700">
-        <h2 className="text-sm font-semibold text-zinc-400 mb-3">Resume Output History</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-zinc-400">Resume Output History</h2>
+          <button
+            onClick={refresh}
+            disabled={refreshing}
+            title="Refresh"
+            aria-label="Refresh output history"
+            className="text-zinc-500 hover:text-zinc-200 disabled:opacity-40 transition-colors"
+          >
+            <svg
+              className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
+              fill="none" stroke="currentColor" strokeWidth={2}
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round"
+                d="M4 4v5h.582M20 20v-5h-.581M4.582 9a8 8 0 0115.356 2M19.418 15a8 8 0 01-15.356-2" />
+            </svg>
+          </button>
+        </div>
         <div className="overflow-auto">
           <table className="w-full text-sm">
             <thead>

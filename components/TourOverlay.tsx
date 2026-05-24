@@ -161,7 +161,7 @@ function PageProgress({ step }: { step: TourStepDef }) {
 }
 
 export function TourOverlay() {
-  const { activeStep, advance, back, skipToNextPage, skipStep, history } = useTourContext()
+  const { activeStep, advance, back, skipToNextPage, skipStep, history, reset } = useTourContext()
   const rect    = useTargetRect(activeStep?.target ?? null, !!activeStep)
   const nextRef = useRef<HTMLButtonElement>(null)
 
@@ -182,8 +182,9 @@ export function TourOverlay() {
 
   if (!activeStep) return null
 
-  const pageSteps  = TOUR_STEPS.filter(s => s.page === activeStep.page)
-  const isLast     = pageSteps[pageSteps.length - 1]?.id === activeStep.id
+  const pageSteps   = TOUR_STEPS.filter(s => s.page === activeStep.page)
+  const isLast      = pageSteps[pageSteps.length - 1]?.id === activeStep.id
+  const isVeryLast  = TOUR_STEPS[TOUR_STEPS.length - 1]?.id === activeStep.id
   const { style: bStyle, placement } = getBubblePlacement(rect)
 
   return (
@@ -235,11 +236,11 @@ export function TourOverlay() {
             </button>
             <button
               ref={nextRef}
-              onClick={advance}
+              onClick={isVeryLast ? reset : advance}
               className="text-xs px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-indigo-400"
-              aria-label={isLast ? 'Finish tour for this page' : 'Next tour step'}
+              aria-label={isVeryLast ? 'Restart tour from the beginning' : isLast ? 'Finish tour for this page' : 'Next tour step'}
             >
-              {isLast ? 'Done ✓' : 'Next →'}
+              {isVeryLast ? 'Restart Tour' : isLast ? 'Done ✓' : 'Next →'}
             </button>
           </div>
         </div>

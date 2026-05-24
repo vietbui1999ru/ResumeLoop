@@ -50,7 +50,7 @@ export const TOUR_STEPS: TourStepDef[] = [
   // /jobs — 3 steps
   {
     id: 'jobs-paste', page: '/jobs', target: 'paste-jd-btn',
-    title: 'Start here — paste any job posting',
+    title: 'Paste any job posting',
     body: 'Copy any job listing and paste it here. No folder setup needed.',
   },
   {

@@ -82,3 +82,6 @@ docs/reference/*.pdf
 
 # Generation logs
 logs/
+.claude/tasks.json
+.claude/ralph-log.md
+.claude/ralph-protocol.md

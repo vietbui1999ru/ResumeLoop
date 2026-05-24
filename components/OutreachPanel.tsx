@@ -217,6 +217,92 @@ function SourceCard({ item }: { item: OutreachItem }) {
   )
 }
 
+// ── InlinePaste ───────────────────────────────────────────────────────────────
+
+function InlinePaste({
+  jobId,
+  onIngest,
+}: {
+  jobId: string
+  onIngest: (items: OutreachItem[]) => void
+}) {
+  const [text, setText] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  async function submit(content: string) {
+    if (!content.trim()) return
+    setSubmitting(true); setError('')
+    try {
+      const res = await fetch(`/api/jobs/${jobId}/outreach/ingest`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: content }),
+      })
+      const data = await res.json() as { items?: OutreachItem[]; error?: string }
+      if (!res.ok) { setError(data.error ?? 'Ingest failed'); return }
+      onIngest(data.items ?? [])
+      setText('')
+    } catch (e) {
+      setError(String(e))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const content = ev.target?.result as string
+      void submit(content)
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex gap-2">
+        <textarea
+          value={text}
+          onChange={e => setText(e.target.value)}
+          placeholder="Paste LinkedIn profile, resume, or company page text…"
+          rows={3}
+          className="flex-1 text-xs bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-zinc-300 placeholder-zinc-600 resize-none focus:outline-none focus:border-indigo-500"
+        />
+        <div className="flex flex-col gap-1 justify-start">
+          <button
+            onClick={() => void submit(text)}
+            disabled={submitting || !text.trim()}
+            className="text-xs px-2 py-1 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 rounded text-white transition-colors"
+          >
+            {submitting ? '…' : 'Add'}
+          </button>
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={submitting}
+            title="Import .md or .txt file"
+            className="text-xs px-2 py-1 bg-zinc-700 hover:bg-zinc-600 disabled:opacity-40 rounded text-zinc-300 transition-colors"
+          >
+            File
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".md,.txt"
+            className="hidden"
+            onChange={handleFile}
+          />
+        </div>
+      </div>
+      {error && <p className="text-xs text-red-400">{error}</p>}
+    </div>
+  )
+}
+
 // ── FilePicker ────────────────────────────────────────────────────────────────
 
 function FilePicker({
@@ -453,9 +539,15 @@ export default function OutreachPanel({ jobId }: { jobId: string }) {
 
   return (
     <div className="flex flex-col gap-4 h-full overflow-y-auto p-2">
-      {/* File picker */}
+      {/* Inline paste + file import */}
       <section>
         <h3 className="text-xs text-zinc-500 uppercase tracking-wide mb-2">Add sources</h3>
+        <InlinePaste jobId={jobId} onIngest={handleIngest} />
+      </section>
+
+      {/* Vault file picker */}
+      <section>
+        <h3 className="text-xs text-zinc-500 uppercase tracking-wide mb-2">From vault</h3>
         <FilePicker jobId={jobId} onIngest={handleIngest} />
       </section>
 

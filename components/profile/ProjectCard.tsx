@@ -1,6 +1,7 @@
 'use client'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { Eye, EyeOff } from 'lucide-react'
 
 interface ProjectEntry {
   id: string
@@ -54,7 +55,7 @@ export function ProjectCard({ entry, excluded, onToggle }: Props) {
         aria-label={excluded ? 'Include this project' : 'Exclude this project'}
         title={excluded ? 'Click to include' : 'Click to exclude'}
       >
-        {!excluded && <span className="text-xs">✓</span>}
+        {excluded ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
       </button>
 
       <div className="flex-1 min-w-0">
