@@ -769,7 +769,7 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange, currentAc
 
 // ── JD Panel ──────────────────────────────────────────────────────────────────
 
-function JdPanel({ job, tags, localTags, onTagToggle, output, outputLoading, onGenCoverLetter, coverLoading, applyUrl, onSaveApplyUrl, applyUrlSaving, currentAction, onActionChange }: {
+function JdPanel({ job, tags, localTags: _localTags, onTagToggle: _onTagToggle, output, outputLoading, onGenCoverLetter, coverLoading, applyUrl, onSaveApplyUrl, applyUrlSaving, currentAction, onActionChange }: {
   job: JobDetail
   tags: string[]
   localTags: string[]
