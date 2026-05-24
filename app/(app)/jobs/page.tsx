@@ -849,6 +849,8 @@ export default function JobsPage() {
             onTagsChange={(tags) => {
               setJobs(prev => prev.map(j => j.id === selectedJobId ? { ...j, tags: JSON.stringify(tags) } : j))
             }}
+            currentAction={jobs.find(j => j.id === selectedJobId)?.action ?? '0-Saved'}
+            onActionChange={(action) => void handleActionChange(selectedJobId, action)}
           />
         )}
       </AnimatePresence>
