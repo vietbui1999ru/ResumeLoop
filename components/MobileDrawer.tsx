@@ -39,6 +39,8 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
+  useEffect(() => { if (!open) setMenuOpen(false) }, [open])
+
   useEffect(() => {
     if (!menuOpen) return
     const handler = (e: MouseEvent) => {

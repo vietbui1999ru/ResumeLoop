@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 const IS_CLOUD = process.env.NEXT_PUBLIC_APP_MODE === 'cloud'
 
 import { extractAllTags, parseTags } from '@/lib/tag-filter'
-import { FIT_THRESHOLDS } from '@/lib/tokens'
 import { PIPELINE_TAGS } from '@/lib/pipeline-tags'
 import dynamic from 'next/dynamic'
 import { JobsTableSkeleton } from '@/components/JobsTableSkeleton'

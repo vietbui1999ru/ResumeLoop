@@ -469,7 +469,7 @@ export default function SettingsPage() {
   useEffect(() => {
     const ua = navigator.userAgent
     const isIos = /iP(hone|ad|od)/.test(ua)
-    const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua)
+    const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|EdgiOS|FxiOS|OPiOS/.test(ua)
     setIsIosSafari(isIos && isSafari)
   }, [])
 
