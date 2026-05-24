@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import { TAG_TO_ACTION, ACTION_TO_TAG, PIPELINE_TAGS } from './pipeline-tags'
+import { VALID_ACTIONS } from './actions'
 
 describe('TAG_TO_ACTION', () => {
   it('maps every pipeline tag key to a VALID_ACTION', () => {
     const keys = PIPELINE_TAGS.map(t => t.key)
     for (const key of keys) {
       expect(TAG_TO_ACTION[key]).toBeDefined()
-      expect(TAG_TO_ACTION[key]).toMatch(/^\d-/)
+      expect(VALID_ACTIONS as readonly string[]).toContain(TAG_TO_ACTION[key])
     }
   })
 

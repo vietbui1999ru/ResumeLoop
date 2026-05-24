@@ -1,3 +1,5 @@
+import type { ActionStage } from './actions'
+
 export const PIPELINE_TAGS = [
   { key: 'applied',      label: 'Applied',      dot: 'bg-amber-400',  pill: 'bg-amber-500/15 text-amber-400 border-amber-500/30'    },
   { key: 'phone-screen', label: 'Phone Screen',  dot: 'bg-indigo-400', pill: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30' },
@@ -10,7 +12,7 @@ export const PIPELINE_TAGS = [
 export type PipelineTagKey = typeof PIPELINE_TAGS[number]['key']
 export const PIPELINE_TAG_KEYS = PIPELINE_TAGS.map(t => t.key) as PipelineTagKey[]
 
-export const TAG_TO_ACTION: Record<string, string> = {
+export const TAG_TO_ACTION: Record<PipelineTagKey, ActionStage> = {
   'applied':      '1-Applied',
   'phone-screen': '2-Phone Screen',
   'interviewed':  '3-Interview',
@@ -19,5 +21,5 @@ export const TAG_TO_ACTION: Record<string, string> = {
   'ghosted':      '6-Ghosted',
 }
 
-export const ACTION_TO_TAG: Record<string, string> =
-  Object.fromEntries(Object.entries(TAG_TO_ACTION).map(([k, v]) => [v, k]))
+export const ACTION_TO_TAG: Partial<Record<ActionStage, PipelineTagKey>> =
+  Object.fromEntries(Object.entries(TAG_TO_ACTION).map(([k, v]) => [v, k])) as Partial<Record<ActionStage, PipelineTagKey>>
