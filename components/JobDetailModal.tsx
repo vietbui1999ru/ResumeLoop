@@ -50,6 +50,8 @@ interface Props {
   jobId: string
   onClose: () => void
   onTagsChange?: (tags: string[]) => void
+  currentAction?: string
+  onActionChange?: (action: string) => void
 }
 
 const fmtDate = (iso: string | null) => {
@@ -145,7 +147,7 @@ function ResizeDivider({ leftId, rightId, onResize }: {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) {
+export default function JobDetailModal({ jobId, onClose, onTagsChange, currentAction, onActionChange }: Props) {
   const [mounted, setMounted] = useState(false)
   const [job, setJob] = useState<JobDetail | null>(null)
   const [loading, setLoading] = useState(true)
@@ -477,6 +479,8 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) 
             applyUrl={applyUrl}
             onSaveApplyUrl={saveApplyUrl}
             applyUrlSaving={applyUrlSaving}
+            currentAction={currentAction}
+            onActionChange={onActionChange}
           />
         ) : null
       case 'pdf':
@@ -688,6 +692,8 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) 
                           applyUrl={applyUrl}
                           onSaveApplyUrl={saveApplyUrl}
                           applyUrlSaving={applyUrlSaving}
+                          currentAction={currentAction}
+                          onActionChange={onActionChange}
                         />
                       )}
                       {id === 'pdf' && <PdfPanel jobId={jobId} hasPdf={!!output?.pdf_path} hasDocx={!!output} />}
@@ -762,7 +768,7 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) 
 
 // ── JD Panel ──────────────────────────────────────────────────────────────────
 
-function JdPanel({ job, tags, localTags, onTagToggle, output, outputLoading, onGenCoverLetter, coverLoading, applyUrl, onSaveApplyUrl, applyUrlSaving }: {
+function JdPanel({ job, tags, localTags, onTagToggle, output, outputLoading, onGenCoverLetter, coverLoading, applyUrl, onSaveApplyUrl, applyUrlSaving, currentAction, onActionChange }: {
   job: JobDetail
   tags: string[]
   localTags: string[]
@@ -774,6 +780,8 @@ function JdPanel({ job, tags, localTags, onTagToggle, output, outputLoading, onG
   applyUrl: string | null
   onSaveApplyUrl: (url: string | null) => Promise<void>
   applyUrlSaving: boolean
+  currentAction?: string
+  onActionChange?: (action: string) => void
 }) {
   const [editingUrl, setEditingUrl] = useState(false)
   const [urlDraft, setUrlDraft] = useState('')
