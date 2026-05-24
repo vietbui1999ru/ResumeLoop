@@ -65,11 +65,13 @@ export async function POST(req: Request) {
 
   let processed = 0
   let skipped = 0
+  const failed: string[] = []
 
   for (const file of mdFiles) {
     try {
       // Enforce per-file size limit
       if (Buffer.byteLength(file.content, 'utf8') > MAX_FILE_BYTES) {
+        failed.push(file.name)
         skipped++
         continue
       }
@@ -89,6 +91,7 @@ export async function POST(req: Request) {
       ])
       processed++
     } catch {
+      failed.push(file.name)
       skipped++
     }
   }
@@ -96,5 +99,5 @@ export async function POST(req: Request) {
   revalidateTag(`metrics-${userId}`)
   revalidatePath('/')
 
-  return NextResponse.json({ ok: true, processed, skipped, unchanged: 0 })
+  return NextResponse.json({ ok: true, processed, skipped, unchanged: 0, failed })
 }
