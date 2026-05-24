@@ -14,8 +14,8 @@ export function ShellClient({ children }: ShellClientProps) {
     <>
       <MobileHeader onMenuOpen={() => setDrawerOpen(true)} />
       <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
-      {/* Spacer so content isn't hidden under mobile header */}
-      <div className="h-12 lg:hidden shrink-0" aria-hidden />
+      {/* Spacer clears MobileHeader: h-12 fixed height + pt-safe-area-inset-top padding */}
+      <div className="h-[calc(3rem+env(safe-area-inset-top))] lg:hidden shrink-0" aria-hidden />
       <div className="flex flex-1 overflow-hidden">
         {children}
       </div>

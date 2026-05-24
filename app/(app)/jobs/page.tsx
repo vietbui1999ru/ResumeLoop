@@ -863,7 +863,7 @@ export default function JobsPage() {
 
       {/* ── Sticky bottom drawer — selection + generation ──────── */}
       {drawerOpen && (
-        <div className="fixed bottom-0 left-0 right-0 z-20 bg-surface-card border-t border-zinc-800 shadow-xl shadow-black/40 px-6 py-3 lg:left-12">
+        <div className="fixed bottom-0 left-0 right-0 z-20 bg-surface-card border-t border-zinc-800 shadow-xl shadow-black/40 px-6 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:left-12">
           {!showPanel ? (
             /* Compact selection bar */
             <div className="flex flex-col gap-2">
