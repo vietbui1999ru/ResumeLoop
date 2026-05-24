@@ -18,7 +18,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useJobOutput } from '@/lib/useJobOutput'
-import { PIPELINE_TAGS, PIPELINE_TAG_KEYS } from '@/lib/pipeline-tags'
+import { PIPELINE_TAGS, PIPELINE_TAG_KEYS, TAG_TO_ACTION, ACTION_TO_TAG } from '@/lib/pipeline-tags'
 import PdfViewer from './PdfViewer'
 import OutreachPanel from './OutreachPanel'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -798,13 +798,15 @@ function JdPanel({ job, tags, localTags, onTagToggle, output, outputLoading, onG
     setEditingUrl(false)
   }
 
+  const effectiveAction = currentAction ?? job.action ?? '0-Saved'
+
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
       {/* Structured fields */}
       <div className="px-4 py-3 border-b border-zinc-700 grid grid-cols-2 gap-x-6 gap-y-2 text-sm shrink-0">
         <Field label="Track"   value={job.role_track || '—'} />
         <Field label="Fit"     value={`${job.fit_pct}%`} valueClass={job.fit_pct >= 60 ? 'text-green-400' : 'text-zinc-300'} />
-        <Field label="Action"  value={job.action ?? '0-Saved'} />
+        <Field label="Action"  value={effectiveAction} />
         <Field label="Visa"    value={job.visa_status} valueClass={job.visa_status === 'kill' ? 'text-red-400' : 'text-green-400'} />
         <Field label="Clipped" value={fmtDate(job.file_mtime)} />
         <Field label="Scanned" value={fmtDate(job.scanned_at)} />
@@ -812,11 +814,14 @@ function JdPanel({ job, tags, localTags, onTagToggle, output, outputLoading, onG
           <p className="text-zinc-500 text-xs mb-1">Stage</p>
           <div className="flex gap-1.5 flex-wrap">
             {PIPELINE_TAGS.map(tag => {
-              const active = localTags.includes(tag.key)
+              const active = ACTION_TO_TAG[effectiveAction as keyof typeof ACTION_TO_TAG] === tag.key
               return (
                 <button
                   key={tag.key}
-                  onClick={() => onTagToggle(tag.key)}
+                  onClick={() => {
+                    const next = active ? '0-Saved' : (TAG_TO_ACTION[tag.key as keyof typeof TAG_TO_ACTION] ?? '0-Saved')
+                    onActionChange?.(next)
+                  }}
                   className={`px-2 py-0.5 rounded text-xs border transition-all font-medium ${
                     active ? tag.pill : 'bg-zinc-800/50 text-zinc-500 border-zinc-700 hover:text-zinc-300 hover:border-zinc-500'
                   }`}
