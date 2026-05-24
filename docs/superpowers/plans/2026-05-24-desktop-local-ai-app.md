@@ -79,7 +79,7 @@ This keeps existing app AI flows mostly unchanged while swapping backend transpo
 2. CLI lifecycle model: one process per request vs pooled session per provider.
 3. IPC framing: line/chunk/SSE-like event schema for all providers.
 4. Auto-update cadence and rollback strategy.
-5. macOS notarization ownership (Apple org, cert ops).
+5. macOS notarization ownership: which team/account owns the Apple Developer org membership, signing certificates, and renewal operations.
 6. Long-term: keep wrapper architecture or gradually extract shared core into desktop-native modules.
 
 ---
