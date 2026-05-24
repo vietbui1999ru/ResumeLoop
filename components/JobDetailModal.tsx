@@ -756,9 +756,16 @@ function PdfPanel({ jobId, hasPdf, hasDocx }: { jobId: string; hasPdf: boolean; 
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [retryKey, setRetryKey] = useState(0)
+  const inFlight = useRef(false)
+
+  // Sync pdfReady when hasPdf arrives async (output loads after mount)
+  useEffect(() => {
+    if (hasPdf) setPdfReady(true)
+  }, [hasPdf])
 
   useEffect(() => {
-    if (!hasDocx || pdfReady) return
+    if (!hasDocx || pdfReady || inFlight.current) return
+    inFlight.current = true
     let cancelled = false
     setGenerating(true)
     setError(null)
@@ -773,7 +780,7 @@ function PdfPanel({ jobId, hasPdf, hasDocx }: { jobId: string; hasPdf: boolean; 
         }
       })
       .catch(e => { if (!cancelled) setError(String(e)) })
-      .finally(() => { if (!cancelled) setGenerating(false) })
+      .finally(() => { if (!cancelled) setGenerating(false); inFlight.current = false })
     return () => { cancelled = true }
   }, [jobId, hasDocx, pdfReady, retryKey])
 

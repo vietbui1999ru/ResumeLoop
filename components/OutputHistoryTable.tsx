@@ -37,6 +37,7 @@ export function OutputHistoryTable({ outputs: initialOutputs }: { outputs: Outpu
             onClick={refresh}
             disabled={refreshing}
             title="Refresh"
+            aria-label="Refresh output history"
             className="text-zinc-500 hover:text-zinc-200 disabled:opacity-40 transition-colors"
           >
             <svg

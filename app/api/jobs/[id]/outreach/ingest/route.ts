@@ -88,7 +88,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   // Inline text path
-  if (body.text) {
+  if (typeof body.text === 'string') {
     if (typeof body.text !== 'string' || !body.text.trim()) {
       return NextResponse.json({ error: 'text must be a non-empty string' }, { status: 400 })
     }

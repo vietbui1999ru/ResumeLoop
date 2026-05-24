@@ -77,7 +77,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const { id } = await params
   const db = await getAdapter()
-  const row = await db.queryOne<{ id: number; docx_path: string | null; pdf_path: string | null }>(
+  const row = await db.queryOne<{ id: string; docx_path: string | null; pdf_path: string | null }>(
     'SELECT id, docx_path, pdf_path FROM jd_outputs WHERE job_id = ? AND user_id = ? ORDER BY built_at DESC LIMIT 1',
     [id, userId],
   )
@@ -86,13 +86,35 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   if (row.pdf_path)    return NextResponse.json({ error: 'PDF already exists' }, { status: 409 })
   if (isS3Key(row.docx_path)) return NextResponse.json({ error: 'On-demand PDF not supported for cloud storage' }, { status: 400 })
 
-  const docxPath = row.docx_path
-  const pdfPath  = docxPath.endsWith('.docx') ? docxPath.slice(0, -5) + '.pdf' : docxPath + '.pdf'
+  if (!row.docx_path.endsWith('.docx')) {
+    return NextResponse.json({ error: 'Invalid file type' }, { status: 400 })
+  }
+
+  let resolvedDocx: string
+  try {
+    resolvedDocx = fs.realpathSync(row.docx_path)
+  } catch {
+    return NextResponse.json({ error: 'DOCX file missing on disk' }, { status: 404 })
+  }
+
+  const home = os.homedir()
+  const safeRoots = [
+    path.join(home, 'Desktop'),
+    path.join(home, 'Documents'),
+    path.join(home, 'Downloads'),
+    process.cwd(),
+  ].map(r => { try { return fs.realpathSync(r) } catch { return r } })
+  const isSafe = safeRoots.some(r => resolvedDocx.startsWith(r + path.sep) || resolvedDocx === r)
+  if (!isSafe) {
+    return NextResponse.json({ error: 'Invalid path' }, { status: 403 })
+  }
+
+  const pdfPath = resolvedDocx.slice(0, -5) + '.pdf'
   const toPdfScript = path.join(process.cwd(), 'harness', 'to-pdf.js')
 
   try {
     await new Promise<void>((resolve, reject) => {
-      const proc = spawn('node', [toPdfScript, docxPath, pdfPath], { cwd: process.cwd() })
+      const proc = spawn('node', [toPdfScript, resolvedDocx, pdfPath], { cwd: process.cwd() })
       proc.on('close', code => code === 0 ? resolve() : reject(new Error(`to-pdf.js exited with code ${code}`)))
       proc.on('error', reject)
     })

@@ -117,9 +117,9 @@ export async function* runPipeline(jobId: string, sessionId = 'default', userId 
   const scriptName = `${slug}.js`
   const scriptPath = path.join(jobBuildDir, scriptName)
   const { nameSlug } = parseCandidateInfo(masterDataJson)
-  const companyCamel = toCamelSlug(job.company)
-  const roleCamel    = toCamelSlug(job.role_title)
-  const docxName   = `${nameSlug}_${companyCamel}_${roleCamel}.docx`
+  const companyCamel = toCamelSlug(job.company ?? '')
+  const roleCamel    = toCamelSlug(job.role_title ?? '')
+  const docxName   = [nameSlug, companyCamel, roleCamel].filter(Boolean).join('_') + '.docx'
 
   try {
     const script = buildScript(decision, slug, docxName, masterDataJson)
