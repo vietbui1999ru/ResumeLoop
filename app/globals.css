@@ -99,3 +99,8 @@
   ::-webkit-scrollbar-thumb  { background: #27272a; border-radius: 9999px; }
   ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
 }
+
+/* Mobile touch — removes 300ms tap delay on iOS < 13 */
+button, a, input, select, textarea {
+  touch-action: manipulation;
+}
