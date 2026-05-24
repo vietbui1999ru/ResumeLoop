@@ -1,6 +1,7 @@
 'use client'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { Eye, EyeOff } from 'lucide-react'
 
 interface ExperienceEntry {
   id: string
@@ -60,7 +61,7 @@ export function ExperienceCard({ entry, excluded, onToggle }: Props) {
         aria-label={excluded ? 'Include this entry' : 'Exclude this entry'}
         title={excluded ? 'Click to include' : 'Click to exclude'}
       >
-        {!excluded && <span className="text-xs">✓</span>}
+        {excluded ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
       </button>
 
       {/* Content */}

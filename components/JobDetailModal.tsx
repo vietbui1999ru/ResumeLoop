@@ -752,6 +752,31 @@ function JdPanel({ job, tags, localTags, onTagToggle, output, outputLoading, onG
 // ── PDF Panel ─────────────────────────────────────────────────────────────────
 
 function PdfPanel({ jobId, hasPdf, hasDocx }: { jobId: string; hasPdf: boolean; hasDocx: boolean }) {
+  const [pdfReady, setPdfReady] = useState(hasPdf)
+  const [generating, setGenerating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [retryKey, setRetryKey] = useState(0)
+
+  useEffect(() => {
+    if (!hasDocx || pdfReady) return
+    let cancelled = false
+    setGenerating(true)
+    setError(null)
+    fetch(`/api/jobs/${jobId}/output/pdf`, { method: 'POST' })
+      .then(async res => {
+        if (cancelled) return
+        if (res.ok || res.status === 409) {
+          setPdfReady(true)
+        } else {
+          const body = await res.json().catch(() => ({})) as { error?: string }
+          setError(body.error ?? `Generation failed (${res.status})`)
+        }
+      })
+      .catch(e => { if (!cancelled) setError(String(e)) })
+      .finally(() => { if (!cancelled) setGenerating(false) })
+    return () => { cancelled = true }
+  }, [jobId, hasDocx, pdfReady, retryKey])
+
   if (!hasDocx) {
     return (
       <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm px-4 text-center">
@@ -759,7 +784,20 @@ function PdfPanel({ jobId, hasPdf, hasDocx }: { jobId: string; hasPdf: boolean; 
       </div>
     )
   }
-  if (!hasPdf) {
+  if (error) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-3 px-4">
+        <p className="text-red-400 text-sm text-center">{error}</p>
+        <button
+          onClick={() => { setError(null); setRetryKey(k => k + 1) }}
+          className="px-3 py-1.5 text-xs bg-zinc-700 hover:bg-zinc-600 rounded text-zinc-200"
+        >
+          Retry
+        </button>
+      </div>
+    )
+  }
+  if (generating || !pdfReady) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-3 px-4">
         <div className="w-full max-w-xs space-y-2">

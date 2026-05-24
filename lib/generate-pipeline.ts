@@ -117,7 +117,9 @@ export async function* runPipeline(jobId: string, sessionId = 'default', userId 
   const scriptName = `${slug}.js`
   const scriptPath = path.join(jobBuildDir, scriptName)
   const { nameSlug } = parseCandidateInfo(masterDataJson)
-  const docxName   = `${slug}_${nameSlug}.docx`
+  const companyCamel = toCamelSlug(job.company)
+  const roleCamel    = toCamelSlug(job.role_title)
+  const docxName   = `${nameSlug}_${companyCamel}_${roleCamel}.docx`
 
   try {
     const script = buildScript(decision, slug, docxName, masterDataJson)
@@ -567,6 +569,16 @@ async function tagJdFile(filePath: string): Promise<void> {
 
 function toSlug(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 60)
+}
+
+function toCamelSlug(s: string): string {
+  return s
+    .replace(/[^a-zA-Z0-9\s]+/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join('')
+    .slice(0, 40)
 }
 
 function errEvent(stage: SSEEvent['stage'], message: string): SSEEvent {
