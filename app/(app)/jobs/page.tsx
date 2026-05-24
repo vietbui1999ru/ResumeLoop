@@ -15,6 +15,7 @@ import { AnimatePresence } from 'framer-motion'
 import { readUploadedMdFiles } from '@/lib/upload-md-files'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { JobCard } from '@/components/JobCard'
+import { DropZone } from '@/components/DropZone'
 import { ACTION_COLORS, FitBadge, clipColor, fmtDate } from '@/lib/job-display'
 
 const JobDetailModal  = dynamic(() => import('@/components/JobDetailModal'),  { ssr: false })
@@ -297,20 +298,27 @@ export default function JobsPage() {
       return
     }
 
+    setScanStatus(`Uploading ${files.length} file${files.length === 1 ? '' : 's'}…`)
+
     const res = await fetch('/api/batch/scan/files', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ files }),
     })
-    const data = await res.json() as { processed?: number; skipped?: number; error?: string }
+    const data = await res.json() as { processed?: number; skipped?: number; failed?: string[]; error?: string }
     const skippedTotal = (data.skipped ?? 0) + skippedNonMd
-    setScanStatus(
-      res.ok
-        ? `↑ ${data.processed ?? 0} imported${skippedTotal > 0 ? ` (${skippedTotal} skipped)` : ''}`
-        : `✗ ${data.error ?? 'scan failed'}`,
-    )
+    const failedFiles = data.failed ?? []
+    let status: string
+    if (!res.ok) {
+      status = `✗ ${data.error ?? 'scan failed'}`
+    } else if (failedFiles.length > 0) {
+      status = `↑ ${data.processed ?? 0} imported, ${failedFiles.length} failed — ${failedFiles.join(', ')}`
+    } else {
+      status = `↑ ${data.processed ?? 0} imported${skippedTotal > 0 ? ` (${skippedTotal} skipped)` : ''}`
+    }
+    setScanStatus(status)
     if (res.ok) reload()
-    setTimeout(() => setScanStatus(''), 4000)
+    setTimeout(() => setScanStatus(''), 6000)
   }, [reload])
 
   const scan = async () => {
@@ -398,6 +406,15 @@ export default function JobsPage() {
                     Scan
                   </button>
                 </div>
+                {IS_CLOUD && (
+                  <button
+                    onClick={() => uploadRef.current?.click()}
+                    className="text-sm px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded transition-colors text-zinc-300"
+                    title="Upload .md job files"
+                  >
+                    Upload .md
+                  </button>
+                )}
               </div>
             </div>
 
@@ -518,6 +535,12 @@ export default function JobsPage() {
                   onClick={scan}
                   className="text-xs px-2.5 py-1.5 bg-zinc-700 hover:bg-zinc-600 rounded transition-colors"
                 >Scan</button>
+                {IS_CLOUD && (
+                  <button
+                    onClick={() => uploadRef.current?.click()}
+                    className="text-xs px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded transition-colors text-zinc-300"
+                  >Upload</button>
+                )}
               </div>
             </div>
             {/* Mobile Row 2: search */}
@@ -607,26 +630,10 @@ export default function JobsPage() {
         <SetupPanel onComplete={() => { setJobsPathExists(true); reload() }} />
       )}
       {IS_CLOUD && !initialLoading && jobs.length === 0 && (
-        <div className="flex-1 flex items-center justify-center p-12">
-          <div className="text-center space-y-4 max-w-sm">
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-600/30 text-xl">
-              📋
-            </div>
-            <div className="space-y-1">
-              <p className="text-zinc-300 text-sm font-medium">No jobs yet</p>
-              <p className="text-zinc-500 text-xs leading-relaxed">
-                Click <strong className="text-zinc-300">Scan</strong> to import jobs.
-                In Chrome/Edge, a connected Jobs folder in <strong className="text-zinc-300">Settings</strong> scans automatically; otherwise you can upload <strong className="text-zinc-300">.md</strong> files.
-              </p>
-            </div>
-            <button
-              onClick={() => setShowImportGuide(true)}
-              className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
-            >
-              How to clip job listings into .md files →
-            </button>
-          </div>
-        </div>
+        <DropZone
+          onDrop={files => void scanUploadedFiles(files)}
+          onClickUpload={() => uploadRef.current?.click()}
+        />
       )}
 
       {/* ── Table / Card List ──────────────────────────────────── */}
