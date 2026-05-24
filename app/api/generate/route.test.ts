@@ -58,13 +58,34 @@ describe('POST /api/generate', () => {
   })
 
   it('returns 200 with ok:true when all jobIds are valid', async () => {
-    const queryOne = vi.fn().mockResolvedValue({ one: 1 })
+    const validProfile = JSON.stringify({
+      contact: { name: 'Test User', email: 'test@example.com' },
+      experience: [{ id: 'e1', bullets: { genai: ['Built X using Y, delivered Z'] } }],
+      projects: [],
+    })
+    const queryOne = vi.fn().mockImplementation((sql: string) => {
+      if (sql.includes('jd_jobs')) return Promise.resolve({ one: 1 })
+      if (sql.includes('resume_profiles')) return Promise.resolve({ data: validProfile })
+      return Promise.resolve(null)
+    })
     vi.mocked(getAdapter).mockResolvedValueOnce({ queryOne, run: vi.fn() } as never)
     const res = await POST(makeReq({ jobIds: ['job-1', 'job-2'] }))
     expect(res.status).toBe(200)
     const data = await res.json()
     expect(data.ok).toBe(true)
     expect(data.validated).toEqual(['job-1', 'job-2'])
+  })
+
+  it('returns 422 when no active resume profile exists', async () => {
+    const queryOne = vi.fn().mockImplementation((sql: string) => {
+      if (sql.includes('jd_jobs')) return Promise.resolve({ one: 1 })
+      return Promise.resolve(null)
+    })
+    vi.mocked(getAdapter).mockResolvedValueOnce({ queryOne, run: vi.fn() } as never)
+    const res = await POST(makeReq({ jobIds: ['job-1'] }))
+    expect(res.status).toBe(422)
+    const data = await res.json()
+    expect(data.error).toMatch(/profile/)
   })
 
   it('returns 400 when body is missing jobIds field', async () => {

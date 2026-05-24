@@ -7,7 +7,13 @@ test.describe('Bullets editor — chat page', () => {
     await page.addInitScript((ids: string[]) => {
       for (const id of ids) localStorage.setItem(`tour2_seen_${id}`, '1')
     }, TOUR_IDS)
+    // Register before navigating so we don't miss the response that fires via useEffect
+    const profileReady = page.waitForResponse(
+      resp => /\/api\/profiles\/.+/.test(new URL(resp.url()).pathname) && resp.status() === 200,
+      { timeout: 10000 },
+    )
     await page.goto('/chat')
+    await profileReady
   })
 
   // ── Tab navigation ─────────────────────────────────────────────────
