@@ -54,7 +54,7 @@ export function Sidebar() {
   const hasUnseen = pagesWithUnseen.length > 0
 
   return (
-    <nav className="w-16 shrink-0 border-r border-zinc-800 bg-surface-card flex flex-col items-center py-3 gap-0.5 h-full">
+    <nav className="hidden lg:flex w-16 shrink-0 border-r border-zinc-800 bg-surface-card flex-col items-center py-3 gap-0.5 h-full">
       {/* Logo mark */}
       <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center mb-3 shrink-0">
         <span className="text-2xs font-bold text-white tracking-tight">RA</span>
