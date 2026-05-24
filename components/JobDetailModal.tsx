@@ -19,6 +19,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { useJobOutput } from '@/lib/useJobOutput'
 import { PIPELINE_TAGS, PIPELINE_TAG_KEYS, TAG_TO_ACTION, ACTION_TO_TAG } from '@/lib/pipeline-tags'
+import { VALID_ACTIONS, type ActionStage } from '@/lib/actions'
 import PdfViewer from './PdfViewer'
 import OutreachPanel from './OutreachPanel'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -798,7 +799,9 @@ function JdPanel({ job, tags, localTags, onTagToggle, output, outputLoading, onG
     setEditingUrl(false)
   }
 
-  const effectiveAction = currentAction ?? job.action ?? '0-Saved'
+  const raw = currentAction ?? job.action ?? '0-Saved'
+  const effectiveAction: ActionStage =
+    (VALID_ACTIONS as readonly string[]).includes(raw) ? (raw as ActionStage) : '0-Saved'
 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
@@ -814,12 +817,12 @@ function JdPanel({ job, tags, localTags, onTagToggle, output, outputLoading, onG
           <p className="text-zinc-500 text-xs mb-1">Stage</p>
           <div className="flex gap-1.5 flex-wrap">
             {PIPELINE_TAGS.map(tag => {
-              const active = ACTION_TO_TAG[effectiveAction as keyof typeof ACTION_TO_TAG] === tag.key
+              const active = ACTION_TO_TAG[effectiveAction] === tag.key
               return (
                 <button
                   key={tag.key}
                   onClick={() => {
-                    const next = active ? '0-Saved' : (TAG_TO_ACTION[tag.key as keyof typeof TAG_TO_ACTION] ?? '0-Saved')
+                    const next = active ? '0-Saved' : TAG_TO_ACTION[tag.key as keyof typeof TAG_TO_ACTION]
                     onActionChange?.(next)
                   }}
                   className={`px-2 py-0.5 rounded text-xs border transition-all font-medium ${
