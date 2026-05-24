@@ -9,3 +9,15 @@ export const PIPELINE_TAGS = [
 
 export type PipelineTagKey = typeof PIPELINE_TAGS[number]['key']
 export const PIPELINE_TAG_KEYS = PIPELINE_TAGS.map(t => t.key) as PipelineTagKey[]
+
+export const TAG_TO_ACTION: Record<string, string> = {
+  'applied':      '1-Applied',
+  'phone-screen': '2-Phone Screen',
+  'interviewed':  '3-Interview',
+  'offer':        '4-Offer',
+  'rejected':     '5-Rejected',
+  'ghosted':      '6-Ghosted',
+}
+
+export const ACTION_TO_TAG: Record<string, string> =
+  Object.fromEntries(Object.entries(TAG_TO_ACTION).map(([k, v]) => [v, k]))
