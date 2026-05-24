@@ -464,6 +464,14 @@ export default function SettingsPage() {
   const [firecrawlSaving, setFirecrawlSaving] = useState(false)
   const [firecrawlStatus, setFirecrawlStatus] = useState('')
   const [showImportGuide, setShowImportGuide] = useState(false)
+  const [isIosSafari, setIsIosSafari] = useState(false)
+
+  useEffect(() => {
+    const ua = navigator.userAgent
+    const isIos = /iP(hone|ad|od)/.test(ua)
+    const isSafari = /Safari/.test(ua) && !/Chrome|CriOS|EdgiOS|FxiOS|OPiOS/.test(ua)
+    setIsIosSafari(isIos && isSafari)
+  }, [])
 
   useEffect(() => {
     fetch('/api/settings')
@@ -538,6 +546,14 @@ export default function SettingsPage() {
 
       <div className="space-y-3">
         <h2 className="text-xs font-semibold text-zinc-500 uppercase">Folder Paths</h2>
+
+        {settings.is_cloud && isIosSafari && (
+          <div className="rounded-lg bg-amber-950/20 border border-amber-700/50 px-4 py-3 text-sm text-amber-300">
+            📱 File picker not supported on iOS Safari. Use{' '}
+            <a href="/jobs" className="underline hover:text-amber-100 font-medium">Paste JD</a>{' '}
+            to add jobs, or open in Chrome/Edge for folder sync.
+          </div>
+        )}
 
         {settings.is_cloud ? (
           <>

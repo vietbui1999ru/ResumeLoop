@@ -13,6 +13,7 @@ const inter = Inter({ subsets: ['latin'], display: 'swap' })
 export const metadata: Metadata = {
   title: 'ResumeLoop',
   description: 'Resume pipeline dashboard',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -21,8 +21,10 @@ import { useJobOutput } from '@/lib/useJobOutput'
 import { PIPELINE_TAGS, PIPELINE_TAG_KEYS } from '@/lib/pipeline-tags'
 import PdfViewer from './PdfViewer'
 import OutreachPanel from './OutreachPanel'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { DURATION, EASE } from '@/lib/motion'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
+import { X } from 'lucide-react'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -55,6 +57,16 @@ const fmtDate = (iso: string | null) => {
   const d = new Date(iso)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
+
+// Mobile panels configuration
+const PANELS: { id: PanelId; label: string }[] = [
+  { id: 'jd',        label: 'JD' },
+  { id: 'pdf',       label: 'PDF' },
+  { id: 'reasoning', label: 'Reasoning' },
+  { id: 'cover',     label: 'Cover' },
+  { id: 'outreach',  label: 'Outreach' },
+  { id: 'case',      label: 'Case' },
+]
 
 // ── SortablePanel wrapper ─────────────────────────────────────────────────────
 
@@ -141,9 +153,15 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) 
   const [localTags, setLocalTags] = useState<string[]>([])
   const { output, loading: outputLoading } = useJobOutput(jobId)
 
+  // Media query for desktop vs mobile
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
+
   // Apply URL state (editable, persisted via PATCH)
   const [applyUrl, setApplyUrl] = useState<string | null>(null)
   const [applyUrlSaving, setApplyUrlSaving] = useState(false)
+
+  // Mobile sheet active panel
+  const [activePanel, setActivePanel] = useState<PanelId>('jd')
 
   // Panel state
   const [panelOrder, setPanelOrder] = useState<PanelId[]>(['jd', 'pdf', 'reasoning', 'cover', 'outreach', 'case'])
@@ -442,6 +460,141 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) 
     case: 'Case',
   }
 
+  // Render mobile panel content
+  function renderMobilePanel(panelId: PanelId): React.ReactNode {
+    switch (panelId) {
+      case 'jd':
+        return job ? (
+          <JdPanel
+            job={job}
+            tags={tags}
+            localTags={localTags}
+            onTagToggle={handleTagToggle}
+            output={output}
+            outputLoading={outputLoading}
+            onGenCoverLetter={generateCoverLetter}
+            coverLoading={coverLoading}
+            applyUrl={applyUrl}
+            onSaveApplyUrl={saveApplyUrl}
+            applyUrlSaving={applyUrlSaving}
+          />
+        ) : null
+      case 'pdf':
+        return <PdfPanel jobId={jobId} hasPdf={!!output?.pdf_path} hasDocx={!!output} />
+      case 'reasoning':
+        return <ReasoningPanel reasoning={output?.reasoning ?? null} loading={outputLoading} />
+      case 'cover':
+        return (
+          <CoverPanel
+            text={coverLetter}
+            loading={coverLoading}
+            error={coverError}
+            onGenerate={generateCoverLetter}
+            onCopy={copyToClipboard}
+            copied={copied}
+            hasOutput={!!output}
+          />
+        )
+      case 'outreach':
+        return <OutreachPanel jobId={jobId} />
+      case 'case':
+        return (
+          <CasePanel
+            text={caseText}
+            loading={caseLoading}
+            streaming={caseStreaming}
+            error={caseError}
+            onGenerate={generateCase}
+          />
+        )
+      default:
+        return null
+    }
+  }
+
+  // Mobile bottom sheet
+  if (mounted && !isDesktop) {
+    return createPortal(
+      <AnimatePresence>
+        {/* Backdrop */}
+        <motion.div
+          className="fixed inset-0 bg-black/60 z-40"
+          onClick={onClose}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        />
+        {/* Sheet */}
+        <motion.div
+          className="fixed bottom-0 left-0 right-0 z-50 bg-surface-card
+                     rounded-t-2xl flex flex-col h-[90dvh]"
+          onClick={e => e.stopPropagation()}
+          initial={{ y: '100%' }}
+          animate={{ y: 0 }}
+          exit={{ y: '100%' }}
+          transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+        >
+          {/* Drag handle indicator */}
+          <div className="flex justify-center pt-2 pb-1 shrink-0">
+            <div className="w-10 h-1 rounded-full bg-zinc-600" />
+          </div>
+
+          {/* Header: company/role + close */}
+          <div className="flex items-center justify-between px-4 py-3
+                          border-b border-zinc-800 shrink-0">
+            <div>
+              <p className="text-sm font-semibold text-zinc-100">{job?.company ?? ''}</p>
+              <p className="text-xs text-zinc-400">{job?.role_title ?? ''}</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-9 h-9 flex items-center justify-center
+                         text-text-muted hover:text-text-secondary rounded-lg"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          {/* Scrollable tab bar */}
+          <div className="flex overflow-x-auto border-b border-zinc-800 shrink-0
+                          bg-surface-card [scrollbar-width:none] [-webkit-overflow-scrolling:touch]">
+            {PANELS.map(({ id, label }) => (
+              <button
+                key={id}
+                onClick={() => setActivePanel(id)}
+                className={`px-4 py-2.5 text-xs font-medium whitespace-nowrap
+                            border-b-2 transition-colors duration-100 shrink-0 ${
+                  activePanel === id
+                    ? 'border-indigo-500 text-indigo-400'
+                    : 'border-transparent text-text-muted hover:text-text-secondary'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Panel content */}
+          <div className="flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)]">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activePanel}
+                initial={{ opacity: 0, x: 8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -8 }}
+                transition={{ duration: 0.1 }}
+                className="min-h-full"
+              >
+                {renderMobilePanel(activePanel)}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </motion.div>
+      </AnimatePresence>,
+      document.body
+    )
+  }
+
   const modalContent = (
     <motion.div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
@@ -603,7 +756,7 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange }: Props) 
     </motion.div>
   )
 
-  if (!mounted) return null
+  if (!mounted || !isDesktop) return null
   return createPortal(modalContent, document.body)
 }
 

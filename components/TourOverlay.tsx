@@ -12,6 +12,9 @@ function useTargetRect(target: string | null, active: boolean): Rect | null {
 
   const find = useCallback(() => {
     if (!target || !active) { setRect(null); return }
+    // On mobile, force null rect to center the bubble
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024
+    if (isMobile) { setRect(null); return }
     let tries = 0
     const attempt = () => {
       const el = document.querySelector(`[data-tour="${target}"]`)

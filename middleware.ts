@@ -59,12 +59,6 @@ function isPublicPath(pathname: string): boolean {
   )
 }
 
-const MOBILE_UA_RE = /android|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile/i
-
-function isMobile(ua: string | null): boolean {
-  if (!ua) return false
-  return MOBILE_UA_RE.test(ua)
-}
 
 export default auth((req: NextAuthRequest) => {
   const { pathname } = req.nextUrl
@@ -74,14 +68,6 @@ export default auth((req: NextAuthRequest) => {
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
     if (!checkApiRateLimit(ip)) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
-    }
-  }
-
-  // Block mobile — desktop-only until mobile layout is implemented
-  if (pathname !== '/not-supported' && !pathname.startsWith('/api/') && !pathname.startsWith('/_next/')) {
-    const ua = req.headers.get('user-agent')
-    if (isMobile(ua)) {
-      return NextResponse.redirect(new URL('/not-supported', req.url))
     }
   }
 

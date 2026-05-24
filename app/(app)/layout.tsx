@@ -1,4 +1,5 @@
 import { Sidebar } from '@/components/Sidebar'
+import { ShellClient } from '@/components/ShellClient'
 import { TourOverlay } from '@/components/TourOverlay'
 import { PageTransition } from '@/components/PageTransition'
 import { DemoBanner } from '@/components/DemoBanner'
@@ -22,15 +23,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="h-screen overflow-hidden flex flex-col">
+    <div className="min-h-screen lg:h-screen flex flex-col lg:overflow-hidden">
       {demoExpiresAt !== null && <DemoBanner expiresAt={demoExpiresAt} />}
-      <div className="flex flex-1 overflow-hidden">
+      <ShellClient>
         <Sidebar />
         <TourOverlay />
         <OnboardingGate>
           <PageTransition>{children}</PageTransition>
         </OnboardingGate>
-      </div>
+      </ShellClient>
     </div>
   )
 }
