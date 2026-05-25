@@ -3,6 +3,7 @@ import { useState, FormEvent } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 export default function SignInForm({ oauthProviders = [] }: { oauthProviders?: ('github' | 'google')[] }) {
   const router = useRouter()
@@ -58,7 +59,10 @@ export default function SignInForm({ oauthProviders = [] }: { oauthProviders?: (
   const anyLoading = loading || !!oauthLoading || demoLoading
 
   return (
-    <div className="min-h-screen bg-surface-base flex items-center justify-center px-4">
+    <div className="relative min-h-screen bg-surface-base flex items-center justify-center px-4">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-text-secondary hover:bg-surface-raised transition-colors" />
+      </div>
       <div className="w-full max-w-sm">
         <div className="mb-8">
           <h1 className="text-xl font-semibold text-text-primary">Sign in</h1>
@@ -72,7 +76,7 @@ export default function SignInForm({ oauthProviders = [] }: { oauthProviders?: (
         <button
           onClick={tryDemo}
           disabled={anyLoading}
-          className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-indigo-950 hover:bg-indigo-900 disabled:opacity-40 rounded text-sm font-medium text-indigo-300 transition-colors border border-indigo-700 mb-4"
+          className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-accent-subtle hover:bg-accent-subtle/80 disabled:opacity-40 rounded text-sm font-medium text-accent-light transition-colors border border-accent/40 mb-4"
         >
           {demoLoading ? 'Loading demo…' : '✦ Try Demo — no account needed'}
         </button>
