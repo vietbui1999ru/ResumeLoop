@@ -1,7 +1,8 @@
 'use client'
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
-import { SortableContext, useSortable, horizontalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
+import { SortableContext, useSortable, horizontalListSortingStrategy, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
 
 function toArray(v: unknown): string[] {
   if (Array.isArray(v)) return v as string[]
@@ -14,8 +15,8 @@ interface Props {
   onChange: (newSkills: Record<string, string[]>) => void
 }
 
-function SkillChip({ id, label, vals }: { id: string; label: string; vals: string[] }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id })
+function SkillChip({ id, label, vals, isVertical }: { id: string; label: string; vals: string[]; isVertical?: boolean }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
   const style = { transform: CSS.Transform.toString(transform), transition }
 
   return (
@@ -24,7 +25,8 @@ function SkillChip({ id, label, vals }: { id: string; label: string; vals: strin
       style={style}
       {...attributes}
       {...listeners}
-      className="cursor-grab active:cursor-grabbing px-3 py-1.5 rounded-lg border border-zinc-700 bg-zinc-900 flex-shrink-0"
+      className={`cursor-grab active:cursor-grabbing px-3 py-1.5 rounded-lg border border-zinc-700 bg-zinc-900 flex-shrink-0 
+                   transition-all ${isDragging ? 'opacity-50 scale-95' : 'opacity-100'} ${isVertical ? 'w-full' : ''}`}
       title={vals.join(', ')}
     >
       <span className="text-xs font-medium text-zinc-300">{label}:</span>
@@ -35,6 +37,7 @@ function SkillChip({ id, label, vals }: { id: string; label: string; vals: strin
 
 export function SkillsRow({ skills, onChange }: Props) {
   const keys = Object.keys(skills)
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
@@ -46,12 +49,24 @@ export function SkillsRow({ skills, onChange }: Props) {
     onChange(reordered)
   }
 
+  // Choose strategy based on screen size
+  const strategy = isDesktop ? horizontalListSortingStrategy : verticalListSortingStrategy
+  const containerClass = isDesktop 
+    ? 'flex flex-wrap gap-2'  // Desktop: wrap horizontally
+    : 'flex flex-col gap-2'   // Mobile: stack vertically
+
   return (
     <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={keys} strategy={horizontalListSortingStrategy}>
-        <div className="flex flex-wrap gap-2">
+      <SortableContext items={keys} strategy={strategy}>
+        <div className={containerClass}>
           {keys.map(k => (
-            <SkillChip key={k} id={k} label={k} vals={toArray(skills[k])} />
+            <SkillChip 
+              key={k} 
+              id={k} 
+              label={k} 
+              vals={toArray(skills[k])}
+              isVertical={!isDesktop}
+            />
           ))}
         </div>
       </SortableContext>

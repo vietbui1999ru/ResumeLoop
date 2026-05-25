@@ -1,7 +1,7 @@
 'use client'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, GripVertical } from 'lucide-react'
 
 interface ExperienceEntry {
   id: string
@@ -44,16 +44,17 @@ export function ExperienceCard({ entry, excluded, onToggle }: Props) {
       <button
         {...attributes}
         {...listeners}
-        className="flex-shrink-0 cursor-grab active:cursor-grabbing text-zinc-600 hover:text-zinc-400 mt-1"
+        className="flex-shrink-0 cursor-grab active:cursor-grabbing text-zinc-600 hover:text-zinc-400 transition-colors"
         aria-label="Drag to reorder"
+        title="Drag to reorder"
       >
-        ⠿
+        <GripVertical size={16} strokeWidth={1.75} />
       </button>
 
       {/* Toggle */}
       <button
         onClick={() => onToggle(entry.id)}
-        className={`flex-shrink-0 w-5 h-5 mt-1 rounded border transition-colors ${
+        className={`flex-shrink-0 w-6 h-6 flex items-center justify-center mt-1 rounded border transition-colors ${
           excluded
             ? 'border-zinc-600 text-zinc-600'
             : 'border-indigo-500 bg-indigo-600 text-white'
@@ -61,7 +62,7 @@ export function ExperienceCard({ entry, excluded, onToggle }: Props) {
         aria-label={excluded ? 'Include this entry' : 'Exclude this entry'}
         title={excluded ? 'Click to include' : 'Click to exclude'}
       >
-        {excluded ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+        {excluded ? <EyeOff size={16} strokeWidth={1.75} /> : <Eye size={16} strokeWidth={1.75} />}
       </button>
 
       {/* Content */}

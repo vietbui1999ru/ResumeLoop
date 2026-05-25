@@ -1117,7 +1117,7 @@ export default function ConfigPage() {
   const selectedProfile = profiles.find(p => p.id === selectedId) ?? null
 
   return (
-    <div className="space-y-8 p-6 max-w-[1400px] mx-auto">
+    <div className="space-y-8 px-4 md:px-6 py-6 max-w-[1400px] mx-auto">
       {forkModal && selectedId && (
         <ForkModal onConfirm={confirmFork} onCancel={() => setForkModal(false)} />
       )}
