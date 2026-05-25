@@ -9,6 +9,8 @@ export interface RateLimitResult {
 
 // ── Local: in-process sliding window ─────────────────────────────────────────
 // Each key → sorted array of hit timestamps. O(n) but n is small per key.
+// NOTE: state is per-process — on multi-instance deployments (ECS, Vercel) the
+// effective rate limit is limit × N_instances. Use Upstash (isCloud) for shared limits.
 
 const localStore = new Map<string, number[]>()
 

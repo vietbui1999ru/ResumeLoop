@@ -19,10 +19,11 @@ import * as https from 'node:https'
 import { POST } from './route'
 
 function mockHttpsRequest(statusCode: number, location?: string) {
-  vi.mocked(https.request).mockImplementationOnce((_opts: unknown, cb?: (res: IncomingMessage) => void) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  vi.mocked(https.request as any).mockImplementationOnce((_opts: unknown, cb?: (res: IncomingMessage) => void) => {
     const res = { statusCode, headers: { location }, resume: vi.fn() } as unknown as IncomingMessage
     cb?.(res)
-    return { on: vi.fn(), end: vi.fn() } as unknown as ReturnType<typeof https.request>
+    return { on: vi.fn(), end: vi.fn() }
   })
 }
 
