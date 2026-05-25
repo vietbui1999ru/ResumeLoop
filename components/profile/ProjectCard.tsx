@@ -1,7 +1,6 @@
 'use client'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Eye, EyeOff } from 'lucide-react'
 
 interface ProjectEntry {
   id: string
@@ -23,7 +22,7 @@ export function ProjectCard({ entry, excluded, onToggle }: Props) {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : excluded ? 0.4 : 1,
+    opacity: isDragging ? 0.5 : 1,
   }
 
   const preview = entry.bullets.slice(0, 2)
@@ -45,33 +44,44 @@ export function ProjectCard({ entry, excluded, onToggle }: Props) {
         ⠿
       </button>
 
+      {/* Toggle checkbox — no icon, shape+color carries the state */}
       <button
+        role="checkbox"
+        aria-checked={!excluded}
+        aria-label={entry.name}
         onClick={() => onToggle(entry.id)}
-        className={`flex-shrink-0 w-5 h-5 mt-1 rounded border transition-colors ${
+        className={`flex-shrink-0 w-4 h-4 mt-1 rounded-sm border-2 transition-colors ${
           excluded
-            ? 'border-zinc-600 text-zinc-600'
-            : 'border-indigo-500 bg-indigo-600 text-white'
+            ? 'border-zinc-600 bg-transparent'
+            : 'border-indigo-500 bg-indigo-600'
         }`}
-        aria-label={excluded ? 'Include this project' : 'Exclude this project'}
         title={excluded ? 'Click to include' : 'Click to exclude'}
-      >
-        {excluded ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-      </button>
+      />
 
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2">
-          <span className={`text-sm font-medium ${excluded ? 'text-zinc-500' : 'text-zinc-200'}`}>
+          <span className={`text-sm font-medium transition-colors ${
+            excluded ? 'text-zinc-600 line-through' : 'text-zinc-200'
+          }`}>
             {entry.name}
           </span>
           {entry.short_stack && (
-            <span className="text-xs text-zinc-500">{entry.short_stack}</span>
+            <span className={`text-xs transition-colors ${excluded ? 'text-zinc-700 line-through' : 'text-zinc-500'}`}>
+              {entry.short_stack}
+            </span>
           )}
-          {entry.dates && <span className="text-xs text-zinc-600 ml-auto">{entry.dates}</span>}
+          {entry.dates && (
+            <span className={`text-xs ml-auto transition-colors ${excluded ? 'text-zinc-700' : 'text-zinc-600'}`}>
+              {entry.dates}
+            </span>
+          )}
         </div>
         {preview.length > 0 && (
           <ul className="mt-1 space-y-0.5">
             {preview.map((b, i) => (
-              <li key={i} className="text-xs text-zinc-500 truncate">· {b}</li>
+              <li key={i} className={`text-xs truncate transition-colors ${excluded ? 'text-zinc-700 line-through' : 'text-zinc-500'}`}>
+                · {b}
+              </li>
             ))}
           </ul>
         )}
