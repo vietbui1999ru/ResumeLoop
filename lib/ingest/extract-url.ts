@@ -63,7 +63,7 @@ export async function extractFromUrl(url: string, userId: string): Promise<Spars
   const result = await generateText({
     model:           await getModel(userId),
     system:          SYSTEM_PROMPT,
-    messages:        [{ role: 'user', content: `URL: ${url}\n\nPage content:\n\n${pageContent}` }],
+    messages:        [{ role: 'user', content: `URL: ${url}\n\n<page_content>\n${pageContent}\n</page_content>` }],
     tools: {
       extract_profile: {
         description: 'Extract professional profile data from the scraped page',

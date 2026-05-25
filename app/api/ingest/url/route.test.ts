@@ -1,4 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest'
+import type { IncomingMessage } from 'node:http'
 
 vi.mock('@/lib/auth', () => ({ auth: vi.fn() }))
 vi.mock('@/lib/ingest/db', () => ({
@@ -7,16 +8,26 @@ vi.mock('@/lib/ingest/db', () => ({
 }))
 vi.mock('@/lib/ingest/extract-url', () => ({ extractFromUrl: vi.fn() }))
 vi.mock('node:dns/promises', () => ({ lookup: vi.fn() }))
+vi.mock('node:https', () => ({ request: vi.fn() }))
+vi.mock('node:http',  () => ({ request: vi.fn() }))
 
 import { auth } from '@/lib/auth'
 import { createIngestionSource, updateIngestionSource } from '@/lib/ingest/db'
 import { extractFromUrl } from '@/lib/ingest/extract-url'
 import { lookup } from 'node:dns/promises'
+import * as https from 'node:https'
 import { POST } from './route'
 
+function mockHttpsRequest(statusCode: number, location?: string) {
+  vi.mocked(https.request).mockImplementationOnce((_opts: unknown, cb?: (res: IncomingMessage) => void) => {
+    const res = { statusCode, headers: { location }, resume: vi.fn() } as unknown as IncomingMessage
+    cb?.(res)
+    return { on: vi.fn(), end: vi.fn() } as unknown as ReturnType<typeof https.request>
+  })
+}
+
 beforeEach(() => {
-  vi.clearAllMocks()
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 200 })))
+  vi.resetAllMocks()
   vi.mocked(auth).mockResolvedValue({ user: { id: 'u1' } } as never)
   vi.mocked(lookup).mockResolvedValue([{ address: '93.184.216.34', family: 4 }] as never)
   vi.mocked(createIngestionSource).mockResolvedValue({ id: 's1', status: 'pending' } as never)
@@ -37,12 +48,9 @@ it('blocks hostnames that resolve to private IPs', async () => {
 })
 
 it('blocks redirects to private/metadata endpoints', async () => {
-  vi.stubGlobal('fetch', vi.fn()
-    .mockResolvedValueOnce(new Response('', {
-      status: 302,
-      headers: { location: 'http://169.254.169.254/latest/meta-data' },
-    }))
-  )
+  // First hop resolves OK; pinnedHead returns 302 to a private IP target
+  mockHttpsRequest(302, 'http://169.254.169.254/latest/meta-data')
+  // second host (169.254.169.254) is a direct IP — isDisallowedHost blocks it before DNS
 
   const res = await POST(new Request('http://localhost', {
     method: 'POST',
@@ -54,6 +62,7 @@ it('blocks redirects to private/metadata endpoints', async () => {
 })
 
 it('allows public URL and continues ingestion flow', async () => {
+  mockHttpsRequest(200)
   const res = await POST(new Request('http://localhost', {
     method: 'POST',
     body: JSON.stringify({ url: 'https://example.com/jobs/123' }),
