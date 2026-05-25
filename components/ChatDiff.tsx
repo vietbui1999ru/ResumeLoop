@@ -35,7 +35,7 @@ export default function ChatDiff({ file, description, diff, sessionId, onApplied
     <div className="rounded border border-border-default bg-surface-card my-2 overflow-hidden">
       <div className="px-3 py-2 border-b border-border-default flex items-center justify-between">
         <div>
-          <span className="text-xs font-mono text-indigo-300">{file}</span>
+          <span className="text-xs font-mono text-accent-light">{file}</span>
           <span className="ml-2 text-xs text-text-secondary">{description}</span>
         </div>
         {state === 'pending' && (
@@ -56,7 +56,7 @@ export default function ChatDiff({ file, description, diff, sessionId, onApplied
             </button>
           </div>
         )}
-        {state === 'accepted' && <span className="text-xs text-green-400">Applied ✓</span>}
+        {state === 'accepted' && <span className="text-xs text-success">Applied ✓</span>}
         {state === 'rejected' && <span className="text-xs text-text-muted">Declined</span>}
       </div>
       <pre className="overflow-x-auto text-xs font-mono px-3 py-2 max-h-60 leading-relaxed">
@@ -65,9 +65,9 @@ export default function ChatDiff({ file, description, diff, sessionId, onApplied
             key={i}
             className={
               line.startsWith('+') && !line.startsWith('+++')
-                ? 'text-green-400'
+                ? 'text-success'
                 : line.startsWith('-') && !line.startsWith('---')
-                ? 'text-red-400'
+                ? 'text-error'
                 : 'text-text-secondary'
             }
           >

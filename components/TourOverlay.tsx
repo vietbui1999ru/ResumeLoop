@@ -221,8 +221,9 @@ export function TourOverlay() {
               ← Prev
             </button>
             <button
-              onClick={skipStep}
-              className="text-xs text-text-muted hover:text-text-secondary transition-colors"
+              onClick={isVeryLast ? undefined : skipStep}
+              disabled={isVeryLast}
+              className={`text-xs transition-colors ${isVeryLast ? 'text-text-muted opacity-30 cursor-not-allowed' : 'text-text-muted hover:text-text-secondary'}`}
               aria-label="Dismiss this step"
             >
               Later
@@ -230,21 +231,43 @@ export function TourOverlay() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={skipToNextPage}
-              className="text-xs text-text-secondary hover:text-text-primary transition-colors"
-              aria-label="Skip all steps on this page"
-            >
-              Skip page
-            </button>
-            <button
-              ref={nextRef}
-              onClick={isVeryLast ? reset : advance}
-              className="text-xs px-3 py-1.5 bg-accent hover:bg-accent/90 text-white rounded-lg transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-accent/50"
-              aria-label={isVeryLast ? 'Restart tour from the beginning' : isLast ? 'Finish tour for this page' : 'Next tour step'}
-            >
-              {isVeryLast ? 'Restart Tour' : isLast ? 'Done ✓' : 'Next →'}
-            </button>
+            {isVeryLast ? (
+              <>
+                <button
+                  onClick={reset}
+                  className="text-xs text-text-secondary hover:text-text-primary transition-colors"
+                  aria-label="Restart tour from the beginning"
+                >
+                  Restart?
+                </button>
+                <button
+                  ref={nextRef}
+                  onClick={skipToNextPage}
+                  className="text-xs px-3 py-1.5 bg-accent hover:bg-accent/90 text-white rounded-lg transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-accent/50"
+                  aria-label="Finish the tour"
+                >
+                  Done ✓
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={skipToNextPage}
+                  className="text-xs text-text-secondary hover:text-text-primary transition-colors"
+                  aria-label="Skip all steps on this page"
+                >
+                  Skip page
+                </button>
+                <button
+                  ref={nextRef}
+                  onClick={advance}
+                  className="text-xs px-3 py-1.5 bg-accent hover:bg-accent/90 text-white rounded-lg transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-accent/50"
+                  aria-label={isLast ? 'Finish tour for this page' : 'Next tour step'}
+                >
+                  {isLast ? 'Done ✓' : 'Next →'}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
