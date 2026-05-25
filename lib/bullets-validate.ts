@@ -1,4 +1,4 @@
-const MAX_BULLET = 116
+import { MAX_BULLET_CHARS as MAX_BULLET } from './config'
 
 type ProfileJson = {
   experience?: Array<{ id: string; bullets: Record<string, string[]> }>

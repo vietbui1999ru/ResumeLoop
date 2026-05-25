@@ -1,10 +1,11 @@
 import fs from 'fs'
-import path from 'path'
 import { getSystemPrompt } from './system-prompt'
 import { parseCandidateInfo, parseRoleTrackInstructions, parseResumeRules } from './candidate-info'
+import { PATHS } from './paths'
+import { MAX_TAGLINE_CHARS, MAX_PERSONA_TITLE_CHARS } from './config'
 
 export async function buildSystemPrompt(masterData?: string, personaMd?: string | null): Promise<string> {
-  const data         = masterData ?? fs.readFileSync(path.join(process.cwd(), 'pipeline', 'master_resume_data.json'), 'utf8')
+  const data         = masterData ?? fs.readFileSync(PATHS.pipeline.masterData, 'utf8')
   const reasonPrompt = await getSystemPrompt('reason')
   const feedback     = loadFeedbackContext()
 
@@ -29,8 +30,8 @@ ${data}
 </untrusted_content>
 
 ## Hard Constraints (MUST NOT violate)
-- tagline: ≤76 characters WITH spaces — count carefully
-- personaTitle: ≤60 chars, must NOT match the JD job title verbatim
+- tagline: ≤${MAX_TAGLINE_CHARS} characters WITH spaces — count carefully
+- personaTitle: ≤${MAX_PERSONA_TITLE_CHARS} chars, must NOT match the JD job title verbatim
 - workIds: 1–6 IDs from ${workIdsDisplay} — select however many best fit the role
 - projects: 1–6 project IDs that exist in the profile data above — select however many best fit the role
 - skillsRows: 1–10 plain strings formatted "Label: Tech · Tech · Tech" (e.g., "Languages: Python · Go · TypeScript") — always include the label prefix
@@ -78,8 +79,8 @@ function splitReasonPrompt(content: string): [string, string] {
 }
 
 export function loadFeedbackContext(): string {
-  const synthesized = path.join(process.cwd(), 'feedback', 'synthesized-rules.md')
-  const rawLog      = path.join(process.cwd(), 'feedback', 'raw-log.md')
+  const synthesized = PATHS.feedback.synthesized
+  const rawLog      = PATHS.feedback.rawLog
 
   if (fs.existsSync(synthesized)) {
     return fs.readFileSync(synthesized, 'utf8')

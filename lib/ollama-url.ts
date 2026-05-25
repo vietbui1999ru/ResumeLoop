@@ -4,6 +4,8 @@
  * Returns the URL string if valid, null if rejected.
  */
 
+import { OLLAMA_DEFAULT_PORT } from './config'
+
 const BLOCKED_HOSTS = new Set([
   '169.254.169.254',        // AWS EC2 / Azure IMDS
   '169.254.170.2',          // AWS ECS task metadata
@@ -13,7 +15,7 @@ const BLOCKED_HOSTS = new Set([
 ])
 
 // Ollama's default port. Only this port (or no explicit port) is allowed.
-const ALLOWED_PORT = '11434'
+const ALLOWED_PORT = OLLAMA_DEFAULT_PORT
 
 export function validateOllamaUrl(raw: string): string | null {
   if (!raw || raw.length > 200) return null

@@ -6,6 +6,7 @@ import { reasonForJob, type ReasoningResult } from './ai-reason'
 import { getAdapter } from './db-adapter'
 import { getSetting } from './settings'
 import { PATHS } from './paths'
+import { MAX_BULLET_CHARS, MAX_TAGLINE_CHARS, TAGLINE_WORD_BOUNDARY_MIN, BULLET_WORD_BOUNDARY_MIN } from './config'
 import { parseCandidateInfo } from './candidate-info'
 import { GenerationLogger } from './generation-logger'
 import { ensureDefaultSession, getSession } from './sessions'
@@ -366,31 +367,31 @@ function applyFixes(scriptPath: string, violations: string[]): string[] {
   const fixed: string[] = []
 
   for (const v of violations) {
-    // Tagline: trim to 76 chars at last word boundary
+    // Tagline: trim to MAX_TAGLINE_CHARS at last word boundary
     const tlMatch = v.match(/FAIL tagline: (\d+)c/)
     if (tlMatch) {
       src = src.replace(/TL\((['"])((?:\\.|(?!\1).)*)\1\)/g, (_match, q, val) => {
-        let trimmed = val.slice(0, 76)
+        let trimmed = val.slice(0, MAX_TAGLINE_CHARS)
         const lastSpace = trimmed.lastIndexOf(' ')
-        if (lastSpace > 60) trimmed = trimmed.slice(0, lastSpace)
+        if (lastSpace > TAGLINE_WORD_BOUNDARY_MIN) trimmed = trimmed.slice(0, lastSpace)
         fixed.push(`tagline trimmed to ${trimmed.length} chars`)
         return `TL(${q}${trimmed}${q})`
       })
     }
 
-    // Bullet: trim over-length T() calls to 116 chars at word boundary
+    // Bullet: trim over-length T() calls to MAX_BULLET_CHARS at word boundary
     const bulletMatch = v.match(/FAIL bullet \[(work|proj)\.\d+\]: (\d+)c/)
     if (bulletMatch) {
       let repCount = 0
       src = src.replace(/\bT\((['"])((?:\\.|(?!\1).)*)\1\)/g, (_m, q, val) => {
-        if (val.length <= 116) return _m
-        let trimmed = val.slice(0, 116)
+        if (val.length <= MAX_BULLET_CHARS) return _m
+        let trimmed = val.slice(0, MAX_BULLET_CHARS)
         const lastSpace = trimmed.lastIndexOf(' ')
-        if (lastSpace > 90) trimmed = trimmed.slice(0, lastSpace)
+        if (lastSpace > BULLET_WORD_BOUNDARY_MIN) trimmed = trimmed.slice(0, lastSpace)
         repCount++
         return `T(${q}${trimmed}${q})`
       })
-      if (repCount > 0) fixed.push(`${repCount} bullet(s) trimmed to ≤116 chars`)
+      if (repCount > 0) fixed.push(`${repCount} bullet(s) trimmed to ≤${MAX_BULLET_CHARS} chars`)
     }
 
     // Para count: soft warning — mark handled, proceed without changes

@@ -4,6 +4,7 @@ import { Skeleton } from '@/components/Skeleton'
 import { CloudFolderPicker } from '@/components/CloudFolderPicker'
 import { FONT_SIZES, type FontSize, applyFontSize, isValidFontSize, FONT_SIZE_KEY, FONT_SIZE_LABELS } from '@/lib/font-size'
 import { JobImportGuide } from '@/components/JobImportGuide'
+import { OLLAMA_DEFAULT_BASE_URL } from '@/lib/config'
 
 // ── AI Provider types ────────────────────────────────────────────────────────
 type Provider = 'anthropic' | 'openai' | 'google' | 'groq' | 'openrouter' | 'ollama'
@@ -37,7 +38,7 @@ function AIProviderSection() {
   const [provider, setProvider] = useState<Provider>('anthropic')
   const [apiKey, setApiKey] = useState('')
   const [model, setModel]   = useState('')
-  const [baseUrl, setBaseUrl] = useState('http://localhost:11434/v1')
+  const [baseUrl, setBaseUrl] = useState(OLLAMA_DEFAULT_BASE_URL)
   const [setActive, setSetActive] = useState(true)
   const [status, setStatus] = useState('')
   const [saving, setSaving] = useState(false)

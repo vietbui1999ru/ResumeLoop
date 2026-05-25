@@ -5,6 +5,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import type { LanguageModel } from 'ai'
 import Anthropic from '@anthropic-ai/sdk'
 import { getActiveConfig, getProviderConfig, type Provider } from './user-settings'
+import { OLLAMA_DEFAULT_BASE_URL } from './config'
 
 const NO_KEY_MSG = 'No AI provider configured. Go to Settings → AI to add an API key.'
 
@@ -46,7 +47,7 @@ export function buildModel(
     case 'openrouter':
       return createOpenAI({ apiKey, baseURL: 'https://openrouter.ai/api/v1' })(model)
     case 'ollama':
-      return createOpenAI({ apiKey: 'ollama', baseURL: baseUrl ?? 'http://localhost:11434/v1' })(model)
+      return createOpenAI({ apiKey: 'ollama', baseURL: baseUrl ?? OLLAMA_DEFAULT_BASE_URL })(model)
     default:
       throw new Error(`Unknown provider: ${provider}`)
   }

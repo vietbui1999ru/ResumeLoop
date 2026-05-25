@@ -3,8 +3,7 @@
 import { useState, useRef } from 'react'
 import { toBulletsMarkdown } from '@/lib/bullets-md'
 import { validateBulletsJson } from '@/lib/bullets-validate'
-
-const MAX_BULLET = 116
+import { MAX_BULLET_CHARS as MAX_BULLET } from '@/lib/config'
 
 export function charColor(len: number): string {
   if (len > MAX_BULLET) return 'border-red-500 text-red-300 bg-red-950/20'

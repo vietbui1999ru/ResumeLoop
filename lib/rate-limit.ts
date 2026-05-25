@@ -1,4 +1,5 @@
 import { isCloud } from './app-mode'
+import { AUTH_UPSTASH_MAX, AUTH_UPSTASH_WINDOW, AUTH_WINDOW_MS } from './config'
 
 export interface RateLimitResult {
   success: boolean
@@ -38,10 +39,9 @@ async function getUpstashLimiter() {
     url:   process.env.UPSTASH_REDIS_REST_URL  ?? '',
     token: process.env.UPSTASH_REDIS_REST_TOKEN ?? '',
   })
-  // 10 requests per 60 seconds for auth endpoints
   _upstashLimiter = new Ratelimit({
     redis,
-    limiter: Ratelimit.slidingWindow(10, '60 s'),
+    limiter: Ratelimit.slidingWindow(AUTH_UPSTASH_MAX, AUTH_UPSTASH_WINDOW),
   })
   return _upstashLimiter
 }
@@ -56,8 +56,8 @@ async function getUpstashLimiter() {
  */
 export async function checkRateLimitAsync(
   key: string,
-  limit = 10,
-  windowMs = 60_000,
+  limit = AUTH_UPSTASH_MAX,
+  windowMs = AUTH_WINDOW_MS,
 ): Promise<RateLimitResult> {
   if (process.env.DISABLE_RATE_LIMIT === 'true') {
     return { success: true, remaining: limit, reset: Date.now() }

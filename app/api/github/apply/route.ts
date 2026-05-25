@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { getSession, updateSessionData } from '@/lib/sessions'
 import { getAdapter } from '@/lib/db-adapter'
 import { checkRateLimitBucket } from '@/lib/rate-limit'
+import { MAX_BULLET_CHARS } from '@/lib/config'
 
 interface ProjectInput {
   id: string
@@ -50,8 +51,8 @@ export async function POST(req: Request) {
   if (typeof project.short_stack !== 'string' || project.short_stack.length > 60 || /[\x00-\x1f]/.test(project.short_stack)) {
     return NextResponse.json({ error: 'project.short_stack must be a string ≤60 chars with no control characters' }, { status: 400 })
   }
-  if (!Array.isArray(project.bullets) || project.bullets.some(b => typeof b !== 'string' || b.length > 116)) {
-    return NextResponse.json({ error: 'bullets must be strings each ≤116 chars' }, { status: 400 })
+  if (!Array.isArray(project.bullets) || project.bullets.some(b => typeof b !== 'string' || b.length > MAX_BULLET_CHARS)) {
+    return NextResponse.json({ error: `bullets must be strings each ≤${MAX_BULLET_CHARS} chars` }, { status: 400 })
   }
 
   const defaultSession = await getSession('default', userId)

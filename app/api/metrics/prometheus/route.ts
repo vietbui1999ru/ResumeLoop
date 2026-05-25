@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { getAdapter } from '@/lib/db-adapter'
 import { isCloud } from '@/lib/app-mode'
+import { DEMO_TTL_MS, DEFAULT_DB_FILENAME } from '@/lib/config'
 import fs from 'fs'
 import path from 'path'
 
@@ -61,7 +62,7 @@ export async function GET(req: NextRequest) {
     try {
       const dbPath = process.env.DB_PATH
         ? path.resolve(process.cwd(), process.env.DB_PATH)
-        : path.join(process.cwd(), 'resume.db')
+        : path.join(process.cwd(), DEFAULT_DB_FILENAME)
       const { size } = fs.statSync(dbPath)
       parts.push(line('resumeloop_db_size_bytes', 'SQLite database file size', 'gauge',
         [gauge('resumeloop_db_size_bytes', size)]))
@@ -71,7 +72,7 @@ export async function GET(req: NextRequest) {
   // ── Users ───────────────────────────────────────────────────────────────────
 
   // Use ISO timestamp arithmetic — compatible with both SQLite and Postgres.
-  const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString()
+  const twelveHoursAgo = new Date(Date.now() - DEMO_TTL_MS).toISOString()
   const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
   const [realUsers, demoUsers, activeDemos] = await Promise.all([

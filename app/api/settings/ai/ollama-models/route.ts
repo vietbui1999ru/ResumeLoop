@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { validateOllamaUrl } from '@/lib/ollama-url'
+import { OLLAMA_DEFAULT_BASE_URL } from '@/lib/config'
 
 interface OllamaModel {
   name:   string
@@ -16,7 +17,7 @@ export async function GET(req: Request) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const url       = new URL(req.url)
-  const rawBase   = url.searchParams.get('base_url') ?? 'http://localhost:11434/v1'
+  const rawBase   = url.searchParams.get('base_url') ?? OLLAMA_DEFAULT_BASE_URL
   const safeBase  = validateOllamaUrl(rawBase)
 
   if (!safeBase) {
