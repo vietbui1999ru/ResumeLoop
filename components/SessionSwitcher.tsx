@@ -13,6 +13,8 @@ export default function SessionSwitcher() {
   const { activeSessionId, setActiveSessionId } = useSession()
   const [sessions, setSessions] = useState<Session[]>([])
   const [open, setOpen] = useState(false)
+  const [isCreating, setIsCreating] = useState(false)
+  const [newName, setNewName] = useState('')
   const ref = useRef<HTMLDivElement>(null)
 
   const fetchSessions = () => {
@@ -35,9 +37,11 @@ export default function SessionSwitcher() {
 
   const activeName = sessions.find(s => s.id === activeSessionId)?.name ?? activeSessionId
 
-  const createNew = async () => {
-    const name = window.prompt('Session name:', `Session ${new Date().toLocaleDateString()}`)
+  const submitNew = async () => {
+    const name = newName.trim()
     if (!name) return
+    setIsCreating(false)
+    setNewName('')
     try {
       const res = await fetch('/api/sessions', {
         method: 'POST',
@@ -117,12 +121,30 @@ export default function SessionSwitcher() {
             </div>
           ))}
           <div className="border-t border-zinc-800 mt-1 pt-1">
-            <button
-              onClick={() => void createNew()}
-              className="w-full text-left px-3 py-1.5 text-sm text-indigo-400 hover:bg-zinc-800 hover:text-indigo-300"
-            >
-              + New branch…
-            </button>
+            {isCreating ? (
+              <div className="px-3 py-1.5 flex items-center gap-1.5">
+                <input
+                  autoFocus
+                  value={newName}
+                  onChange={e => setNewName(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') void submitNew()
+                    if (e.key === 'Escape') { setIsCreating(false); setNewName('') }
+                  }}
+                  placeholder={`Session ${new Date().toLocaleDateString()}`}
+                  className="flex-1 text-sm bg-zinc-800 border border-zinc-700 rounded px-2 py-0.5 text-zinc-200 focus:outline-none focus:border-indigo-500"
+                />
+                <button onClick={() => void submitNew()} className="text-xs text-indigo-400 hover:text-indigo-300 px-1">✓</button>
+                <button onClick={() => { setIsCreating(false); setNewName('') }} className="text-xs text-zinc-400 hover:text-zinc-200 px-1">✕</button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsCreating(true)}
+                className="w-full text-left px-3 py-1.5 text-sm text-indigo-400 hover:bg-zinc-800 hover:text-indigo-300"
+              >
+                + New branch…
+              </button>
+            )}
           </div>
         </div>
       )}

@@ -151,7 +151,6 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
   const [apiKey, setApiKey]       = useState('')
   const [aiError, setAiError]     = useState('')
   const [saving, setSaving]       = useState(false)
-  const [scanStatus, setScanStatus] = useState('')
   const [showImportGuide, setShowImportGuide] = useState(false)
 
   // Load existing paths so the picker shows current values
@@ -208,7 +207,6 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
       }
 
       // Trigger scan
-      setScanStatus('Scanning…')
       await fetch('/api/batch/scan', { method: 'POST' })
 
       onComplete()
@@ -320,7 +318,7 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
             disabled={!allConfigured || saving}
             className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold transition-colors"
           >
-            {saving ? (scanStatus || 'Saving…') : 'Scan now →'}
+            {saving ? 'Saving…' : 'Scan now →'}
           </button>
           {!allConfigured && (
             <p className="text-center text-xs text-zinc-400 mt-2">Complete all three steps above to continue</p>
