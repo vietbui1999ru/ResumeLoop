@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { getAdapter } from '@/lib/db-adapter'
+import { PATHS } from '@/lib/paths'
 import fs from 'fs'
 import path from 'path'
 
@@ -49,7 +50,7 @@ export async function POST(req: Request) {
   const MAX_LOG_BYTES = 512 * 1024  // 512 KB — ~2500 entries before trim
   const MAX_ENTRIES   = 100
 
-  const logPath = path.join(process.cwd(), 'feedback', 'raw-log.md')
+  const logPath = PATHS.feedback.rawLog
   fs.mkdirSync(path.dirname(logPath), { recursive: true })
   fs.appendFileSync(logPath, entry, 'utf8')
 

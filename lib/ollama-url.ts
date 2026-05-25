@@ -12,8 +12,10 @@ const BLOCKED_HOSTS = new Set([
   'metadata.internal',
 ])
 
+import { OLLAMA_DEFAULT_PORT } from './config'
+
 // Ollama's default port. Only this port (or no explicit port) is allowed.
-const ALLOWED_PORT = '11434'
+const ALLOWED_PORT = OLLAMA_DEFAULT_PORT
 
 export function validateOllamaUrl(raw: string): string | null {
   if (!raw || raw.length > 200) return null

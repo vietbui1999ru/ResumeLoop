@@ -2,6 +2,7 @@ import Database, { type Database as DB } from 'better-sqlite3'
 import fs from 'fs'
 import path from 'path'
 import { isCloud } from './app-mode'
+import { DEFAULT_DB_FILENAME } from './config'
 
 // Global pattern prevents module hot-reload from creating multiple DB connections in Next.js dev mode.
 const globalForDb = global as unknown as { _db: DB | undefined }
@@ -27,7 +28,7 @@ export function getDb(): DB {
   if (_db) return _db
   const dbPath = process.env.DB_PATH
     ? path.resolve(process.cwd(), process.env.DB_PATH)
-    : path.join(process.cwd(), 'resume.db')
+    : path.join(process.cwd(), DEFAULT_DB_FILENAME)
   _db = new Database(dbPath)
   _db.pragma('journal_mode = WAL')
   _db.pragma('foreign_keys = ON')

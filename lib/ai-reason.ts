@@ -4,6 +4,7 @@ import { getModel } from './ai-client'
 import { logAiUsage } from './ai-usage'
 import { getActiveConfig } from './user-settings'
 import { parseCandidateInfo } from './candidate-info'
+import { MAX_TAGLINE_CHARS, MAX_PERSONA_TITLE_CHARS, TAGLINE_WORD_BOUNDARY_MIN } from './config'
 
 export interface ReasoningResult {
   track:        string
@@ -27,8 +28,8 @@ function buildDecisionSchema(workIds: string[]) {
       workVariant:  { type: 'string', enum: ['genai', 'systems', 'fullstack', 'sre', 'IT-track'] },
       workIds:      { type: 'array', items: workIdsItems, minItems: 1, maxItems: 6 },
       projects:     { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 6 },
-      personaTitle: { type: 'string', maxLength: 60 },
-      tagline:      { type: 'string', maxLength: 76 },
+      personaTitle: { type: 'string', maxLength: MAX_PERSONA_TITLE_CHARS },
+      tagline:      { type: 'string', maxLength: MAX_TAGLINE_CHARS },
       skillsRows:   { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 8 },
       reasoning: {
         type: 'string',
@@ -247,11 +248,11 @@ export function validateResult(r: ReasoningResult): void {
   if (!r.tagline)      throw new Error('tagline missing from AI response')
   if (!r.personaTitle) throw new Error('personaTitle missing from AI response')
 
-  if (r.tagline.length > 76) {
-    const t = r.tagline.slice(0, 76)
+  if (r.tagline.length > MAX_TAGLINE_CHARS) {
+    const t = r.tagline.slice(0, MAX_TAGLINE_CHARS)
     const sp = t.lastIndexOf(' ')
-    r.tagline = sp > 60 ? t.slice(0, sp) : t
+    r.tagline = sp > TAGLINE_WORD_BOUNDARY_MIN ? t.slice(0, sp) : t
   }
-  if (r.personaTitle.length > 60) r.personaTitle = r.personaTitle.slice(0, 60).trimEnd()
+  if (r.personaTitle.length > MAX_PERSONA_TITLE_CHARS) r.personaTitle = r.personaTitle.slice(0, MAX_PERSONA_TITLE_CHARS).trimEnd()
   if (!r.reasoning || r.reasoning.trim() === '') throw new Error('reasoning missing from AI response')
 }

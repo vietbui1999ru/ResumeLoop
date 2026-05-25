@@ -3,6 +3,7 @@ import { getModel }        from '../ai-client'
 import { getActiveConfig } from '../user-settings'
 import { logAiUsage }      from '../ai-usage'
 import type { SparseProfile, IngestionSource, MergeResult, ConflictEntry } from './types'
+import { MAX_BULLET_CHARS } from '../config'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyToolCall = { toolName: string; input: any }
@@ -61,7 +62,7 @@ export async function mergePartials(
                       id: { type: 'string' }, title: { type: 'string' }, company: { type: 'string' },
                       location: { type: 'string' }, dates: { type: 'string' },
                       bullets: { type: 'object', properties: {
-                        genai: { type: 'array', items: { type: 'string', maxLength: 116 } },
+                        genai: { type: 'array', items: { type: 'string', maxLength: MAX_BULLET_CHARS } },
                       }},
                     },
                   },
@@ -73,7 +74,7 @@ export async function mergePartials(
                     properties: {
                       id: { type: 'string' }, name: { type: 'string' }, url: { type: 'string' },
                       short_stack: { type: 'string', maxLength: 40 }, dates: { type: 'string' },
-                      bullets: { type: 'array', items: { type: 'string', maxLength: 116 } },
+                      bullets: { type: 'array', items: { type: 'string', maxLength: MAX_BULLET_CHARS } },
                     },
                   },
                 },

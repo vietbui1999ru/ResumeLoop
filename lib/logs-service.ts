@@ -1,8 +1,9 @@
 import fs from 'fs'
 import path from 'path'
 import { listLogs, readLog, type GenerationLog } from './generation-logger'
+import { PATHS } from './paths'
 
-const LOG_DIR = path.join(process.cwd(), 'logs', 'generate')
+const LOG_DIR = PATHS.logs.generate
 const ID_RE   = /^[\w-]+__\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}$/
 
 export interface LogSummary {

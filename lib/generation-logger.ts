@@ -1,7 +1,8 @@
 import fs from 'fs'
 import path from 'path'
+import { PATHS } from './paths'
 
-const LOG_DIR = path.join(process.cwd(), 'logs', 'generate')
+const LOG_DIR = PATHS.logs.generate
 
 export interface StageEntry {
   stage: string

@@ -4,8 +4,7 @@ import { getAdapter } from './db-adapter'
 import { encrypt, decrypt } from './crypto'
 import { parseJd } from './jd-parser'
 import { scoreJd } from './fit-scorer'
-
-const DEMO_TTL_MS = 12 * 60 * 60 * 1000
+import { DEMO_TTL_MS } from './config'
 
 // Generic redacted profile — no real personal data.
 // Schema matches pipeline/master_resume_data.json:

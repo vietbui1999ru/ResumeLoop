@@ -18,4 +18,11 @@ export const PATHS = {
     claudeFull:    path.join(ROOT, 'docs', 'reference', 'CLAUDE-full.md'),
     spec:          path.join(ROOT, 'docs', 'reference', 'spec-job-match-resume-generator.md'),
   },
+  logs: {
+    generate: path.join(ROOT, 'logs', 'generate'),
+  },
+  feedback: {
+    rawLog:      path.join(ROOT, 'feedback', 'raw-log.md'),
+    synthesized: path.join(ROOT, 'feedback', 'synthesized-rules.md'),
+  },
 } as const

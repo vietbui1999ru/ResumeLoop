@@ -9,6 +9,7 @@ import {
 import { buildModel } from '@/lib/ai-client'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { validateOllamaUrl } from '@/lib/ollama-url'
+import { OLLAMA_DEFAULT_BASE_URL } from '@/lib/config'
 
 // ── Input limits ──────────────────────────────────────────────────────────────
 const MAX_KEY_LEN   = 500
@@ -120,7 +121,7 @@ export async function POST(req: Request) {
   // Ollama: validate base_url for SSRF
   let safeUrl: string | undefined
   if (provider === 'ollama') {
-    const defaultUrl = 'http://localhost:11434/v1'
+    const defaultUrl = OLLAMA_DEFAULT_BASE_URL
     const urlToCheck = rawUrl ?? defaultUrl
     safeUrl = validateOllamaUrl(urlToCheck) ?? undefined
     if (!safeUrl) {
