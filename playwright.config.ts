@@ -53,6 +53,7 @@ export default defineConfig({
         NEXTAUTH_SECRET: 'test-secret-for-e2e-only',
         NEXTAUTH_URL: 'http://localhost:3001',
         DISABLE_RATE_LIMIT: 'true',
+        NODE_ENV: 'test',
       },
     },
   }),
