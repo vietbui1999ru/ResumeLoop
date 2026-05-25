@@ -26,18 +26,31 @@ function ensureUserIdColumn(db: DB, table: string): void {
 export function getDb(): DB {
   if (globalForDb._db) { _db = globalForDb._db; return globalForDb._db }
   if (_db) return _db
-  const dbPath = process.env.DB_PATH
-    ? path.resolve(process.cwd(), process.env.DB_PATH)
-    : path.join(process.cwd(), DEFAULT_DB_FILENAME)
+  let dbPath: string
+  if (process.env.DB_PATH) {
+    const resolved = path.resolve(process.cwd(), process.env.DB_PATH)
+    if (!resolved.startsWith(process.cwd() + path.sep) && resolved !== process.cwd()) {
+      throw new Error(`DB_PATH must be within the project directory: ${resolved}`)
+    }
+    dbPath = resolved
+  } else {
+    dbPath = path.join(process.cwd(), DEFAULT_DB_FILENAME)
+  }
   _db = new Database(dbPath)
   _db.pragma('journal_mode = WAL')
   _db.pragma('foreign_keys = ON')
-  initSchema(_db)
+  runMigrations(_db)
   globalForDb._db = _db
   return _db
 }
 
 export function initSchema(db: DB): void {
+  // Create migrations tracking table first so it exists for any caller (tests or production)
+  db.prepare(`CREATE TABLE IF NOT EXISTS schema_migrations (
+    version    INTEGER PRIMARY KEY,
+    applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`).run()
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS jd_jobs (
       id                TEXT PRIMARY KEY,
@@ -388,8 +401,9 @@ export function initSchema(db: DB): void {
     db.exec(`ALTER TABLE users ADD COLUMN deleted_at DATETIME`)
   if (!hasColumn(db, 'users', 'ip_hash'))
     db.exec(`ALTER TABLE users ADD COLUMN ip_hash TEXT`)
-  if (!hasColumn(db, 'users', 'demo_cleartext_pwd'))
-    db.exec(`ALTER TABLE users ADD COLUMN demo_cleartext_pwd TEXT`)
+  // Add demo_encrypted_pwd on fresh DBs; old DBs still have demo_cleartext_pwd — migration 002 renames it
+  if (!hasColumn(db, 'users', 'demo_encrypted_pwd') && !hasColumn(db, 'users', 'demo_cleartext_pwd'))
+    db.exec(`ALTER TABLE users ADD COLUMN demo_encrypted_pwd TEXT`)
   db.exec(`CREATE INDEX IF NOT EXISTS idx_users_ip_hash ON users(ip_hash) WHERE is_demo = 1`)
 
   // Migrate: allow empty password for OAuth-only accounts
@@ -470,6 +484,30 @@ export function initSchema(db: DB): void {
   // One-time cleanup: orphaned jd_outputs rows (user_id='default') whose job has been deleted.
   // These block demo-user job deletion via FK. Safe to run every init — deletes nothing if already clean.
   db.exec(`DELETE FROM jd_outputs WHERE job_id NOT IN (SELECT id FROM jd_jobs)`)
+
+  // Record migration 001 as applied
+  db.prepare(`INSERT INTO schema_migrations (version) VALUES (?) ON CONFLICT DO NOTHING`).run(1)
+}
+
+/**
+ * Run all pending numbered migrations against the given DB.
+ * Migration 001 = initSchema (full baseline schema + all historical ALTER TABLE checks).
+ * Add new numbered entries here for future schema changes.
+ */
+export function runMigrations(db: DB): void {
+  initSchema(db) // ensures schema_migrations table + migration 001
+
+  const applied = new Set(
+    (db.prepare('SELECT version FROM schema_migrations').all() as { version: number }[]).map(r => r.version)
+  )
+
+  // 002: rename demo_cleartext_pwd → demo_encrypted_pwd (column name was misleading — value is AES-256-GCM encrypted)
+  if (!applied.has(2)) {
+    if (hasColumn(db, 'users', 'demo_cleartext_pwd')) {
+      db.exec(`ALTER TABLE users RENAME COLUMN demo_cleartext_pwd TO demo_encrypted_pwd`)
+    }
+    db.prepare(`INSERT INTO schema_migrations (version) VALUES (?)`).run(2)
+  }
 }
 
 // Seed system_prompts from disk files when the table is empty.

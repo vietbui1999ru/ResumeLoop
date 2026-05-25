@@ -17,20 +17,16 @@ function gauge(name: string, value: number, labels?: Record<string, string>): st
 }
 
 export async function GET(req: NextRequest) {
-  // Token auth — checked before any DB work.
-  // In cloud mode, METRICS_TOKEN must be set — fail closed if missing to avoid exposing
-  // internal metrics (user counts, AI spend) without a token.
+  // Token auth — required in all modes. Set METRICS_TOKEN in .env.local for development.
   const token = process.env.METRICS_TOKEN
-  if (isCloud() && !token) {
+  if (!token) {
     return new Response('Unauthorized — METRICS_TOKEN not configured', { status: 401 })
   }
-  if (token) {
-    const auth   = req.headers.get('authorization') ?? ''
-    const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : ''
-    const query  = req.nextUrl.searchParams.get('token') ?? ''
-    if (bearer !== token && query !== token) {
-      return new Response('Unauthorized', { status: 401 })
-    }
+  const authHeader = req.headers.get('authorization') ?? ''
+  const bearer     = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
+  const query      = req.nextUrl.searchParams.get('token') ?? ''
+  if (bearer !== token && query !== token) {
+    return new Response('Unauthorized', { status: 401 })
   }
 
   const db     = await getAdapter()

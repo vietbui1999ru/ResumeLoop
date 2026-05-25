@@ -114,6 +114,12 @@ export async function POST(req: Request) {
   )
   if (!sess) return NextResponse.json({ error: 'Session not found' }, { status: 404 })
 
+  // Sweep stale pending_edit keys from abandoned/crashed sessions — only keep current session's keys
+  await db.run(
+    `DELETE FROM app_settings WHERE key LIKE ? AND key NOT LIKE ?`,
+    [`pending_edit:${userId}:%`, `pending_edit:${userId}:${realSessionId}:%`],
+  )
+
   await db.run(
     'INSERT INTO chat_messages (id, session_id, role, content, user_id) VALUES (?, ?, ?, ?, ?)',
     [crypto.randomUUID(), realSessionId, 'user', message, userId],

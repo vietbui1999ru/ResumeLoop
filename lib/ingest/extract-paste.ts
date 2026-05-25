@@ -2,11 +2,8 @@ import { generateText, jsonSchema } from 'ai'
 import { getModel }        from '../ai-client'
 import { getActiveConfig } from '../user-settings'
 import { logAiUsage }      from '../ai-usage'
-import type { SparseProfile } from './types'
+import type { SparseProfile, AnyToolCall } from './types'
 import { MAX_BULLET_CHARS } from '../config'
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyToolCall = { toolName: string; input: any }
 
 const MIN_LENGTH = 20
 
@@ -74,7 +71,7 @@ export async function extractFromPaste(
   const result = await generateText({
     model:           await getModel(userId),
     system:          SYSTEM_PROMPT,
-    messages:        [{ role: 'user', content: `Extract profile data from this text:\n\n${text.slice(0, 20_000)}` }],
+    messages:        [{ role: 'user', content: `Extract profile data from this text:\n\n<pasted_content>\n${text.slice(0, 20_000)}\n</pasted_content>` }],
     tools: {
       extract_profile: {
         description: 'Extract structured profile data from the provided text',

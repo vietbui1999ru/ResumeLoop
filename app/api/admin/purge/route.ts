@@ -25,28 +25,24 @@ export async function POST(req: Request) {
   )
 
   for (const user of users) {
-    await db.run('BEGIN')
-    try {
-      // Delete in dependency order — children before parent
-      await db.run(`DELETE FROM outreach_items            WHERE user_id = ?`, [user.id])
-      await db.run(`DELETE FROM chat_messages             WHERE user_id = ?`, [user.id])
-      await db.run(`DELETE FROM jd_outputs                WHERE user_id = ?`, [user.id])
-      await db.run(`DELETE FROM jd_metrics                WHERE user_id = ?`, [user.id])
-      await db.run(`DELETE FROM jd_jobs                   WHERE user_id = ?`, [user.id])
-      await db.run(`DELETE FROM resume_sessions           WHERE user_id = ?`, [user.id])
-      await db.run(`DELETE FROM resume_profiles           WHERE user_id = ?`, [user.id])
-      await db.run(`DELETE FROM user_settings             WHERE user_id = ?`, [user.id])
-      await db.run(`DELETE FROM ai_usage_log              WHERE user_id = ?`, [user.id])
-      await db.run(`DELETE FROM password_reset_tokens     WHERE user_id = ?`, [user.id])
-      await db.run(`DELETE FROM email_verification_tokens WHERE user_id = ?`, [user.id])
-      await db.run(`DELETE FROM oauth_accounts            WHERE user_id = ?`, [user.id])
-      await db.run(`DELETE FROM app_settings              WHERE key LIKE ?`, [`active_ai_provider:${user.id}`])
-      await db.run(`DELETE FROM users                     WHERE id      = ?`, [user.id])
-      await db.run('COMMIT')
-    } catch (e) {
-      await db.run('ROLLBACK').catch(() => {})
-      throw e
-    }
+    // runInTransaction: SQLite uses a real transaction; NeonAdapter uses .transaction()
+    // which sends all statements in one HTTP request — fully atomic on both backends.
+    await db.runInTransaction([
+      { sql: `DELETE FROM outreach_items            WHERE user_id = ?`, params: [user.id] },
+      { sql: `DELETE FROM chat_messages             WHERE user_id = ?`, params: [user.id] },
+      { sql: `DELETE FROM jd_outputs                WHERE user_id = ?`, params: [user.id] },
+      { sql: `DELETE FROM jd_metrics                WHERE user_id = ?`, params: [user.id] },
+      { sql: `DELETE FROM jd_jobs                   WHERE user_id = ?`, params: [user.id] },
+      { sql: `DELETE FROM resume_sessions           WHERE user_id = ?`, params: [user.id] },
+      { sql: `DELETE FROM resume_profiles           WHERE user_id = ?`, params: [user.id] },
+      { sql: `DELETE FROM user_settings             WHERE user_id = ?`, params: [user.id] },
+      { sql: `DELETE FROM ai_usage_log              WHERE user_id = ?`, params: [user.id] },
+      { sql: `DELETE FROM password_reset_tokens     WHERE user_id = ?`, params: [user.id] },
+      { sql: `DELETE FROM email_verification_tokens WHERE user_id = ?`, params: [user.id] },
+      { sql: `DELETE FROM oauth_accounts            WHERE user_id = ?`, params: [user.id] },
+      { sql: `DELETE FROM app_settings              WHERE key LIKE ?`,  params: [`active_ai_provider:${user.id}`] },
+      { sql: `DELETE FROM users                     WHERE id      = ?`, params: [user.id] },
+    ])
     // S3 cleanup runs outside the DB transaction — a partial S3 failure should not
     // roll back the DB deletion. Errors are logged but do not fail the request.
     await deleteUserOutputs(user.id).catch(err =>

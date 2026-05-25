@@ -3,11 +3,8 @@ import { getModel }        from '../ai-client'
 import { getActiveConfig } from '../user-settings'
 import { logAiUsage }      from '../ai-usage'
 import { getAdapter }      from '../db-adapter'
-import type { SparseProfile } from './types'
+import type { SparseProfile, AnyToolCall } from './types'
 import { MAX_BULLET_CHARS } from '../config'
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyToolCall = { toolName: string; input: any }
 
 export async function getFirecrawlKey(_userId: string): Promise<string | null> {
   const db  = await getAdapter()
@@ -63,7 +60,7 @@ export async function extractFromUrl(url: string, userId: string): Promise<Spars
   const result = await generateText({
     model:           await getModel(userId),
     system:          SYSTEM_PROMPT,
-    messages:        [{ role: 'user', content: `URL: ${url}\n\nPage content:\n\n${pageContent}` }],
+    messages:        [{ role: 'user', content: `URL: ${url}\n\n<page_content>\n${pageContent}\n</page_content>` }],
     tools: {
       extract_profile: {
         description: 'Extract professional profile data from the scraped page',

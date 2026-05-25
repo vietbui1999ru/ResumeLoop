@@ -8,6 +8,7 @@ import { BulletsPreview } from '@/components/BulletsPreview'
 import { useSession } from '@/contexts/SessionContext'
 import { MobileDrawer } from '@/components/MobileDrawer'
 import { MessageSquare } from 'lucide-react'
+import { fmtDate } from '@/lib/job-display'
 
 const newId = () => crypto.randomUUID()
 
@@ -216,8 +217,6 @@ export default function ChatPage() {
       loadSessions()
     } catch { /* ignore */ }
   }
-
-  const fmtDate = (iso: string) => new Date(iso).toLocaleDateString()
 
   return (
     <div className="flex h-full">

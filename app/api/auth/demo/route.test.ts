@@ -32,10 +32,13 @@ describe('POST /api/auth/demo', () => {
     expect(await res.json()).toEqual({ error: 'Too many requests' })
   })
 
-  it('returns email and password from getOrCreateDemoUserForIp', async () => {
+  it('returns a one-time token (not email/password) from getOrCreateDemoUserForIp', async () => {
     const res = await POST()
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ email: 'demo_x@demo.local', password: 'pass123' })
+    const body = await res.json() as { token?: string }
+    expect(body).not.toHaveProperty('email')
+    expect(body).not.toHaveProperty('password')
+    expect(body.token).toMatch(/^[0-9a-f]{64}$/)
   })
 
   it('passes sha256 hash of ip to getOrCreateDemoUserForIp', async () => {

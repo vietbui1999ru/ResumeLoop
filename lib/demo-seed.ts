@@ -912,7 +912,7 @@ async function createFreshDemoForIp(
   const hash          = await bcrypt.hash(password, 10)
   const encryptedPwd  = await encrypt(password)
   await db.run(
-    `INSERT INTO users (id, email, password, is_demo, email_verified, ip_hash, demo_cleartext_pwd)
+    `INSERT INTO users (id, email, password, is_demo, email_verified, ip_hash, demo_encrypted_pwd)
      VALUES (?, ?, ?, 1, 1, ?, ?)`,
     [id, email, hash, ipHash, encryptedPwd],
   )
@@ -926,13 +926,13 @@ export async function getOrCreateDemoUserForIp(
   const db     = await getAdapter()
   const cutoff = new Date(Date.now() - DEMO_TTL_MS).toISOString()
 
-  const existing = await db.queryOne<{ email: string; demo_cleartext_pwd: string }>(
-    `SELECT email, demo_cleartext_pwd FROM users WHERE ip_hash = ? AND is_demo = 1 AND created_at > ?`,
+  const existing = await db.queryOne<{ email: string; demo_encrypted_pwd: string }>(
+    `SELECT email, demo_encrypted_pwd FROM users WHERE ip_hash = ? AND is_demo = 1 AND created_at > ?`,
     [ipHash, cutoff],
   )
   if (existing) {
     try {
-      const password = await decrypt(existing.demo_cleartext_pwd)
+      const password = await decrypt(existing.demo_encrypted_pwd)
       return { email: existing.email, password }
     } catch {
       // Old plaintext format (pre-encryption migration) — fall through to delete + recreate

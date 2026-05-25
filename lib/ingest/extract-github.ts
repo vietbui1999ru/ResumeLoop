@@ -2,11 +2,8 @@ import { generateText, jsonSchema } from 'ai'
 import { getModel }        from '../ai-client'
 import { getActiveConfig } from '../user-settings'
 import { logAiUsage }      from '../ai-usage'
-import type { SparseProfile } from './types'
+import type { SparseProfile, AnyToolCall } from './types'
 import { MAX_BULLET_CHARS } from '../config'
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyToolCall = { toolName: string; input: any }
 
 const GH_API = 'https://api.github.com'
 const GH_HEADERS = {
@@ -102,7 +99,7 @@ export async function extractFromGithub(input: string, userId: string): Promise<
   const result = await generateText({
     model:           await getModel(userId),
     system:          SYSTEM_PROMPT,
-    messages:        [{ role: 'user', content: githubContent }],
+    messages:        [{ role: 'user', content: `<github_content>\n${githubContent}\n</github_content>` }],
     tools: {
       extract_profile: {
         description: 'Extract profile data from the provided GitHub information',

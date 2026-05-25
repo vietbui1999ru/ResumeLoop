@@ -150,7 +150,7 @@ export const NEON_SCHEMA = `
     is_demo             INTEGER NOT NULL DEFAULT 0,
     deleted_at          TIMESTAMPTZ,
     ip_hash             TEXT,
-    demo_cleartext_pwd  TEXT,
+    demo_encrypted_pwd  TEXT,
     created_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -423,7 +423,7 @@ export class NeonAdapter implements DbAdapter {
     // Demo user per-IP columns (added with ip-based demo session feature)
     await runSchema(`
       ALTER TABLE users ADD COLUMN IF NOT EXISTS ip_hash            TEXT;
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS demo_cleartext_pwd TEXT;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS demo_encrypted_pwd TEXT;
       CREATE INDEX IF NOT EXISTS idx_users_ip_hash ON users(ip_hash) WHERE is_demo = 1;
     `)
     if (!isCloud()) await runSchema(NEON_DEMO_SEED)

@@ -1,3 +1,6 @@
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type AnyToolCall = { toolName: string; input: any }
+
 export type IngestionSourceType   = 'url' | 'github' | 'paste'
 export type IngestionSourceStatus = 'pending' | 'processing' | 'done' | 'failed'
 

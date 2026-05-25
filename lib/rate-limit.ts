@@ -9,6 +9,8 @@ export interface RateLimitResult {
 
 // ── Local: in-process sliding window ─────────────────────────────────────────
 // Each key → sorted array of hit timestamps. O(n) but n is small per key.
+// NOTE: state is per-process — on multi-instance deployments (ECS, Vercel) the
+// effective rate limit is limit × N_instances. Use Upstash (isCloud) for shared limits.
 
 const localStore = new Map<string, number[]>()
 
@@ -60,6 +62,9 @@ export async function checkRateLimitAsync(
   windowMs = AUTH_WINDOW_MS,
 ): Promise<RateLimitResult> {
   if (process.env.DISABLE_RATE_LIMIT === 'true') {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('DISABLE_RATE_LIMIT is not permitted in production')
+    }
     return { success: true, remaining: limit, reset: Date.now() }
   }
   if (isCloud() && process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {

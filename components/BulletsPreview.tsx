@@ -3,11 +3,11 @@
 import { useState, useRef } from 'react'
 import { toBulletsMarkdown } from '@/lib/bullets-md'
 import { validateBulletsJson } from '@/lib/bullets-validate'
-import { MAX_BULLET_CHARS as MAX_BULLET } from '@/lib/config'
+import { MAX_BULLET_CHARS as MAX_BULLET, AMBER_BULLET_CHARS, COPY_FLASH_MS } from '@/lib/config'
 
 export function charColor(len: number): string {
   if (len > MAX_BULLET) return 'border-red-500 text-red-300 bg-red-950/20'
-  if (len > 100)        return 'border-amber-500 text-amber-200 bg-amber-950/10'
+  if (len > AMBER_BULLET_CHARS) return 'border-amber-500 text-amber-200 bg-amber-950/10'
   return 'border-zinc-700 text-zinc-300'
 }
 
@@ -67,7 +67,7 @@ export function BulletsPreview({
       lastSavedJson.current = draft
       if (flashTimer.current) clearTimeout(flashTimer.current)
       setFlashOk(true)
-      flashTimer.current = setTimeout(() => setFlashOk(false), 1800)
+      flashTimer.current = setTimeout(() => setFlashOk(false), COPY_FLASH_MS)
       onSaved?.()
     } catch {
       setServerError('Network error — check your connection')
@@ -171,7 +171,7 @@ export function BulletsPreview({
                         return (
                           <div key={bi} className={itemCls(len)} onClick={() => onJump?.(`/experience/${ei}/bullets/${variant}/${bi}`)}>
                             <span className="flex-1 leading-relaxed">{b}</span>
-                            <span className={`shrink-0 tabular-nums text-2xs ${len > MAX_BULLET ? 'text-red-400 font-bold' : len > 100 ? 'text-amber-500' : 'text-zinc-400'}`}>{len}</span>
+                            <span className={`shrink-0 tabular-nums text-2xs ${len > MAX_BULLET ? 'text-red-400 font-bold' : len > AMBER_BULLET_CHARS ? 'text-amber-500' : 'text-zinc-400'}`}>{len}</span>
                           </div>
                         )
                       })}
@@ -196,7 +196,7 @@ export function BulletsPreview({
                     return (
                       <div key={bi} className={itemCls(len)} onClick={() => onJump?.(`/projects/${pi}/bullets/${bi}`)}>
                         <span className="flex-1 leading-relaxed">{b}</span>
-                        <span className={`shrink-0 tabular-nums text-2xs ${len > MAX_BULLET ? 'text-red-400 font-bold' : len > 100 ? 'text-amber-500' : 'text-zinc-400'}`}>{len}</span>
+                        <span className={`shrink-0 tabular-nums text-2xs ${len > MAX_BULLET ? 'text-red-400 font-bold' : len > AMBER_BULLET_CHARS ? 'text-amber-500' : 'text-zinc-400'}`}>{len}</span>
                       </div>
                     )
                   })}

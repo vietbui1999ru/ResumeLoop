@@ -49,6 +49,20 @@ vi.mock('child_process', () => ({
   }),
 }))
 
+// Mock createRequire so buildDocxInProcess doesn't hit the real filesystem
+vi.mock('node:module', () => {
+  const mockRequireFn = vi.fn().mockImplementation((mod: string) => {
+    if (mod === './buildv2.js') {
+      return { makeDoc: vi.fn().mockReturnValue({}), TL: (s: string) => s, T: (s: string) => s }
+    }
+    if (mod === 'docx') {
+      return { Packer: { toBuffer: vi.fn().mockResolvedValue(Buffer.from('fake-docx')) } }
+    }
+    throw new Error(`Unexpected require in test: ${mod}`)
+  })
+  return { createRequire: vi.fn().mockReturnValue(mockRequireFn) }
+})
+
 import { getAdapter } from './db-adapter'
 import { getSession, ensureDefaultSession } from './sessions'
 import { saveOutput } from './storage'

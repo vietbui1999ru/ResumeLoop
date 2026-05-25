@@ -18,6 +18,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useJobOutput } from '@/lib/useJobOutput'
+import { fmtDate } from '@/lib/job-display'
 import { PIPELINE_TAGS, PIPELINE_TAG_KEYS, TAG_TO_ACTION, ACTION_TO_TAG } from '@/lib/pipeline-tags'
 import { VALID_ACTIONS, type ActionStage } from '@/lib/actions'
 import PdfViewer from './PdfViewer'
@@ -53,12 +54,6 @@ interface Props {
   onTagsChange?: (tags: string[]) => void
   currentAction?: string
   onActionChange?: (action: string) => void
-}
-
-const fmtDate = (iso: string | null) => {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 // Mobile panels configuration

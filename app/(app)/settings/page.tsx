@@ -4,11 +4,10 @@ import { Skeleton } from '@/components/Skeleton'
 import { CloudFolderPicker } from '@/components/CloudFolderPicker'
 import { FONT_SIZES, type FontSize, applyFontSize, isValidFontSize, FONT_SIZE_KEY, FONT_SIZE_LABELS } from '@/lib/font-size'
 import { JobImportGuide } from '@/components/JobImportGuide'
-import { OLLAMA_DEFAULT_BASE_URL } from '@/lib/config'
+import { OLLAMA_DEFAULT_BASE_URL, TOAST_DURATION_MS } from '@/lib/config'
+import { type Provider, PROVIDER_LABELS } from '@/lib/provider-config'
 
 // ── AI Provider types ────────────────────────────────────────────────────────
-type Provider = 'anthropic' | 'openai' | 'google' | 'groq' | 'openrouter' | 'ollama'
-
 interface ProviderHint {
   provider:  Provider
   model:     string
@@ -22,15 +21,6 @@ interface AISettings {
   providers:       Provider[]
   default_models:  Record<Provider, string>
   configs:         ProviderHint[]
-}
-
-const PROVIDER_LABELS: Record<Provider, string> = {
-  anthropic:  'Anthropic (Claude)',
-  openai:     'OpenAI (GPT)',
-  google:     'Google (Gemini)',
-  groq:       'Groq (Llama / Mixtral)',
-  openrouter: 'OpenRouter (all providers)',
-  ollama:     'Ollama (local)',
 }
 
 function AIProviderSection() {
@@ -493,7 +483,7 @@ export default function SettingsPage() {
     setSettings(s => s ? { ...s, firecrawl_configured: true } : s)
     setFirecrawlSaving(false)
     setFirecrawlStatus('Saved')
-    setTimeout(() => setFirecrawlStatus(''), 3000)
+    setTimeout(() => setFirecrawlStatus(''), TOAST_DURATION_MS)
   }
 
   const save = async (patch: Partial<Pick<Settings, 'jobs_path' | 'output_path' | 'outreach_path'> & { firecrawl_key?: string }>) => {

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, FormEvent } from 'react'
 import { signOut, useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { TOAST_DURATION_MS } from '@/lib/config'
 
 interface ContactFields {
   name?: string
@@ -85,7 +86,7 @@ export default function AccountPage() {
     } finally {
       setContactSaving(false)
       clearTimeout(statusTimerRef.current)
-      statusTimerRef.current = setTimeout(() => setContactStatus(''), 3000)
+      statusTimerRef.current = setTimeout(() => setContactStatus(''), TOAST_DURATION_MS)
     }
   }
 

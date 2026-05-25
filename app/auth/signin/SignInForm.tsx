@@ -4,7 +4,7 @@ import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-export default function SignInForm({ showDemoHint, oauthProviders = [] }: { showDemoHint: boolean; oauthProviders?: ('github' | 'google')[] }) {
+export default function SignInForm({ oauthProviders = [] }: { oauthProviders?: ('github' | 'google')[] }) {
   const router = useRouter()
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
@@ -44,8 +44,8 @@ export default function SignInForm({ showDemoHint, oauthProviders = [] }: { show
     try {
       const res = await fetch('/api/auth/demo', { method: 'POST' })
       if (!res.ok) { setError('Demo unavailable — try again'); setDemoLoading(false); return }
-      const { email: demoEmail, password: demoPassword } = await res.json() as { email: string; password: string }
-      const result = await signIn('credentials', { email: demoEmail, password: demoPassword, redirect: false })
+      const { token: demoToken } = await res.json() as { token: string }
+      const result = await signIn('credentials', { demoToken, redirect: false })
       if (result?.error) { setError('Demo sign-in failed'); setDemoLoading(false); return }
       router.push('/')
       router.refresh()
@@ -152,11 +152,6 @@ export default function SignInForm({ showDemoHint, oauthProviders = [] }: { show
           <Link href="/auth/signup" className="text-indigo-400 hover:text-indigo-300">Sign up</Link>
         </p>
 
-        {showDemoHint && (
-          <p className="text-xs text-zinc-400 mt-4 text-center">
-            Demo: <code className="text-zinc-500">demo@demo.com</code> / <code className="text-zinc-500">demo</code>
-          </p>
-        )}
       </div>
     </div>
   )

@@ -72,10 +72,10 @@ describe('sanitizePersonaMd', () => {
     expect(sanitizePersonaMd('')).toBe('')
   })
 
-  it('leaves 4000 char clean input unchanged', () => {
+  it('truncates input to 2000 chars and leaves clean content otherwise unchanged', () => {
     const input = 'I prefer Go roles. '.repeat(210).slice(0, 4000)
     const result = sanitizePersonaMd(input)
-    expect(result).toBe(input)
+    expect(result).toBe(input.slice(0, 2000))
   })
 
   it('handles unicode lookalikes in injection attempts', () => {

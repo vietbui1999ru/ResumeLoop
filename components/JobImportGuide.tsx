@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useCallback, useState, type ReactNode } from 'react'
+import { COPY_FLASH_MS } from '@/lib/config'
 
 const CHROME_EXT  = 'https://chromewebstore.google.com/detail/obsidian-web-clipper/cnjifjpddelmedmihgijeibhnjfabmlf'
 const FIREFOX_EXT = 'https://addons.mozilla.org/en-US/firefox/addon/web-clipper-obsidian/'
@@ -44,7 +45,7 @@ export function JobImportGuide({ onClose }: { onClose: () => void }) {
     if (!templateContent) return
     await navigator.clipboard.writeText(templateContent)
     setCopied(true)
-    setTimeout(() => setCopied(false), 1800)
+    setTimeout(() => setCopied(false), COPY_FLASH_MS)
   }
 
   return (

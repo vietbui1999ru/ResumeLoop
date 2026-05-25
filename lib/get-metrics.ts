@@ -1,5 +1,5 @@
 import { unstable_cache } from 'next/cache'
-import { getAdapter, SqliteAdapter, type DbAdapter } from './db-adapter'
+import { getAdapter, type DbAdapter } from './db-adapter'
 import type { Output } from '@/components/OutputHistoryTable'
 
 export interface MetricsResult {
@@ -100,5 +100,3 @@ export async function computeMetrics(adapterOrUserId?: DbAdapter | string, userI
   return _computeMetrics(adapterOrUserId, userIdArg)
 }
 
-// Re-export for test convenience
-export { SqliteAdapter }
