@@ -4,9 +4,9 @@ export default function ChatLoading() {
   return (
     <div className="flex h-full">
       {/* Sessions sidebar — w-48 matches real sidebar */}
-      <div className="w-48 shrink-0 border-r border-zinc-800 p-3 space-y-2">
+      <div className="w-48 shrink-0 border-r border-border-subtle p-3 space-y-2">
         {/* "New session" button placeholder */}
-        <div className="border border-zinc-700 rounded-lg px-3 py-2 mb-3">
+        <div className="border border-border-default rounded-lg px-3 py-2 mb-3">
           <Skeleton className="h-4 w-24 mx-auto" />
         </div>
         {Array.from({ length: 5 }).map((_, i) => (
@@ -17,7 +17,7 @@ export default function ChatLoading() {
       {/* Main chat area */}
       <div className="flex flex-col flex-1 p-4 gap-4">
         {/* Tab bar */}
-        <div className="flex gap-2 border-b border-zinc-800 pb-2">
+        <div className="flex gap-2 border-b border-border-subtle pb-2">
           <Skeleton className="h-7 w-14 rounded-md" />
           <Skeleton className="h-7 w-20 rounded-md" />
         </div>

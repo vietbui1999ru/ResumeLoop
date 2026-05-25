@@ -88,10 +88,10 @@ function SortablePanel({ id, children, flexGrow }: { id: PanelId; children: Reac
       <div
         {...attributes}
         {...listeners}
-        className="flex items-center justify-center h-5 cursor-grab active:cursor-grabbing bg-zinc-800/50 border-b border-zinc-700 shrink-0 select-none"
+        className="flex items-center justify-center h-5 cursor-grab active:cursor-grabbing bg-surface-raised/50 border-b border-border-default shrink-0 select-none"
         title="Drag to reorder"
       >
-        <span className="text-zinc-400 text-xs">⠿</span>
+        <span className="text-text-secondary text-xs">⠿</span>
       </div>
       {children}
     </div>
@@ -133,7 +133,7 @@ function ResizeDivider({ leftId, rightId, onResize }: {
   return (
     <div
       className={`w-1.5 shrink-0 cursor-col-resize transition-colors select-none ${
-        dragging ? 'bg-indigo-500' : 'bg-zinc-700/60 hover:bg-indigo-500/70'
+        dragging ? 'bg-indigo-500' : 'bg-surface-raised/60 hover:bg-indigo-500/70'
       }`}
       onPointerDown={handlePointerDown}
       title="Drag to resize panels"
@@ -539,14 +539,14 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange, currentAc
         >
           {/* Drag handle indicator — bigger affordance */}
           <div className="flex justify-center pt-3 pb-2 shrink-0">
-            <div className="w-12 h-1 rounded-full bg-zinc-600" />
+            <div className="w-12 h-1 rounded-full bg-border-strong" />
           </div>
 
           {/* Header: company/role + close button (48px touch target) */}
           <div className="flex items-start justify-between px-4 py-2 shrink-0">
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-zinc-100 truncate">{job?.company ?? ''}</p>
-              <p className="text-xs text-zinc-400 truncate">{job?.role_title ?? ''}</p>
+              <p className="text-sm font-semibold text-text-primary truncate">{job?.company ?? ''}</p>
+              <p className="text-xs text-text-secondary truncate">{job?.role_title ?? ''}</p>
             </div>
             <button
               onClick={onClose}
@@ -561,7 +561,7 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange, currentAc
           </div>
 
           {/* Tab bar with priority ordering — scrolls if needed */}
-          <div className="flex overflow-x-auto gap-0.5 border-b border-zinc-800 
+          <div className="flex overflow-x-auto gap-0.5 border-b border-border-subtle
                           shrink-0 bg-surface-card px-2 py-2 [scrollbar-width:none] 
                           [-webkit-overflow-scrolling:touch] scroll-smooth">
             {mobilePanelOrder.map((id) => {
@@ -607,9 +607,9 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange, currentAc
                 {/* Loading skeleton while data loads */}
                 {loading ? (
                   <div className="px-4 py-4 space-y-3">
-                    <div className="h-4 bg-zinc-800 rounded w-3/4" />
-                    <div className="h-4 bg-zinc-800 rounded w-1/2" />
-                    <div className="h-4 bg-zinc-800 rounded w-2/3" />
+                    <div className="h-4 bg-surface-raised rounded w-3/4" />
+                    <div className="h-4 bg-surface-raised rounded w-1/2" />
+                    <div className="h-4 bg-surface-raised rounded w-2/3" />
                   </div>
                 ) : (
                   renderMobilePanel(activePanel)
@@ -635,7 +635,7 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange, currentAc
     >
       <motion.div
         ref={modalRef}
-        className={`relative bg-surface-card border border-zinc-800 rounded-2xl flex flex-col mx-4 overflow-hidden ${
+        className={`relative bg-surface-card border border-border-subtle rounded-2xl flex flex-col mx-4 overflow-hidden ${
           modalSize
             ? ''
             : `w-full ${autoModalWidth} max-h-[92vh] transition-all duration-150`
@@ -648,15 +648,15 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange, currentAc
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between px-5 pt-4 pb-3 border-b border-zinc-700 shrink-0">
+        <div className="flex items-start justify-between px-5 pt-4 pb-3 border-b border-border-default shrink-0">
           <div>
             {loading
-              ? <div className="text-zinc-400 text-sm">Loading…</div>
+              ? <div className="text-text-secondary text-sm">Loading…</div>
               : error
                 ? <div className="text-red-400 text-sm">{error}</div>
                 : <>
-                    <h2 className="text-base font-semibold text-zinc-100">{job!.role_title}</h2>
-                    <p className="text-sm text-zinc-400 mt-0.5">{job!.company}</p>
+                    <h2 className="text-base font-semibold text-text-primary">{job!.role_title}</h2>
+                    <p className="text-sm text-text-secondary mt-0.5">{job!.company}</p>
                   </>
             }
           </div>
@@ -664,19 +664,19 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange, currentAc
             {modalSize && (
               <button
                 onClick={resetLayout}
-                className="text-xs text-zinc-500 hover:text-zinc-300 px-2 py-0.5 rounded border border-zinc-700 hover:border-zinc-500 transition-colors"
+                className="text-xs text-text-muted hover:text-text-secondary px-2 py-0.5 rounded border border-border-default hover:border-border-strong transition-colors"
                 title="Reset panel and modal sizes"
               >
                 Reset layout
               </button>
             )}
-            <button onClick={onClose} className="text-zinc-500 hover:text-zinc-200 text-lg leading-none">✕</button>
+            <button onClick={onClose} className="text-text-muted hover:text-text-primary text-lg leading-none">✕</button>
           </div>
         </div>
 
         {/* Panel toggle toolbar */}
-        <div className="flex items-center gap-1 px-4 py-2 border-b border-zinc-700 shrink-0 bg-zinc-800/40">
-          <span className="text-xs text-zinc-500 mr-2">Panels:</span>
+        <div className="flex items-center gap-1 px-4 py-2 border-b border-border-default shrink-0 bg-surface-raised/40">
+          <span className="text-xs text-text-muted mr-2">Panels:</span>
           {panelOrder.map(id => (
             <button
               key={id}
@@ -684,7 +684,7 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange, currentAc
               className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
                 openPanels.has(id)
                   ? 'bg-indigo-600 text-white'
-                  : 'bg-zinc-700 text-zinc-400 hover:text-white hover:bg-zinc-600'
+                  : 'bg-surface-overlay text-text-secondary hover:text-text-primary hover:bg-surface-overlay'
               }`}
             >
               {PANEL_LABELS[id]}
@@ -694,7 +694,7 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange, currentAc
 
         {/* Panels area */}
         {panelCount === 0 ? (
-          <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm">
+          <div className="flex-1 flex items-center justify-center text-text-muted text-sm">
             Toggle a panel above to view content.
           </div>
         ) : (
@@ -779,7 +779,7 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange, currentAc
           onPointerDown={e => startModalResize(e, 'se')}
           title="Drag to resize"
         >
-          <svg width="10" height="10" viewBox="0 0 10 10" className="text-zinc-400 group-hover:text-indigo-400 transition-colors">
+          <svg width="10" height="10" viewBox="0 0 10 10" className="text-text-secondary group-hover:text-indigo-400 transition-colors">
             <path d="M2 9 L9 2 M5 9 L9 5 M8 9 L9 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
         </div>
@@ -830,15 +830,15 @@ function JdPanel({ job, tags, localTags: _localTags, onTagToggle: _onTagToggle, 
   return (
     <div className="flex flex-col flex-1 min-h-0 overflow-y-auto">
       {/* Structured fields */}
-      <div className="px-4 py-3 border-b border-zinc-700 grid grid-cols-2 gap-x-6 gap-y-2 text-sm shrink-0">
+      <div className="px-4 py-3 border-b border-border-default grid grid-cols-2 gap-x-6 gap-y-2 text-sm shrink-0">
         <Field label="Track"   value={job.role_track || '—'} />
-        <Field label="Fit"     value={`${job.fit_pct}%`} valueClass={job.fit_pct >= 60 ? 'text-green-400' : 'text-zinc-300'} />
+        <Field label="Fit"     value={`${job.fit_pct}%`} valueClass={job.fit_pct >= 60 ? 'text-green-400' : 'text-text-secondary'} />
         <Field label="Action"  value={effectiveAction} />
         <Field label="Visa"    value={job.visa_status} valueClass={job.visa_status === 'kill' ? 'text-red-400' : 'text-green-400'} />
         <Field label="Clipped" value={fmtDate(job.file_mtime)} />
         <Field label="Scanned" value={fmtDate(job.scanned_at)} />
         <div className="col-span-2">
-          <p className="text-zinc-500 text-xs mb-1">Stage</p>
+          <p className="text-text-muted text-xs mb-1">Stage</p>
           <div className="flex gap-1.5 flex-wrap">
             {PIPELINE_TAGS.map(tag => {
               const active = ACTION_TO_TAG[effectiveAction] === tag.key
@@ -850,7 +850,7 @@ function JdPanel({ job, tags, localTags: _localTags, onTagToggle: _onTagToggle, 
                     onActionChange?.(next)
                   }}
                   className={`px-2 py-0.5 rounded text-xs border transition-all font-medium ${
-                    active ? tag.pill : 'bg-zinc-800/50 text-zinc-500 border-zinc-700 hover:text-zinc-300 hover:border-zinc-500'
+                    active ? tag.pill : 'bg-surface-raised/50 text-text-muted border-border-default hover:text-text-secondary hover:border-border-strong'
                   }`}
                 >
                   {tag.label}
@@ -861,14 +861,14 @@ function JdPanel({ job, tags, localTags: _localTags, onTagToggle: _onTagToggle, 
         </div>
         {tags.filter(t => !PIPELINE_TAG_KEYS.includes(t as never)).length > 0 && (
           <div className="col-span-2">
-            <span className="text-zinc-500">Tags </span>
+            <span className="text-text-muted">Tags </span>
             {tags.filter(t => !PIPELINE_TAG_KEYS.includes(t as never))
-              .map(t => <span key={t} className="inline-block mr-1 px-1.5 py-0.5 bg-zinc-800 rounded text-xs text-zinc-300">{t}</span>)}
+              .map(t => <span key={t} className="inline-block mr-1 px-1.5 py-0.5 bg-surface-raised rounded text-xs text-text-secondary">{t}</span>)}
           </div>
         )}
         {/* Apply link */}
         <div className="col-span-2">
-          <span className="text-zinc-500 text-xs">Apply </span>
+          <span className="text-text-muted text-xs">Apply </span>
           {editingUrl ? (
             <span className="inline-flex items-center gap-1 mt-0.5">
               <input
@@ -877,28 +877,28 @@ function JdPanel({ job, tags, localTags: _localTags, onTagToggle: _onTagToggle, 
                 onChange={e => setUrlDraft(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') void commitUrl(); if (e.key === 'Escape') setEditingUrl(false) }}
                 placeholder="https://..."
-                className="bg-zinc-800 border border-zinc-600 rounded px-2 py-0.5 text-xs text-zinc-200 focus:outline-none focus:border-indigo-500 w-64"
+                className="bg-surface-raised border border-border-strong rounded px-2 py-0.5 text-xs text-text-primary focus:outline-none focus:border-indigo-500 w-64"
               />
               <button onClick={() => void commitUrl()} disabled={applyUrlSaving} className="text-xs text-indigo-400 hover:text-indigo-300 disabled:opacity-50">
                 {applyUrlSaving ? '…' : 'Save'}
               </button>
-              <button onClick={() => setEditingUrl(false)} className="text-xs text-zinc-500 hover:text-zinc-300">Cancel</button>
+              <button onClick={() => setEditingUrl(false)} className="text-xs text-text-muted hover:text-text-secondary">Cancel</button>
             </span>
           ) : safeApplyUrl ? (
             <span className="inline-flex items-center gap-2">
               <a href={safeApplyUrl} target="_blank" rel="noreferrer" className="text-xs text-indigo-400 hover:text-indigo-300 underline truncate max-w-xs">
                 {safeApplyUrl}
               </a>
-              <button onClick={startEdit} className="text-xs text-zinc-400 hover:text-zinc-400">Edit</button>
+              <button onClick={startEdit} className="text-xs text-text-secondary hover:text-text-secondary">Edit</button>
             </span>
           ) : (
-            <button onClick={startEdit} className="text-xs text-zinc-500 hover:text-zinc-300 underline">+ Add apply link</button>
+            <button onClick={startEdit} className="text-xs text-text-muted hover:text-text-secondary underline">+ Add apply link</button>
           )}
         </div>
       </div>
 
       {/* Actions row */}
-      <div className="px-4 py-2 border-b border-zinc-700 flex flex-wrap gap-3 items-center shrink-0">
+      <div className="px-4 py-2 border-b border-border-default flex flex-wrap gap-3 items-center shrink-0">
         <a href={`file://${job.file_path}`} target="_blank" rel="noreferrer" className="text-xs text-indigo-400 hover:text-indigo-300">Open file ↗</a>
         {safeApplyUrl && (
           <a href={safeApplyUrl} target="_blank" rel="noreferrer" className="text-xs text-green-400 hover:text-green-300">Apply ↗</a>
@@ -909,7 +909,7 @@ function JdPanel({ job, tags, localTags: _localTags, onTagToggle: _onTagToggle, 
             {output.pdf_path ? (
               <a href={`/api/jobs/${job.id}/output/download?format=pdf`} download className="text-xs text-indigo-400 hover:text-indigo-300">↓ PDF</a>
             ) : (
-              <span className="text-xs text-zinc-600 cursor-not-allowed" title="PDF not available">↓ PDF</span>
+              <span className="text-xs text-text-muted cursor-not-allowed" title="PDF not available">↓ PDF</span>
             )}
             <button
               onClick={onGenCoverLetter}
@@ -924,18 +924,18 @@ function JdPanel({ job, tags, localTags: _localTags, onTagToggle: _onTagToggle, 
 
       {/* Resume output metadata */}
       {!outputLoading && output && (
-        <div className="px-4 py-3 border-b border-zinc-700 shrink-0">
-          <p className="text-xs text-zinc-500 uppercase tracking-wide mb-1.5">Resume Output</p>
-          {output.tagline && <p className="text-xs text-zinc-300 italic mb-1">&ldquo;{output.tagline}&rdquo;</p>}
-          <div className="flex flex-wrap gap-x-3 text-xs text-zinc-500">
-            {output.variant && <span>Track: <span className="text-zinc-400">{output.variant}</span></span>}
-            {output.built_at && <span>Built: <span className="text-zinc-400">{fmtDate(output.built_at)}</span></span>}
+        <div className="px-4 py-3 border-b border-border-default shrink-0">
+          <p className="text-xs text-text-muted uppercase tracking-wide mb-1.5">Resume Output</p>
+          {output.tagline && <p className="text-xs text-text-secondary italic mb-1">&ldquo;{output.tagline}&rdquo;</p>}
+          <div className="flex flex-wrap gap-x-3 text-xs text-text-muted">
+            {output.variant && <span>Track: <span className="text-text-secondary">{output.variant}</span></span>}
+            {output.built_at && <span>Built: <span className="text-text-secondary">{fmtDate(output.built_at)}</span></span>}
           </div>
         </div>
       )}
 
       {/* Markdown JD content */}
-      <div className="flex-1 px-4 py-3 overflow-y-auto text-sm text-zinc-300 leading-relaxed [&_h1]:text-zinc-100 [&_h1]:font-semibold [&_h1]:text-base [&_h1]:mt-3 [&_h1]:mb-1 [&_h2]:text-zinc-200 [&_h2]:font-semibold [&_h2]:text-sm [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-zinc-200 [&_h3]:font-medium [&_h3]:mt-2 [&_h3]:mb-0.5 [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:space-y-0.5 [&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:space-y-0.5 [&_strong]:text-zinc-100 [&_a]:text-indigo-400 [&_a:hover]:text-indigo-300 [&_p]:mb-2 [&_hr]:border-zinc-700 [&_hr]:my-3">
+      <div className="flex-1 px-4 py-3 overflow-y-auto text-sm text-text-secondary leading-relaxed [&_h1]:text-text-primary [&_h1]:font-semibold [&_h1]:text-base [&_h1]:mt-3 [&_h1]:mb-1 [&_h2]:text-text-primary [&_h2]:font-semibold [&_h2]:text-sm [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-text-primary [&_h3]:font-medium [&_h3]:mt-2 [&_h3]:mb-0.5 [&_ul]:list-disc [&_ul]:pl-4 [&_ul]:space-y-0.5 [&_ol]:list-decimal [&_ol]:pl-4 [&_ol]:space-y-0.5 [&_strong]:text-text-primary [&_a]:text-indigo-400 [&_a:hover]:text-indigo-300 [&_p]:mb-2 [&_hr]:border-border-default [&_hr]:my-3">
         <ReactMarkdown>{job.raw_content || '(no content)'}</ReactMarkdown>
       </div>
     </div>
@@ -979,7 +979,7 @@ function PdfPanel({ jobId, hasPdf, hasDocx }: { jobId: string; hasPdf: boolean; 
 
   if (!hasDocx) {
     return (
-      <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm px-4 text-center">
+      <div className="flex-1 flex items-center justify-center text-text-muted text-sm px-4 text-center">
         Generate a DOCX resume first — PDF preview requires a generated resume for this job.
       </div>
     )
@@ -990,7 +990,7 @@ function PdfPanel({ jobId, hasPdf, hasDocx }: { jobId: string; hasPdf: boolean; 
         <p className="text-red-400 text-sm text-center">{error}</p>
         <button
           onClick={() => { setError(null); setRetryKey(k => k + 1) }}
-          className="px-3 py-1.5 text-xs bg-zinc-700 hover:bg-zinc-600 rounded text-zinc-200"
+          className="px-3 py-1.5 text-xs bg-surface-overlay hover:bg-surface-overlay rounded text-text-primary"
         >
           Retry
         </button>
@@ -1001,11 +1001,11 @@ function PdfPanel({ jobId, hasPdf, hasDocx }: { jobId: string; hasPdf: boolean; 
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-3 px-4">
         <div className="w-full max-w-xs space-y-2">
-          <div className="h-3 bg-zinc-700 rounded animate-pulse" />
-          <div className="h-3 bg-zinc-700 rounded animate-pulse w-4/5" />
-          <div className="h-3 bg-zinc-700 rounded animate-pulse w-3/5" />
+          <div className="h-3 bg-surface-overlay rounded animate-pulse" />
+          <div className="h-3 bg-surface-overlay rounded animate-pulse w-4/5" />
+          <div className="h-3 bg-surface-overlay rounded animate-pulse w-3/5" />
         </div>
-        <p className="text-zinc-500 text-sm">Generating PDF…</p>
+        <p className="text-text-muted text-sm">Generating PDF…</p>
       </div>
     )
   }
@@ -1019,14 +1019,14 @@ function PdfPanel({ jobId, hasPdf, hasDocx }: { jobId: string; hasPdf: boolean; 
 // ── Reasoning Panel ───────────────────────────────────────────────────────────
 
 function ReasoningPanel({ reasoning, loading }: { reasoning: string | null; loading: boolean }) {
-  if (loading) return <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm">Loading…</div>
+  if (loading) return <div className="flex-1 flex items-center justify-center text-text-muted text-sm">Loading…</div>
   if (!reasoning) return (
-    <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm px-4 text-center">
+    <div className="flex-1 flex items-center justify-center text-text-muted text-sm px-4 text-center">
       No reasoning available. Generate a resume to see AI decisions.
     </div>
   )
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-3 [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:text-indigo-300 [&_h2]:mt-4 [&_h2]:mb-1 [&_p]:text-sm [&_p]:text-zinc-300 [&_p]:leading-relaxed [&_ul]:text-sm [&_ul]:text-zinc-300 [&_ul]:list-disc [&_ul]:pl-4 [&_li]:mb-0.5">
+    <div className="flex-1 overflow-y-auto px-4 py-3 [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:text-indigo-300 [&_h2]:mt-4 [&_h2]:mb-1 [&_p]:text-sm [&_p]:text-text-secondary [&_p]:leading-relaxed [&_ul]:text-sm [&_ul]:text-text-secondary [&_ul]:list-disc [&_ul]:pl-4 [&_li]:mb-0.5">
       <ReactMarkdown>{reasoning}</ReactMarkdown>
     </div>
   )
@@ -1045,11 +1045,11 @@ function CoverPanel({ text, loading, error, onGenerate, onCopy, copied, hasOutpu
 }) {
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-700 shrink-0">
-        <p className="text-xs text-zinc-500 uppercase tracking-wide">Cover Letter</p>
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border-default shrink-0">
+        <p className="text-xs text-text-muted uppercase tracking-wide">Cover Letter</p>
         <div className="flex gap-2">
           {text && (
-            <button onClick={onCopy} className="text-xs text-zinc-400 hover:text-zinc-200">
+            <button onClick={onCopy} className="text-xs text-text-secondary hover:text-text-primary">
               {copied ? '✓ Copied' : 'Copy'}
             </button>
           )}
@@ -1065,13 +1065,13 @@ function CoverPanel({ text, loading, error, onGenerate, onCopy, copied, hasOutpu
       <div className="flex-1 overflow-y-auto px-4 py-3">
         {error && <p className="text-xs text-red-400 mb-2">{error}</p>}
         {!hasOutput && !text && !loading && (
-          <p className="text-sm text-zinc-500">Generate a resume for this job first, then generate a cover letter.</p>
+          <p className="text-sm text-text-muted">Generate a resume for this job first, then generate a cover letter.</p>
         )}
         {loading && !text && (
-          <p className="text-sm text-zinc-500 animate-pulse">Generating…</p>
+          <p className="text-sm text-text-muted animate-pulse">Generating…</p>
         )}
         {text && (
-          <pre className="text-sm text-zinc-300 whitespace-pre-wrap leading-relaxed font-sans">{text}</pre>
+          <pre className="text-sm text-text-secondary whitespace-pre-wrap leading-relaxed font-sans">{text}</pre>
         )}
       </div>
     </div>
@@ -1089,8 +1089,8 @@ function CasePanel({ text, loading, streaming, error, onGenerate }: {
 }) {
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-700 shrink-0">
-        <p className="text-xs text-zinc-500 uppercase tracking-wide">Application Case</p>
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border-default shrink-0">
+        <p className="text-xs text-text-muted uppercase tracking-wide">Application Case</p>
         <button
           onClick={onGenerate}
           disabled={streaming}
@@ -1101,18 +1101,18 @@ function CasePanel({ text, loading, streaming, error, onGenerate }: {
       </div>
       <div className="flex-1 overflow-y-auto px-4 py-3">
         {error && <p className="text-xs text-red-400 mb-2">{error}</p>}
-        {loading && <p className="text-sm text-zinc-500 animate-pulse">Loading…</p>}
+        {loading && <p className="text-sm text-text-muted animate-pulse">Loading…</p>}
         {!loading && !streaming && !text && !error && (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-text-muted">
             Synthesizes outreach research, resume reasoning, and JD signals into a targeting brief.
             Press Generate to build it.
           </p>
         )}
         {streaming && !text && (
-          <p className="text-sm text-zinc-500 animate-pulse">Generating…</p>
+          <p className="text-sm text-text-muted animate-pulse">Generating…</p>
         )}
         {text && (
-          <div className="[&_h2]:text-sm [&_h2]:font-semibold [&_h2]:text-indigo-300 [&_h2]:mt-4 [&_h2]:mb-1 [&_p]:text-sm [&_p]:text-zinc-300 [&_p]:leading-relaxed [&_ul]:text-sm [&_ul]:text-zinc-300 [&_ul]:list-disc [&_ul]:pl-4 [&_li]:mb-0.5 [&_ol]:text-sm [&_ol]:text-zinc-300 [&_ol]:list-decimal [&_ol]:pl-4 [&_strong]:text-zinc-100">
+          <div className="[&_h2]:text-sm [&_h2]:font-semibold [&_h2]:text-indigo-300 [&_h2]:mt-4 [&_h2]:mb-1 [&_p]:text-sm [&_p]:text-text-secondary [&_p]:leading-relaxed [&_ul]:text-sm [&_ul]:text-text-secondary [&_ul]:list-disc [&_ul]:pl-4 [&_li]:mb-0.5 [&_ol]:text-sm [&_ol]:text-text-secondary [&_ol]:list-decimal [&_ol]:pl-4 [&_strong]:text-text-primary">
             <ReactMarkdown>{text}</ReactMarkdown>
           </div>
         )}
@@ -1123,10 +1123,10 @@ function CasePanel({ text, loading, streaming, error, onGenerate }: {
 
 // ── Field helper ──────────────────────────────────────────────────────────────
 
-function Field({ label, value, valueClass = 'text-zinc-300' }: { label: string; value: string; valueClass?: string }) {
+function Field({ label, value, valueClass = 'text-text-secondary' }: { label: string; value: string; valueClass?: string }) {
   return (
     <div>
-      <span className="text-zinc-500">{label} </span>
+      <span className="text-text-muted">{label} </span>
       <span className={valueClass}>{value}</span>
     </div>
   )

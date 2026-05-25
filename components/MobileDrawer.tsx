@@ -76,11 +76,11 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 280 }}
-            className="fixed inset-y-0 left-0 w-64 z-50 bg-surface-card border-r border-zinc-800 flex flex-col
+            className="fixed inset-y-0 left-0 w-64 z-50 bg-surface-card border-r border-border-subtle flex flex-col
                        pt-[env(safe-area-inset-top)]"
           >
             {/* Close button */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
               <div className="w-6 h-6 rounded-md bg-indigo-600 flex items-center justify-center">
                 <span className="text-2xs font-bold text-white tracking-tight">RA</span>
               </div>
@@ -119,7 +119,7 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
             </nav>
 
             {/* Bottom section */}
-            <div className="border-t border-zinc-800 px-2 py-3 space-y-2" style={{ paddingBottom: `calc(1rem + env(safe-area-inset-bottom))` }}>
+            <div className="border-t border-border-subtle px-2 py-3 space-y-2" style={{ paddingBottom: `calc(1rem + env(safe-area-inset-bottom))` }}>
               {/* Feedback link */}
               <Link
                 href="/feedback"
@@ -173,8 +173,8 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
                 </button>
 
                 {menuOpen && hasUnseen && (
-                  <div className="absolute bottom-full left-0 mb-2 w-full bg-surface-card border border-zinc-700 rounded-lg shadow-xl shadow-black/50 py-1 z-[90]">
-                    <p className="px-3 py-1.5 text-2xs font-semibold text-zinc-500 uppercase tracking-wider">
+                  <div className="absolute bottom-full left-0 mb-2 w-full bg-surface-card border border-border-default rounded-lg shadow-card py-1 z-[90]">
+                    <p className="px-3 py-1.5 text-2xs font-semibold text-text-muted uppercase tracking-wider">
                       Continue tour
                     </p>
                     {pagesWithUnseen.map(page => (
@@ -185,19 +185,19 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
                           activateForPage(page)
                           onClose()
                         }}
-                        className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:bg-surface-raised hover:text-zinc-100 transition-colors"
+                        className="w-full text-left px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-raised hover:text-text-primary transition-colors"
                       >
                         {PAGE_LABELS[page] ?? page}
                       </button>
                     ))}
-                    <div className="border-t border-zinc-800 mt-1 pt-1">
+                    <div className="border-t border-border-subtle mt-1 pt-1">
                       <button
                         onClick={() => {
                           setMenuOpen(false)
                           reset()
                           onClose()
                         }}
-                        className="w-full text-left px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                        className="w-full text-left px-3 py-1.5 text-xs text-text-muted hover:text-text-secondary transition-colors"
                       >
                         Restart tour
                       </button>

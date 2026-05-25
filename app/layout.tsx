@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
 import { buildFontInitScript } from '@/lib/font-size'
+import { buildThemeInitScript } from '@/lib/theme'
 
 // display: 'swap' is set explicitly so Next.js emits a matching preload hint.
 // Without it, Next.js 14 preloads a size-adjusted fallback variant (.s.p.woff2)
@@ -20,7 +21,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
-        {/* Blocking inline script — runs before paint, prevents font-size FOUC on reload */}
+        {/* Blocking inline scripts — run before paint to prevent theme + font-size FOUC */}
+        <script dangerouslySetInnerHTML={{ __html: buildThemeInitScript() }} />
         <script dangerouslySetInnerHTML={{ __html: buildFontInitScript() }} />
       </head>
       <body suppressHydrationWarning className={`${inter.className} bg-surface-base text-text-primary`}>

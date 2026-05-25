@@ -20,7 +20,7 @@ export function AnimatedCheckbox({ checked, onChange, className = '', label }: P
       className={`w-4 h-4 rounded flex items-center justify-center border transition-colors duration-100 ${
         checked
           ? 'bg-indigo-500 border-indigo-500'
-          : 'bg-transparent border-zinc-600 hover:border-zinc-400'
+          : 'bg-transparent border-border-strong hover:border-border-strong'
       } ${className}`}
     >
       <svg

@@ -78,20 +78,20 @@ export default function SessionSwitcher() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(o => !o)}
-        className="text-sm px-3 py-1 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded flex items-center gap-1.5"
+        className="text-sm px-3 py-1 bg-surface-raised hover:bg-surface-overlay border border-border-default rounded flex items-center gap-1.5"
       >
         <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
-        <span className="max-w-32 truncate text-zinc-200">{activeName}</span>
-        <span className="text-zinc-500">▾</span>
+        <span className="max-w-32 truncate text-text-primary">{activeName}</span>
+        <span className="text-text-muted">▾</span>
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-1 w-56 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-50 py-1">
+        <div className="absolute left-0 top-full mt-1 w-56 bg-surface-card border border-border-default rounded-lg shadow-card z-50 py-1">
           {sessions.map(s => (
             <div
               key={s.id}
-              className={`flex items-center gap-2 px-3 py-1.5 hover:bg-zinc-800 group ${
-                s.id === activeSessionId ? 'bg-zinc-800' : ''
+              className={`flex items-center gap-2 px-3 py-1.5 hover:bg-surface-raised group ${
+                s.id === activeSessionId ? 'bg-surface-raised' : ''
               }`}
             >
               {s.id === activeSessionId && (
@@ -100,7 +100,7 @@ export default function SessionSwitcher() {
               {s.id !== activeSessionId && <span className="w-1.5 shrink-0" />}
               <button
                 onClick={() => { setActiveSessionId(s.id); setOpen(false) }}
-                className="flex-1 text-left text-sm text-zinc-200 truncate"
+                className="flex-1 text-left text-sm text-text-primary truncate"
               >
                 {s.name}
               </button>
@@ -108,19 +108,19 @@ export default function SessionSwitcher() {
                 <span className="hidden group-hover:flex items-center gap-1">
                   <button
                     onClick={() => void promote(s.id)}
-                    className="text-xs text-zinc-400 hover:text-indigo-300 px-1"
+                    className="text-xs text-text-secondary hover:text-indigo-300 px-1"
                     title="Promote to master"
                   >↑</button>
                   <button
                     onClick={() => void del(s.id)}
-                    className="text-xs text-zinc-400 hover:text-red-400 px-1"
+                    className="text-xs text-text-secondary hover:text-red-400 px-1"
                     title="Delete"
                   >✕</button>
                 </span>
               )}
             </div>
           ))}
-          <div className="border-t border-zinc-800 mt-1 pt-1">
+          <div className="border-t border-border-subtle mt-1 pt-1">
             {isCreating ? (
               <div className="px-3 py-1.5 flex items-center gap-1.5">
                 <input
@@ -132,15 +132,15 @@ export default function SessionSwitcher() {
                     if (e.key === 'Escape') { setIsCreating(false); setNewName('') }
                   }}
                   placeholder={`Session ${new Date().toLocaleDateString()}`}
-                  className="flex-1 text-sm bg-zinc-800 border border-zinc-700 rounded px-2 py-0.5 text-zinc-200 focus:outline-none focus:border-indigo-500"
+                  className="flex-1 text-sm bg-surface-raised border border-border-default rounded px-2 py-0.5 text-text-primary focus:outline-none focus:border-indigo-500"
                 />
                 <button onClick={() => void submitNew()} className="text-xs text-indigo-400 hover:text-indigo-300 px-1">✓</button>
-                <button onClick={() => { setIsCreating(false); setNewName('') }} className="text-xs text-zinc-400 hover:text-zinc-200 px-1">✕</button>
+                <button onClick={() => { setIsCreating(false); setNewName('') }} className="text-xs text-text-secondary hover:text-text-primary px-1">✕</button>
               </div>
             ) : (
               <button
                 onClick={() => setIsCreating(true)}
-                className="w-full text-left px-3 py-1.5 text-sm text-indigo-400 hover:bg-zinc-800 hover:text-indigo-300"
+                className="w-full text-left px-3 py-1.5 text-sm text-indigo-400 hover:bg-surface-raised hover:text-indigo-300"
               >
                 + New branch…
               </button>

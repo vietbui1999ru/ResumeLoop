@@ -204,21 +204,21 @@ export default function GenerationPanel({
   // Minimized bar
   if (minimized) {
     return (
-      <div className="flex items-center gap-3 bg-surface-card border border-zinc-800 rounded-lg px-4 py-2">
-        <span className="text-sm text-zinc-300">
+      <div className="flex items-center gap-3 bg-surface-card border border-border-subtle rounded-lg px-4 py-2">
+        <span className="text-sm text-text-secondary">
           {runningCount > 0
             ? <span className="flex items-center gap-1.5"><span className="text-indigo-400 animate-pulse">⟳</span>{runningCount} running</span>
             : <span className="text-green-400">✓ {doneCount} done</span>
           }
         </span>
-        <span className="text-xs text-zinc-500">{queue.length} total</span>
+        <span className="text-xs text-text-muted">{queue.length} total</span>
         <button
           onClick={onMinimize}
-          className="ml-auto text-xs text-zinc-400 hover:text-zinc-200 px-2 py-0.5 rounded border border-zinc-700 hover:border-zinc-500"
+          className="ml-auto text-xs text-text-secondary hover:text-text-primary px-2 py-0.5 rounded border border-border-default hover:border-border-strong"
         >
           Expand
         </button>
-        <button onClick={onClose} className="text-xs text-zinc-500 hover:text-red-400" title="Clear">✕</button>
+        <button onClick={onClose} className="text-xs text-text-muted hover:text-red-400" title="Clear">✕</button>
       </div>
     )
   }
@@ -231,18 +231,18 @@ export default function GenerationPanel({
       exit={{ y: '100%', opacity: 0 }}
       transition={{ duration: DURATION.base, ease: EASE }}
     >
-    <div className="bg-surface-card border border-zinc-800 rounded-lg overflow-hidden flex flex-col" style={{ maxHeight: '40vh' }}>
+    <div className="bg-surface-card border border-border-subtle rounded-lg overflow-hidden flex flex-col" style={{ maxHeight: '40vh' }}>
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-zinc-800 shrink-0">
-        <h3 className="text-sm font-semibold text-zinc-300 flex-1">
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-border-subtle shrink-0">
+        <h3 className="text-sm font-semibold text-text-secondary flex-1">
           Resume Generation
           {runningCount > 0
             ? <span className="ml-2 text-xs text-indigo-400">{runningCount} running…</span>
-            : <span className="ml-2 text-xs text-zinc-500">{doneCount}/{queue.length} done</span>
+            : <span className="ml-2 text-xs text-text-muted">{doneCount}/{queue.length} done</span>
           }
         </h3>
-        <button onClick={onMinimize} className="text-zinc-400 hover:text-zinc-200 hover:bg-surface-raised w-5 h-5 text-sm leading-none rounded-md transition-colors duration-100" title="Minimize">—</button>
-        <button onClick={onClose}    className="text-zinc-400 hover:text-red-400 hover:bg-surface-raised w-5 h-5 text-sm leading-none rounded-md transition-colors duration-100" title="Clear">✕</button>
+        <button onClick={onMinimize} className="text-text-secondary hover:text-text-primary hover:bg-surface-raised w-5 h-5 text-sm leading-none rounded-md transition-colors duration-100" title="Minimize">—</button>
+        <button onClick={onClose}    className="text-text-secondary hover:text-red-400 hover:bg-surface-raised w-5 h-5 text-sm leading-none rounded-md transition-colors duration-100" title="Clear">✕</button>
       </div>
 
       {/* Job list */}
@@ -257,9 +257,9 @@ export default function GenerationPanel({
           let statusLine: React.ReactNode
           if (!jp || isRunning) {
             const curStage = jp?.stages.findLast(s => s.status === 'running')?.stage ?? 'queued'
-            statusLine = <span className="text-zinc-400">⟳ {curStage}</span>
+            statusLine = <span className="text-text-secondary">⟳ {curStage}</span>
           } else if (jp.aborted) {
-            statusLine = <span className="text-zinc-500">— aborted</span>
+            statusLine = <span className="text-text-muted">— aborted</span>
           } else if (jp.failed) {
             statusLine = <span className="text-red-400">✗ failed</span>
           } else {
@@ -267,7 +267,7 @@ export default function GenerationPanel({
           }
 
           return (
-            <div key={jobId} className={`border border-zinc-800 rounded p-2.5 ${jp?.aborted ? 'opacity-50' : ''}`}>
+            <div key={jobId} className={`border border-border-subtle rounded p-2.5 ${jp?.aborted ? 'opacity-50' : ''}`}>
               {/* Job header row */}
               <div className="flex items-center gap-2">
                 <button
@@ -275,8 +275,8 @@ export default function GenerationPanel({
                   className="flex-1 min-w-0 text-left flex items-center gap-2 text-xs"
                 >
                   <span className="shrink-0">{statusLine}</span>
-                  <span className="text-zinc-400 font-mono truncate">{jobId.slice(0, 8)}</span>
-                  <span className="text-zinc-400 ml-auto shrink-0">{isCollapsed ? '▼' : '▲'}</span>
+                  <span className="text-text-secondary font-mono truncate">{jobId.slice(0, 8)}</span>
+                  <span className="text-text-secondary ml-auto shrink-0">{isCollapsed ? '▼' : '▲'}</span>
                 </button>
 
                 {canAbort && (
@@ -301,14 +301,14 @@ export default function GenerationPanel({
 
               {/* Stage log — hidden when collapsed */}
               {!isCollapsed && jp?.stages && jp.stages.length > 0 && (
-                <div className="mt-2 space-y-0.5 border-t border-zinc-800 pt-2">
+                <div className="mt-2 space-y-0.5 border-t border-border-subtle pt-2">
                   {jp.stages.map(ev => {
                     const summary = stageSummary(ev)
                     const isFail  = ev.status === 'fail'
                     return (
                       <div key={`${ev.stage}-${ev.status}`} className="flex gap-2 text-xs items-start">
                         <StageDot status={ev.status} />
-                        <span className="text-zinc-400 w-24 shrink-0">{ev.stage}</span>
+                        <span className="text-text-secondary w-24 shrink-0">{ev.stage}</span>
                         {isFail ? (
                           <div className="flex-1 relative group min-w-0">
                             <pre className="text-red-400 text-xs whitespace-pre-wrap break-words select-all">
@@ -317,11 +317,11 @@ export default function GenerationPanel({
                             <button
                               onClick={() => void navigator.clipboard.writeText(sanitizeError(summary))}
                               aria-label="Copy error"
-                              className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:ring-1 focus-visible:ring-indigo-500 transition-opacity text-xs text-zinc-500 hover:text-zinc-300 bg-zinc-900 px-1 rounded"
+                              className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:ring-1 focus-visible:ring-indigo-500 transition-opacity text-xs text-text-muted hover:text-text-secondary bg-surface-card px-1 rounded"
                             >copy</button>
                           </div>
                         ) : (
-                          <span className="text-zinc-500 truncate max-w-xs">{summary}</span>
+                          <span className="text-text-muted truncate max-w-xs">{summary}</span>
                         )}
                       </div>
                     )
@@ -332,7 +332,7 @@ export default function GenerationPanel({
               {/* Rating row */}
               {jp?.done && !jp.failed && !jp.aborted && !r.submitted && (
                 <div className="flex items-center gap-2 mt-2">
-                  <span className="text-xs text-zinc-500">Rate:</span>
+                  <span className="text-xs text-text-muted">Rate:</span>
                   {([1, 2, 3] as const).map(n => (
                     <button
                       key={n}
@@ -340,7 +340,7 @@ export default function GenerationPanel({
                       className={`text-xs px-2 py-0.5 rounded border ${
                         r.rating === n
                           ? 'border-indigo-500 text-indigo-400'
-                          : 'border-zinc-700 text-zinc-500'
+                          : 'border-border-default text-text-muted'
                       }`}
                     >
                       {n}
@@ -350,7 +350,7 @@ export default function GenerationPanel({
                     value={r.note}
                     onChange={e => setRatings(prev => new Map(prev).set(jobId, { ...r, note: e.target.value }))}
                     placeholder="note…"
-                    className="flex-1 text-xs bg-zinc-800 border border-zinc-700 rounded px-2 py-0.5 text-zinc-300"
+                    className="flex-1 text-xs bg-surface-raised border border-border-default rounded px-2 py-0.5 text-text-secondary"
                   />
                   <button
                     onClick={() => void submitRating(jobId)}

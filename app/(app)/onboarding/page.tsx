@@ -47,11 +47,11 @@ export default function OnboardingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-zinc-100">
+    <main className="min-h-screen bg-surface-base text-text-primary">
       <div className="max-w-2xl mx-auto px-4 py-12 space-y-8">
         <div>
           <h1 className="text-2xl font-semibold">Set up your profile</h1>
-          <p className="mt-1 text-sm text-zinc-400">
+          <p className="mt-1 text-sm text-text-secondary">
             {step === 'sources'
               ? 'Add sources — a URL, GitHub, or any text. We extract the info and build your profile.'
               : 'Review the extracted profile. Edit anything inline, then accept.'}

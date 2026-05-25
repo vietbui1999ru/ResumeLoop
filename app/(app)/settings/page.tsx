@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Skeleton } from '@/components/Skeleton'
 import { CloudFolderPicker } from '@/components/CloudFolderPicker'
 import { FONT_SIZES, type FontSize, applyFontSize, isValidFontSize, FONT_SIZE_KEY, FONT_SIZE_LABELS } from '@/lib/font-size'
+import { THEMES, type Theme, applyTheme, isValidTheme, THEME_KEY } from '@/lib/theme'
+import { Sun, Moon } from 'lucide-react'
 import { JobImportGuide } from '@/components/JobImportGuide'
 import { OLLAMA_DEFAULT_BASE_URL, TOAST_DURATION_MS } from '@/lib/config'
 import { type Provider, PROVIDER_LABELS } from '@/lib/provider-config'
@@ -100,9 +102,9 @@ function AIProviderSection() {
 
   if (!ai) return (
     <div className="space-y-4">
-      <div className="border border-zinc-800 rounded-lg overflow-hidden">
+      <div className="border border-border-subtle rounded-lg overflow-hidden">
         {Array.from({ length: 2 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-zinc-800">
+          <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-border-subtle">
             <div className="flex-1 space-y-1.5">
               <Skeleton className="h-4 w-44" />
               <Skeleton className="h-3 w-60" />
@@ -125,19 +127,19 @@ function AIProviderSection() {
     <div className="space-y-4">
       {/* Configured providers list */}
       {ai.configs.length > 0 && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
+        <div className="bg-surface-card border border-border-subtle rounded-lg overflow-hidden">
           {ai.configs.map(cfg => (
-            <div key={cfg.provider} className="flex items-center gap-3 px-4 py-3 border-b border-zinc-800 last:border-0">
+            <div key={cfg.provider} className="flex items-center gap-3 px-4 py-3 border-b border-border-subtle last:border-0">
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-zinc-200 font-medium">
+                <p className="text-sm text-text-secondary font-medium">
                   {PROVIDER_LABELS[cfg.provider]}
                   {cfg.is_active && <span className="ml-2 text-xs bg-indigo-600 text-white px-1.5 py-0.5 rounded">active</span>}
                 </p>
-                <p className="text-xs text-zinc-500 font-mono mt-0.5 truncate">{cfg.key_hint || cfg.base_url || '(no key)'} · {cfg.model}</p>
+                <p className="text-xs text-text-muted font-mono mt-0.5 truncate">{cfg.key_hint || cfg.base_url || '(no key)'} · {cfg.model}</p>
               </div>
               <div className="flex gap-1 shrink-0">
                 {!cfg.is_active && (
-                  <button onClick={() => activate(cfg.provider)} className="text-xs px-2 py-1 bg-zinc-700 hover:bg-zinc-600 rounded">
+                  <button onClick={() => activate(cfg.provider)} className="text-xs px-2 py-1 bg-surface-overlay hover:bg-surface-overlay rounded">
                     Set active
                   </button>
                 )}
@@ -151,16 +153,16 @@ function AIProviderSection() {
       )}
 
       {/* Add / update provider form */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-3">
-        <p className="text-sm font-medium text-zinc-200">Add / update provider</p>
+      <div className="bg-surface-card border border-border-subtle rounded-lg p-4 space-y-3">
+        <p className="text-sm font-medium text-text-secondary">Add / update provider</p>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-zinc-500 block mb-1">Provider</label>
+            <label className="text-xs text-text-muted block mb-1">Provider</label>
             <select
               value={provider}
               onChange={e => setProvider(e.target.value as Provider)}
-              className="w-full text-sm bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-zinc-200"
+              className="w-full text-sm bg-surface-raised border border-border-default rounded px-3 py-2 text-text-secondary"
             >
               {ai.providers.map(p => (
                 <option key={p} value={p}>{PROVIDER_LABELS[p]}</option>
@@ -168,11 +170,11 @@ function AIProviderSection() {
             </select>
           </div>
           <div>
-            <label className="text-xs text-zinc-500 block mb-1">Model</label>
+            <label className="text-xs text-text-muted block mb-1">Model</label>
             <input
               value={model}
               onChange={e => setModel(e.target.value)}
-              className="w-full text-sm bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-zinc-200 font-mono"
+              className="w-full text-sm bg-surface-raised border border-border-default rounded px-3 py-2 text-text-secondary font-mono"
               placeholder={ai.default_models[provider]}
             />
           </div>
@@ -181,18 +183,18 @@ function AIProviderSection() {
         {provider === 'ollama' ? (
           <div className="space-y-2">
             <div>
-              <label className="text-xs text-zinc-500 block mb-1">Base URL</label>
+              <label className="text-xs text-text-muted block mb-1">Base URL</label>
               <div className="flex gap-2">
                 <input
                   value={baseUrl}
                   onChange={e => { setBaseUrl(e.target.value); setOllamaModels([]) }}
-                  className="flex-1 text-sm bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-zinc-200 font-mono"
+                  className="flex-1 text-sm bg-surface-raised border border-border-default rounded px-3 py-2 text-text-secondary font-mono"
                 />
                 <button
                   type="button"
                   onClick={fetchOllamaModels}
                   disabled={fetchingModels}
-                  className="text-xs px-3 py-2 bg-zinc-700 hover:bg-zinc-600 rounded disabled:opacity-40 shrink-0"
+                  className="text-xs px-3 py-2 bg-surface-overlay hover:bg-surface-overlay rounded disabled:opacity-40 shrink-0"
                 >
                   {fetchingModels ? 'Fetching…' : 'Fetch models'}
                 </button>
@@ -201,11 +203,11 @@ function AIProviderSection() {
             </div>
             {ollamaModels.length > 0 && (
               <div>
-                <label className="text-xs text-zinc-500 block mb-1">Available models</label>
+                <label className="text-xs text-text-muted block mb-1">Available models</label>
                 <select
                   value={model}
                   onChange={e => setModel(e.target.value)}
-                  className="w-full text-sm bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-zinc-200 font-mono"
+                  className="w-full text-sm bg-surface-raised border border-border-default rounded px-3 py-2 text-text-secondary font-mono"
                 >
                   {ollamaModels.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
@@ -214,19 +216,19 @@ function AIProviderSection() {
           </div>
         ) : (
           <div>
-            <label className="text-xs text-zinc-500 block mb-1">API Key</label>
+            <label className="text-xs text-text-muted block mb-1">API Key</label>
             <input
               type="password"
               value={apiKey}
               onChange={e => setApiKey(e.target.value)}
               placeholder={`Enter ${PROVIDER_LABELS[provider]} key…`}
-              className="w-full text-sm bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-zinc-200 font-mono"
+              className="w-full text-sm bg-surface-raised border border-border-default rounded px-3 py-2 text-text-secondary font-mono"
             />
           </div>
         )}
 
         <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 text-xs text-zinc-400 cursor-pointer">
+          <label className="flex items-center gap-2 text-xs text-text-secondary cursor-pointer">
             <input type="checkbox" checked={setActive} onChange={e => setSetActive(e.target.checked)} className="accent-indigo-500" />
             Set as active provider
           </label>
@@ -245,7 +247,7 @@ function AIProviderSection() {
         </div>
       </div>
 
-      <p className="text-xs text-zinc-400">
+      <p className="text-xs text-text-secondary">
         Keys are AES-256 encrypted at rest. The full key is never returned by the API after saving.
         Chat currently requires Anthropic as active provider.
       </p>
@@ -290,10 +292,10 @@ function FontSizeSection() {
   }
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-3">
+    <div className="bg-surface-card border border-border-subtle rounded-lg p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-zinc-300">Font Size</p>
-        <span className="text-xs text-zinc-500">{FONT_SIZE_LABELS[size]}</span>
+        <p className="text-sm text-text-secondary">Font Size</p>
+        <span className="text-xs text-text-muted">{FONT_SIZE_LABELS[size]}</span>
       </div>
       <input
         type="range"
@@ -304,10 +306,55 @@ function FontSizeSection() {
         onChange={e => apply(FONT_SIZES[Number(e.target.value)])}
         className="w-full accent-indigo-500 cursor-pointer h-1.5"
       />
-      <div className="flex justify-between text-2xs text-zinc-500 select-none">
+      <div className="flex justify-between text-2xs text-text-muted select-none">
         <span>Small</span>
         <span>Medium</span>
         <span>Large</span>
+      </div>
+    </div>
+  )
+}
+
+const THEME_ICONS: Record<Theme, React.ReactNode> = {
+  dark:  <Moon size={14} strokeWidth={1.75} />,
+  light: <Sun  size={14} strokeWidth={1.75} />,
+}
+
+function ThemeSection() {
+  const [theme, setTheme] = useState<Theme>('dark')
+
+  useEffect(() => {
+    const stored = localStorage.getItem(THEME_KEY)
+    setTheme(isValidTheme(stored) ? stored : 'dark')
+  }, [])
+
+  const apply = (t: Theme) => {
+    setTheme(t)
+    localStorage.setItem(THEME_KEY, t)
+    applyTheme(t)
+  }
+
+  return (
+    <div className="bg-surface-card border border-border-subtle rounded-lg p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-text-secondary">Theme</p>
+        <span className="text-xs text-text-muted capitalize">{theme}</span>
+      </div>
+      <div className="flex gap-2">
+        {THEMES.map(t => (
+          <button
+            key={t}
+            onClick={() => apply(t)}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-sm font-medium transition-colors capitalize ${
+              theme === t
+                ? 'bg-indigo-600 text-white'
+                : 'bg-surface-raised text-text-secondary hover:text-text-primary hover:bg-surface-overlay'
+            }`}
+          >
+            {THEME_ICONS[t]}
+            {t}
+          </button>
+        ))}
       </div>
     </div>
   )
@@ -358,23 +405,23 @@ function FolderPicker({
   useEffect(() => { setBrowsePath(value) }, [value])
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-3">
+    <div className="bg-surface-card border border-border-subtle rounded-lg p-4 space-y-3">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-zinc-200">{label}</p>
-          <p className="text-xs text-zinc-500 mt-0.5">{hint}</p>
+          <p className="text-sm font-medium text-text-secondary">{label}</p>
+          <p className="text-xs text-text-muted mt-0.5">{hint}</p>
         </div>
         {status && <span className="text-xs text-green-400 shrink-0">{status}</span>}
       </div>
 
       {/* Current value display */}
       <div className="flex gap-2">
-        <code className="flex-1 text-xs bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-zinc-300 truncate">
+        <code className="flex-1 text-xs bg-surface-raised border border-border-default rounded px-3 py-2 text-text-secondary truncate">
           {value || '—'}
         </code>
         <button
           onClick={() => { setBrowsing(b => !b); if (!browsing) browse(value || '/') }}
-          className="text-xs px-3 py-2 bg-zinc-700 hover:bg-zinc-600 rounded"
+          className="text-xs px-3 py-2 bg-surface-overlay hover:bg-surface-overlay rounded"
         >
           {browsing ? 'Close' : 'Browse'}
         </button>
@@ -382,18 +429,18 @@ function FolderPicker({
 
       {/* Browser panel */}
       {browsing && (
-        <div className="border border-zinc-700 rounded-lg overflow-hidden">
+        <div className="border border-border-default rounded-lg overflow-hidden">
           {/* Path input + nav */}
-          <div className="flex gap-1 p-2 bg-zinc-800 border-b border-zinc-700">
+          <div className="flex gap-1 p-2 bg-surface-raised border-b border-border-default">
             <input
               value={browsePath}
               onChange={e => setBrowsePath(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && browse(browsePath)}
-              className="flex-1 text-xs bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-zinc-200 font-mono"
+              className="flex-1 text-xs bg-surface-card border border-border-default rounded px-2 py-1 text-text-secondary font-mono"
             />
-            <button onClick={() => browse(browsePath)} className="text-xs px-2 py-1 bg-zinc-700 hover:bg-zinc-600 rounded">Go</button>
+            <button onClick={() => browse(browsePath)} className="text-xs px-2 py-1 bg-surface-overlay hover:bg-surface-overlay rounded">Go</button>
             {fs?.parent && fs.parent !== fs.path && (
-              <button onClick={() => browse(fs.parent)} className="text-xs px-2 py-1 bg-zinc-700 hover:bg-zinc-600 rounded">↑ Up</button>
+              <button onClick={() => browse(fs.parent)} className="text-xs px-2 py-1 bg-surface-overlay hover:bg-surface-overlay rounded">↑ Up</button>
             )}
           </div>
 
@@ -403,13 +450,13 @@ function FolderPicker({
               <p className="text-xs text-red-400 px-3 py-2">{fs.error}</p>
             )}
             {!fs?.error && fs?.dirs.length === 0 && (
-              <p className="text-xs text-zinc-500 px-3 py-3">No subdirectories</p>
+              <p className="text-xs text-text-muted px-3 py-3">No subdirectories</p>
             )}
             {fs?.dirs.map(d => (
               <button
                 key={d}
                 onClick={() => browse(`${fs.path}/${d}`)}
-                className="w-full text-left text-xs px-3 py-1.5 hover:bg-zinc-700 text-zinc-300 font-mono border-b border-zinc-800 last:border-0"
+                className="w-full text-left text-xs px-3 py-1.5 hover:bg-surface-overlay text-text-secondary font-mono border-b border-border-subtle last:border-0"
               >
                 📁 {d}
               </button>
@@ -417,8 +464,8 @@ function FolderPicker({
           </div>
 
           {/* Footer stats + actions */}
-          <div className="flex items-center justify-between gap-2 p-2 bg-zinc-800 border-t border-zinc-700">
-            <span className="text-xs text-zinc-500">
+          <div className="flex items-center justify-between gap-2 p-2 bg-surface-raised border-t border-border-default">
+            <span className="text-xs text-text-muted">
               {fs && !fs.error
                 ? `${fs.md_count} .md · ${fs.docx_count} .docx`
                 : ''}
@@ -427,7 +474,7 @@ function FolderPicker({
               <button
                 onClick={create}
                 disabled={creating}
-                className="text-xs px-2 py-1 bg-zinc-600 hover:bg-zinc-500 rounded disabled:opacity-40"
+                className="text-xs px-2 py-1 bg-surface-overlay hover:bg-surface-overlay rounded disabled:opacity-40"
               >
                 {creating ? 'Creating…' : '+ Create folder'}
               </button>
@@ -531,12 +578,13 @@ export default function SettingsPage() {
       </div>
 
       <div className="space-y-3">
-        <h2 className="text-xs font-semibold text-zinc-500 uppercase">Appearance</h2>
+        <h2 className="text-xs font-semibold text-text-muted uppercase">Appearance</h2>
+        <ThemeSection />
         <FontSizeSection />
       </div>
 
       <div className="space-y-3">
-        <h2 className="text-xs font-semibold text-zinc-500 uppercase">Folder Paths</h2>
+        <h2 className="text-xs font-semibold text-text-muted uppercase">Folder Paths</h2>
 
         {settings.is_cloud && isIosSafari && (
           <div className="rounded-lg bg-amber-950/20 border border-amber-700/50 px-4 py-3 text-sm text-amber-300">
@@ -578,7 +626,7 @@ export default function SettingsPage() {
               onSelect={name => name && save({ outreach_path: name })}
             />
 
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-text-muted">
               Folder access is managed via your browser. Grant access once — the browser remembers it across page reloads.
             </p>
           </>
@@ -618,29 +666,29 @@ export default function SettingsPage() {
       </div>
 
       <div data-tour="ai-settings" className="space-y-3">
-        <h2 className="text-xs font-semibold text-zinc-500 uppercase">AI Provider</h2>
+        <h2 className="text-xs font-semibold text-text-muted uppercase">AI Provider</h2>
         <AIProviderSection />
       </div>
 
       {!settings.is_cloud && (
         <div className="space-y-2">
-          <h2 className="text-xs font-semibold text-zinc-500 uppercase">Status</h2>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-2 text-sm">
+          <h2 className="text-xs font-semibold text-text-muted uppercase">Status</h2>
+          <div className="bg-surface-card border border-border-subtle rounded-lg p-4 space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-zinc-400">Jobs folder</span>
+              <span className="text-text-secondary">Jobs folder</span>
               <span className={settings.jobs_path_exists ? 'text-green-400' : 'text-red-400'}>
                 {settings.jobs_path_exists ? '✓ found' : '✗ not found'}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-zinc-400">Output folder</span>
+              <span className="text-text-secondary">Output folder</span>
               <span className={settings.output_path_exists ? 'text-green-400' : 'text-amber-400'}>
                 {settings.output_path_exists ? '✓ found' : '⚠ will be created on first build'}
               </span>
             </div>
             {settings.outreach_path && (
               <div className="flex justify-between">
-                <span className="text-zinc-400">Outreach folder</span>
+                <span className="text-text-secondary">Outreach folder</span>
                 <span className={settings.outreach_path_exists ? 'text-green-400' : 'text-red-400'}>
                   {settings.outreach_path_exists ? '✓ found' : '✗ not found'}
                 </span>
@@ -650,17 +698,17 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <p className="text-xs text-zinc-400">
+      <p className="text-xs text-text-secondary">
         Paths are stored in the database and override <code>.env.local</code> values.
         In Docker, use container-side paths (e.g. <code>/jobs</code>, <code>/output</code>).
       </p>
 
       <div className="space-y-3">
-        <h2 className="text-xs font-semibold text-zinc-500 uppercase">Integrations</h2>
+        <h2 className="text-xs font-semibold text-text-muted uppercase">Integrations</h2>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-zinc-300">
+          <label className="text-sm font-medium text-text-secondary">
             Firecrawl API Key
-            <span className="ml-2 text-xs text-zinc-500">(optional — richer URL scraping)</span>
+            <span className="ml-2 text-xs text-text-muted">(optional — richer URL scraping)</span>
           </label>
           <div className="flex gap-2 items-center">
             <input
@@ -669,7 +717,7 @@ export default function SettingsPage() {
               onChange={e => setNewFirecrawlKey(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && void saveFirecrawlKey()}
               placeholder={settings.firecrawl_configured ? 'key saved — paste new key to replace' : 'fc-...'}
-              className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-sm text-zinc-200 font-mono"
+              className="flex-1 bg-surface-raised border border-border-default rounded px-3 py-1.5 text-sm text-text-secondary font-mono"
             />
             {firecrawlStatus && (
               <span className="text-xs text-green-400 shrink-0">{firecrawlStatus}</span>
@@ -682,7 +730,7 @@ export default function SettingsPage() {
               {firecrawlSaving ? 'Saving…' : 'Save'}
             </button>
           </div>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-text-muted">
             Get a key at firecrawl.dev. Without a key, URL ingestion uses basic HTML fetch.
           </p>
         </div>

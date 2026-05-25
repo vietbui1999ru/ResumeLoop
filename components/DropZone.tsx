@@ -53,7 +53,7 @@ export function DropZone({ onDrop, onClickUpload }: DropZoneProps) {
         transition-colors duration-150
         ${isDragOver
           ? 'border-indigo-500 bg-indigo-950/30'
-          : 'border-zinc-700 hover:border-zinc-500'
+          : 'border-border-default hover:border-border-strong'
         }
       `}>
         <div className={`
@@ -67,10 +67,10 @@ export function DropZone({ onDrop, onClickUpload }: DropZoneProps) {
           {isDragOver ? '⬇' : '📋'}
         </div>
         <div className="space-y-1">
-          <p className="text-zinc-300 text-sm font-medium">
+          <p className="text-text-secondary text-sm font-medium">
             {isDragOver ? 'Drop to import' : 'No jobs yet'}
           </p>
-          <p className="text-zinc-500 text-xs leading-relaxed">
+          <p className="text-text-muted text-xs leading-relaxed">
             {isDragOver
               ? 'Release to upload .md files'
               : 'Drag & drop .md files here, or click to select. In Chrome/Edge, connect a Jobs folder in Settings to scan automatically.'

@@ -8,7 +8,7 @@ import { MAX_BULLET_CHARS as MAX_BULLET, AMBER_BULLET_CHARS, COPY_FLASH_MS } fro
 export function charColor(len: number): string {
   if (len > MAX_BULLET) return 'border-red-500 text-red-300 bg-red-950/20'
   if (len > AMBER_BULLET_CHARS) return 'border-amber-500 text-amber-200 bg-amber-950/10'
-  return 'border-zinc-700 text-zinc-300'
+  return 'border-border-default text-text-secondary'
 }
 
 type Tab = 'rendered' | 'markdown' | 'json'
@@ -120,7 +120,7 @@ export function BulletsPreview({
   return (
     <div className="flex flex-col h-full" data-testid="bullets-preview">
       {/* Tab bar */}
-      <div className="flex border-b border-zinc-800 shrink-0" role="tablist" aria-label="Bullets view">
+      <div className="flex border-b border-border-subtle shrink-0" role="tablist" aria-label="Bullets view">
         {tabs.map(t => (
           <button
             key={t.id}
@@ -131,7 +131,7 @@ export function BulletsPreview({
             className={`px-3 py-1.5 text-xs font-mono transition-colors ${
               tab === t.id
                 ? 'text-indigo-300 border-b-2 border-indigo-400 -mb-px'
-                : 'text-zinc-500 hover:text-zinc-300'
+                : 'text-text-muted hover:text-text-secondary'
             }`}
           >
             {t.label}
@@ -143,20 +143,20 @@ export function BulletsPreview({
       {tab === 'rendered' && (
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-5 text-xs font-mono">
           {!parsed && (
-            <div className="flex-1 flex items-center justify-center text-zinc-400 text-xs font-mono px-4">
+            <div className="flex-1 flex items-center justify-center text-text-secondary text-xs font-mono px-4">
               {json ? 'Invalid JSON — fix syntax errors to see preview' : 'No profile loaded'}
             </div>
           )}
 
           {parsed && experience.length === 0 && projects.length === 0 && skillRows.length === 0 && (
-            <div className="text-zinc-400 text-xs font-mono px-4">
+            <div className="text-text-secondary text-xs font-mono px-4">
               No entries found. Expected: experience[], projects[], skills[]
             </div>
           )}
 
           {experience.length > 0 && (
             <section>
-              <p className="text-zinc-500 uppercase tracking-widest text-2xs mb-2">Work</p>
+              <p className="text-text-muted uppercase tracking-widest text-2xs mb-2">Work</p>
               {experience.map((exp, ei) => (
                 <div key={exp.id} className="mb-3">
                   <p
@@ -165,13 +165,13 @@ export function BulletsPreview({
                   >{exp.id}</p>
                   {Object.entries(exp.bullets).map(([variant, bullets]) => (
                     <div key={variant} className="mb-2 ml-2">
-                      <p className="text-zinc-400 text-2xs mb-1">[{variant}]</p>
+                      <p className="text-text-secondary text-2xs mb-1">[{variant}]</p>
                       {(bullets as string[]).map((b, bi) => {
                         const len = b.length
                         return (
                           <div key={bi} className={itemCls(len)} onClick={() => onJump?.(`/experience/${ei}/bullets/${variant}/${bi}`)}>
                             <span className="flex-1 leading-relaxed">{b}</span>
-                            <span className={`shrink-0 tabular-nums text-2xs ${len > MAX_BULLET ? 'text-red-400 font-bold' : len > AMBER_BULLET_CHARS ? 'text-amber-500' : 'text-zinc-400'}`}>{len}</span>
+                            <span className={`shrink-0 tabular-nums text-2xs ${len > MAX_BULLET ? 'text-red-400 font-bold' : len > AMBER_BULLET_CHARS ? 'text-amber-500' : 'text-text-secondary'}`}>{len}</span>
                           </div>
                         )
                       })}
@@ -184,7 +184,7 @@ export function BulletsPreview({
 
           {projects.length > 0 && (
             <section>
-              <p className="text-zinc-500 uppercase tracking-widest text-2xs mb-2">Projects</p>
+              <p className="text-text-muted uppercase tracking-widest text-2xs mb-2">Projects</p>
               {projects.map((proj, pi) => (
                 <div key={proj.id} className="mb-3">
                   <p
@@ -196,7 +196,7 @@ export function BulletsPreview({
                     return (
                       <div key={bi} className={itemCls(len)} onClick={() => onJump?.(`/projects/${pi}/bullets/${bi}`)}>
                         <span className="flex-1 leading-relaxed">{b}</span>
-                        <span className={`shrink-0 tabular-nums text-2xs ${len > MAX_BULLET ? 'text-red-400 font-bold' : len > AMBER_BULLET_CHARS ? 'text-amber-500' : 'text-zinc-400'}`}>{len}</span>
+                        <span className={`shrink-0 tabular-nums text-2xs ${len > MAX_BULLET ? 'text-red-400 font-bold' : len > AMBER_BULLET_CHARS ? 'text-amber-500' : 'text-text-secondary'}`}>{len}</span>
                       </div>
                     )
                   })}
@@ -207,21 +207,21 @@ export function BulletsPreview({
 
           {skillRows.length > 0 && (
             <section>
-              <p className="text-zinc-500 uppercase tracking-widest text-2xs mb-2">Skills</p>
+              <p className="text-text-muted uppercase tracking-widest text-2xs mb-2">Skills</p>
               {skillRows.map((row, si) => (
                 <div key={si} className={`flex items-start gap-2 border-l-2 pl-2 py-0.5 mb-0.5 ${charColor(row.value.length)}`}>
                   <span className="flex-1 leading-relaxed">
-                    {row.variant && <span className="text-zinc-500 mr-1">[{row.variant}]</span>}
-                    <span className="text-zinc-400 mr-1">{row.label}:</span>
+                    {row.variant && <span className="text-text-muted mr-1">[{row.variant}]</span>}
+                    <span className="text-text-secondary mr-1">{row.label}:</span>
                     {row.value}
                   </span>
-                  <span className="shrink-0 text-zinc-400 text-2xs">{row.value.length}</span>
+                  <span className="shrink-0 text-text-secondary text-2xs">{row.value.length}</span>
                 </div>
               ))}
             </section>
           )}
 
-          <p className="text-zinc-500 text-2xs pt-2 border-t border-zinc-800">
+          <p className="text-text-muted text-2xs pt-2 border-t border-border-subtle">
             ● {MAX_BULLET} char max · red = over · amber = 100–116
           </p>
         </div>
@@ -229,8 +229,8 @@ export function BulletsPreview({
 
       {/* Markdown tab */}
       {tab === 'markdown' && (
-        <div className="flex-1 overflow-y-auto px-4 py-4 text-xs font-mono text-zinc-300 whitespace-pre-wrap" data-testid="markdown-content">
-          {toBulletsMarkdown(json) || <span className="text-zinc-500">No bullets to display</span>}
+        <div className="flex-1 overflow-y-auto px-4 py-4 text-xs font-mono text-text-secondary whitespace-pre-wrap" data-testid="markdown-content">
+          {toBulletsMarkdown(json) || <span className="text-text-muted">No bullets to display</span>}
         </div>
       )}
 
@@ -239,7 +239,7 @@ export function BulletsPreview({
         <div className="flex flex-col flex-1 min-h-0 px-4 py-4 gap-2">
           <textarea
             data-testid="json-textarea"
-            className="flex-1 resize-none bg-zinc-900 border border-zinc-700 rounded text-xs font-mono text-zinc-200 p-2 focus:outline-none focus:border-indigo-500"
+            className="flex-1 resize-none bg-surface-card border border-border-default rounded text-xs font-mono text-text-primary p-2 focus:outline-none focus:border-indigo-500"
             value={draft}
             onChange={e => {
               setDraft(e.target.value)
@@ -264,7 +264,7 @@ export function BulletsPreview({
               flashOk
                 ? 'bg-green-700 text-green-100'
                 : saving
-                ? 'bg-zinc-700 text-zinc-400 cursor-not-allowed'
+                ? 'bg-surface-overlay text-text-muted cursor-not-allowed'
                 : 'bg-indigo-700 hover:bg-indigo-600 text-white'
             } disabled:opacity-50`}
           >

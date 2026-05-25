@@ -25,12 +25,12 @@ function SkillChip({ id, label, vals, isVertical }: { id: string; label: string;
       style={style}
       {...attributes}
       {...listeners}
-      className={`cursor-grab active:cursor-grabbing px-3 py-1.5 rounded-lg border border-zinc-700 bg-zinc-900 flex-shrink-0 
+      className={`cursor-grab active:cursor-grabbing px-3 py-1.5 rounded-lg border border-border-default bg-surface-card flex-shrink-0
                    transition-all ${isDragging ? 'opacity-50 scale-95' : 'opacity-100'} ${isVertical ? 'w-full' : ''}`}
       title={vals.join(', ')}
     >
-      <span className="text-xs font-medium text-zinc-300">{label}:</span>
-      <span className="text-xs text-zinc-500 ml-1">{vals.slice(0, 3).join(' · ')}{vals.length > 3 ? '…' : ''}</span>
+      <span className="text-xs font-medium text-text-secondary">{label}:</span>
+      <span className="text-xs text-text-muted ml-1">{vals.slice(0, 3).join(' · ')}{vals.length > 3 ? '…' : ''}</span>
     </div>
   )
 }

@@ -5,7 +5,7 @@ export function JobsTableSkeleton() {
   return (
     <table className="w-full text-sm">
       <thead>
-        <tr className="text-left border-b border-zinc-800">
+        <tr className="text-left border-b border-border-subtle">
           <th className="pb-2 pr-3 w-8"><Skeleton className="h-3 w-4" /></th>
           <th className="pb-2 pr-4"><Skeleton className="h-3 w-20" /></th>
           <th className="pb-2 pr-4"><Skeleton className="h-3 w-24" /></th>
@@ -18,7 +18,7 @@ export function JobsTableSkeleton() {
       </thead>
       <tbody>
         {Array.from({ length: 8 }).map((_, i) => (
-          <tr key={i} className="border-b border-zinc-800/50">
+          <tr key={i} className="border-b border-border-subtle/50">
             <td className="py-3 pr-3"><Skeleton className="h-4 w-4" /></td>
             <td className="py-3 pr-4"><Skeleton className="h-4 w-28" /></td>
             <td className="py-3 pr-4">

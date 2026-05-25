@@ -79,9 +79,9 @@ function DiffView({ current, backup, onRestore, onClose }: {
   const collapsed = collapseContext(lines)
   const hasChanges = lines.some(l => l.type !== 'same')
   return (
-    <div className="mt-3 border border-zinc-700 rounded bg-zinc-900">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-700">
-        <span className="text-xs text-zinc-400 font-mono">
+    <div className="mt-3 border border-border-default rounded bg-surface-card">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border-default">
+        <span className="text-xs text-text-secondary font-mono">
           {hasChanges
             ? `${lines.filter(l => l.type === 'del').length} removed · ${lines.filter(l => l.type === 'add').length} restored`
             : 'No differences'}
@@ -98,20 +98,20 @@ function DiffView({ current, backup, onRestore, onClose }: {
               <button onClick={() => { setConfirming(false); onRestore() }} className="text-xs px-2 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded">
                 Yes, restore
               </button>
-              <button onClick={() => setConfirming(false)} className="text-xs px-2 py-1 text-zinc-500 hover:text-zinc-300">
+              <button onClick={() => setConfirming(false)} className="text-xs px-2 py-1 text-text-muted hover:text-text-secondary">
                 Cancel
               </button>
             </>
           )}
           {!confirming && (
-            <button onClick={onClose} className="text-xs px-2 py-1 text-zinc-500 hover:text-zinc-300">Close</button>
+            <button onClick={onClose} className="text-xs px-2 py-1 text-text-muted hover:text-text-secondary">Close</button>
           )}
         </div>
       </div>
       <pre className="overflow-auto max-h-80 text-xs font-mono p-2 leading-5">
         {collapsed.map((l, idx) => {
-          if (l.type === 'ellipsis') return <div key={idx} className="text-zinc-400 px-1 select-none">··· {l.count} unchanged {l.count === 1 ? 'line' : 'lines'} ···</div>
-          const colors: Record<string, string> = { same: 'text-zinc-500', del: 'bg-red-950/60 text-red-300', add: 'bg-green-950/60 text-green-300' }
+          if (l.type === 'ellipsis') return <div key={idx} className="text-text-secondary px-1 select-none">··· {l.count} unchanged {l.count === 1 ? 'line' : 'lines'} ···</div>
+          const colors: Record<string, string> = { same: 'text-text-muted', del: 'bg-red-950/60 text-red-300', add: 'bg-green-950/60 text-green-300' }
           const prefix = l.type === 'del' ? '− ' : l.type === 'add' ? '+ ' : '  '
           return <div key={idx} className={`px-1 whitespace-pre ${colors[l.type]}`}>{prefix}{l.text}</div>
         })}
@@ -141,10 +141,10 @@ interface CandidateProfile {
 function ListField({ label, items, onChange, placeholder }: {
   label: string; items: string[]; onChange: (v: string[]) => void; placeholder?: string
 }) {
-  const inputCls = 'flex-1 bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-300 focus:outline-none focus:border-indigo-500 font-mono'
+  const inputCls = 'flex-1 bg-surface-base border border-border-default rounded px-2 py-1 text-xs text-text-secondary focus:outline-none focus:border-indigo-500 font-mono'
   return (
     <div className="space-y-1">
-      <label className="text-zinc-500 uppercase tracking-widest text-2xs">{label}</label>
+      <label className="text-text-muted uppercase tracking-widest text-2xs">{label}</label>
       <div className="space-y-1">
         {items.map((item, i) => (
           <div key={i} className="flex gap-1">
@@ -155,11 +155,11 @@ function ListField({ label, items, onChange, placeholder }: {
               className={inputCls}
             />
             <button onClick={() => onChange(items.filter((_, j) => j !== i))}
-              className="text-zinc-600 hover:text-red-400 px-1 text-xs">×</button>
+              className="text-text-muted hover:text-red-400 px-1 text-xs">×</button>
           </div>
         ))}
         <button onClick={() => onChange([...items, ''])}
-          className="text-2xs text-zinc-600 hover:text-zinc-400">+ add</button>
+          className="text-2xs text-text-muted hover:text-text-secondary">+ add</button>
       </div>
     </div>
   )
@@ -254,14 +254,14 @@ function CandidateProfileEditor({
   }
 
   const tabCls = (m: 'form' | 'ai') =>
-    `text-xs px-3 py-1 rounded-sm transition-colors ${mode === m ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'}`
+    `text-xs px-3 py-1 rounded-sm transition-colors ${mode === m ? 'bg-surface-overlay text-text-primary' : 'text-text-muted hover:text-text-secondary'}`
 
-  const fieldCls = 'w-full bg-zinc-950 border border-zinc-700 rounded px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-indigo-500 resize-none font-mono'
+  const fieldCls = 'w-full bg-surface-base border border-border-default rounded px-2 py-1.5 text-xs text-text-secondary focus:outline-none focus:border-indigo-500 resize-none font-mono'
 
   return (
-    <div className="border border-indigo-700/60 rounded-lg overflow-hidden bg-zinc-950">
+    <div className="border border-indigo-700/60 rounded-lg overflow-hidden bg-surface-base">
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800/80 border-b border-zinc-700">
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-raised/80 border-b border-border-default">
         <span className="text-2xs text-indigo-400 uppercase tracking-widest font-mono">candidate_profile</span>
         <div className="ml-2 flex gap-1">
           <button className={tabCls('form')} onClick={() => setMode('form')}>Form</button>
@@ -272,7 +272,7 @@ function CandidateProfileEditor({
             <button onClick={() => onApply(buildFromForm())}
               className="text-xs px-2 py-1 bg-indigo-600 hover:bg-indigo-500 rounded">Apply</button>
           )}
-          <button onClick={onClose} className="text-xs text-zinc-500 hover:text-zinc-300">Cancel</button>
+          <button onClick={onClose} className="text-xs text-text-muted hover:text-text-secondary">Cancel</button>
         </div>
       </div>
 
@@ -280,7 +280,7 @@ function CandidateProfileEditor({
       {mode === 'form' && (
         <div className="p-3 grid grid-cols-2 gap-3 text-xs">
           <div className="col-span-2 space-y-1">
-            <label className="text-zinc-500 uppercase tracking-widest text-2xs">Narrative</label>
+            <label className="text-text-muted uppercase tracking-widest text-2xs">Narrative</label>
             <textarea rows={3} value={narrative} onChange={e => setNarrative(e.target.value)}
               placeholder="2–3 sentence professional summary" className={fieldCls} />
           </div>
@@ -288,10 +288,10 @@ function CandidateProfileEditor({
           <ListField label="Known gaps"    items={knownGaps}    onChange={setKnownGaps}    placeholder="Limited enterprise Java" />
           <ListField label="Not this"      items={notThis}      onChange={setNotThis}       placeholder="Do not pitch as PM" />
           <div className="space-y-1">
-            <label className="text-zinc-500 uppercase tracking-widest text-2xs">Work auth</label>
+            <label className="text-text-muted uppercase tracking-widest text-2xs">Work auth</label>
             <input type="text" value={authUrgency} onChange={e => setAuthUrgency(e.target.value)}
               placeholder="Authorized to work in the US."
-              className="w-full bg-zinc-950 border border-zinc-700 rounded px-2 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-indigo-500 font-mono" />
+              className="w-full bg-surface-base border border-border-default rounded px-2 py-1.5 text-xs text-text-secondary focus:outline-none focus:border-indigo-500 font-mono" />
           </div>
           <ListField label="Primary roles"   items={primaryRoles}   onChange={setPrimaryRoles}   placeholder="Software Engineer (Full-Stack)" />
           <ListField label="Secondary roles" items={secondaryRoles} onChange={setSecondaryRoles} placeholder="SRE / DevOps Engineer" />
@@ -302,7 +302,7 @@ function CandidateProfileEditor({
       {/* AI Generate mode */}
       {mode === 'ai' && (
         <div className="p-3 space-y-3">
-          <p className="text-2xs text-zinc-500">Describe yourself: background, skills, target roles, constraints. The AI will generate the full profile structure.</p>
+          <p className="text-2xs text-text-muted">Describe yourself: background, skills, target roles, constraints. The AI will generate the full profile structure.</p>
           <textarea
             rows={6}
             value={aiPrompt}
@@ -316,40 +316,40 @@ function CandidateProfileEditor({
               {aiLoading ? 'Generating…' : 'Generate'}
             </button>
             {aiLoading && (
-              <button onClick={cancelGenerate} className="text-xs px-2 py-1.5 text-zinc-500 hover:text-zinc-300">Cancel</button>
+              <button onClick={cancelGenerate} className="text-xs px-2 py-1.5 text-text-muted hover:text-text-secondary">Cancel</button>
             )}
             {aiError && <span className="text-xs text-red-400">{aiError}</span>}
           </div>
 
           {aiPreview && (
-            <div className="border border-zinc-700 rounded p-3 space-y-2">
-              <p className="text-2xs text-zinc-400 uppercase tracking-widest">Preview — switch to Form to tweak before applying</p>
-              {aiPreview.narrative && <p className="text-xs text-zinc-300 leading-relaxed">{aiPreview.narrative}</p>}
+            <div className="border border-border-default rounded p-3 space-y-2">
+              <p className="text-2xs text-text-secondary uppercase tracking-widest">Preview — switch to Form to tweak before applying</p>
+              {aiPreview.narrative && <p className="text-xs text-text-secondary leading-relaxed">{aiPreview.narrative}</p>}
               <div className="grid grid-cols-3 gap-3 text-2xs">
                 <div>
                   <p className="text-green-500 mb-1 uppercase tracking-widest">Portrays well</p>
-                  {(aiPreview.self_assessment?.portrays_well ?? []).map((s, i) => <p key={i} className="text-zinc-400">· {s}</p>)}
+                  {(aiPreview.self_assessment?.portrays_well ?? []).map((s, i) => <p key={i} className="text-text-secondary">· {s}</p>)}
                 </div>
                 <div>
                   <p className="text-amber-500 mb-1 uppercase tracking-widest">Known gaps</p>
-                  {(aiPreview.self_assessment?.known_gaps ?? []).map((s, i) => <p key={i} className="text-zinc-400">· {s}</p>)}
+                  {(aiPreview.self_assessment?.known_gaps ?? []).map((s, i) => <p key={i} className="text-text-secondary">· {s}</p>)}
                 </div>
                 <div>
                   <p className="text-red-500 mb-1 uppercase tracking-widest">Not this</p>
-                  {(aiPreview.self_assessment?.not_this ?? []).map((s, i) => <p key={i} className="text-zinc-400">· {s}</p>)}
+                  {(aiPreview.self_assessment?.not_this ?? []).map((s, i) => <p key={i} className="text-text-secondary">· {s}</p>)}
                 </div>
               </div>
               {(aiPreview.target_posture?.primary_roles?.length ?? 0) > 0 && (
-                <p className="text-2xs text-zinc-500">Primary: {aiPreview.target_posture!.primary_roles!.join(', ')}</p>
+                <p className="text-2xs text-text-muted">Primary: {aiPreview.target_posture!.primary_roles!.join(', ')}</p>
               )}
               {(aiPreview.target_posture?.secondary_roles?.length ?? 0) > 0 && (
-                <p className="text-2xs text-zinc-500">Secondary: {aiPreview.target_posture!.secondary_roles!.join(', ')}</p>
+                <p className="text-2xs text-text-muted">Secondary: {aiPreview.target_posture!.secondary_roles!.join(', ')}</p>
               )}
               {aiPreview.target_posture?.auth_urgency && (
-                <p className="text-2xs text-zinc-500">Auth: {aiPreview.target_posture.auth_urgency}</p>
+                <p className="text-2xs text-text-muted">Auth: {aiPreview.target_posture.auth_urgency}</p>
               )}
               {(aiPreview.target_posture?.constraints?.length ?? 0) > 0 && (
-                <p className="text-2xs text-zinc-500">Constraints: {aiPreview.target_posture!.constraints!.join(', ')}</p>
+                <p className="text-2xs text-text-muted">Constraints: {aiPreview.target_posture!.constraints!.join(', ')}</p>
               )}
               <button onClick={applyAiPreview}
                 className="text-xs px-3 py-1.5 bg-green-700 hover:bg-green-600 rounded text-white">
@@ -408,16 +408,16 @@ function BackupPanel({ file, currentContent, onRestored }: {
   const fmtTs = (ts: string) => ts.replace('T', ' ').replace(/-(\d{2})-(\d{2})$/, ':$1:$2')
 
   return (
-    <div className="border border-zinc-800 rounded-lg bg-zinc-950 p-3 space-y-1">
+    <div className="border border-border-subtle rounded-lg bg-surface-base p-3 space-y-1">
       {status && <p className="text-xs text-amber-400 mb-2">{status}</p>}
-      <p className="text-xs text-zinc-400 mb-2">Click a backup to diff. Restore saves current first.</p>
-      {loading && <p className="text-xs text-zinc-400">Loading…</p>}
-      {!loading && backups.length === 0 && <p className="text-xs text-zinc-400">No backups yet.</p>}
+      <p className="text-xs text-text-secondary mb-2">Click a backup to diff. Restore saves current first.</p>
+      {loading && <p className="text-xs text-text-secondary">Loading…</p>}
+      {!loading && backups.length === 0 && <p className="text-xs text-text-secondary">No backups yet.</p>}
       {backups.map(bak => (
         <div key={bak.name}>
           <button
             onClick={() => void viewDiff(bak)}
-            className={`w-full text-left text-xs px-2 py-1.5 rounded font-mono transition-colors ${diffTarget?.name === bak.name ? 'bg-zinc-700 text-zinc-200' : 'hover:bg-zinc-800 text-zinc-400'}`}
+            className={`w-full text-left text-xs px-2 py-1.5 rounded font-mono transition-colors ${diffTarget?.name === bak.name ? 'bg-surface-overlay text-text-secondary' : 'hover:bg-surface-raised text-text-secondary'}`}
           >
             {fmtTs(bak.ts)}
           </button>
@@ -431,7 +431,7 @@ function BackupPanel({ file, currentContent, onRestored }: {
           )}
         </div>
       ))}
-      {restoring && <p className="text-xs text-zinc-500 mt-1">Restoring…</p>}
+      {restoring && <p className="text-xs text-text-muted mt-1">Restoring…</p>}
     </div>
   )
 }
@@ -448,9 +448,9 @@ function CandidateProfileCard({ json, onEdit }: { json: string; onEdit?: () => v
   if (!profile) return null
 
   return (
-    <div className="border border-zinc-700 rounded-lg bg-zinc-900/60 p-4 space-y-4 text-xs font-mono">
+    <div className="border border-border-default rounded-lg bg-surface-card/60 p-4 space-y-4 text-xs font-mono">
       <div className="flex items-center justify-between">
-        <span className="text-2xs text-zinc-500 uppercase tracking-widest">Candidate Profile</span>
+        <span className="text-2xs text-text-muted uppercase tracking-widest">Candidate Profile</span>
         <button
           onClick={onEdit}
           className="text-2xs text-indigo-500 hover:text-indigo-300"
@@ -460,7 +460,7 @@ function CandidateProfileCard({ json, onEdit }: { json: string; onEdit?: () => v
       </div>
 
       {profile.narrative && (
-        <p className="text-zinc-300 leading-relaxed text-[0.6875rem]">{profile.narrative}</p>
+        <p className="text-text-secondary leading-relaxed text-[0.6875rem]">{profile.narrative}</p>
       )}
 
       <div className="grid grid-cols-3 gap-4">
@@ -468,7 +468,7 @@ function CandidateProfileCard({ json, onEdit }: { json: string; onEdit?: () => v
           <div className="space-y-1">
             <p className="text-2xs text-green-500 uppercase tracking-widest mb-1">Portrays well</p>
             {profile.self_assessment.portrays_well.map((s, i) => (
-              <p key={i} className="text-zinc-400 leading-snug">· {s}</p>
+              <p key={i} className="text-text-secondary leading-snug">· {s}</p>
             ))}
           </div>
         )}
@@ -477,7 +477,7 @@ function CandidateProfileCard({ json, onEdit }: { json: string; onEdit?: () => v
           <div className="space-y-1">
             <p className="text-2xs text-amber-500 uppercase tracking-widest mb-1">Known gaps</p>
             {profile.self_assessment.known_gaps.map((s, i) => (
-              <p key={i} className="text-zinc-400 leading-snug">· {s}</p>
+              <p key={i} className="text-text-secondary leading-snug">· {s}</p>
             ))}
           </div>
         )}
@@ -486,24 +486,24 @@ function CandidateProfileCard({ json, onEdit }: { json: string; onEdit?: () => v
           <div className="space-y-1">
             <p className="text-2xs text-red-500 uppercase tracking-widest mb-1">Not this</p>
             {profile.self_assessment.not_this.map((s, i) => (
-              <p key={i} className="text-zinc-400 leading-snug">· {s}</p>
+              <p key={i} className="text-text-secondary leading-snug">· {s}</p>
             ))}
           </div>
         )}
       </div>
 
       {profile.target_posture && (
-        <div className="border-t border-zinc-800 pt-3 grid grid-cols-2 gap-4">
+        <div className="border-t border-border-subtle pt-3 grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <p className="text-2xs text-indigo-400 uppercase tracking-widest mb-1">Primary roles</p>
             {(profile.target_posture.primary_roles ?? []).map((r, i) => (
-              <p key={i} className="text-zinc-300">· {r}</p>
+              <p key={i} className="text-text-secondary">· {r}</p>
             ))}
             {(profile.target_posture.secondary_roles ?? []).length > 0 && (
               <>
-                <p className="text-2xs text-zinc-400 uppercase tracking-widest mt-2 mb-1">Secondary</p>
+                <p className="text-2xs text-text-secondary uppercase tracking-widest mt-2 mb-1">Secondary</p>
                 {profile.target_posture.secondary_roles!.map((r, i) => (
-                  <p key={i} className="text-zinc-500">· {r}</p>
+                  <p key={i} className="text-text-muted">· {r}</p>
                 ))}
               </>
             )}
@@ -511,15 +511,15 @@ function CandidateProfileCard({ json, onEdit }: { json: string; onEdit?: () => v
           <div className="space-y-2">
             {profile.target_posture.auth_urgency && (
               <div>
-                <p className="text-2xs text-zinc-500 uppercase tracking-widest mb-1">Work auth</p>
-                <p className="text-zinc-400 leading-snug">{profile.target_posture.auth_urgency}</p>
+                <p className="text-2xs text-text-muted uppercase tracking-widest mb-1">Work auth</p>
+                <p className="text-text-secondary leading-snug">{profile.target_posture.auth_urgency}</p>
               </div>
             )}
             {(profile.target_posture.constraints ?? []).length > 0 && (
               <div>
-                <p className="text-2xs text-zinc-500 uppercase tracking-widest mb-1">Constraints</p>
+                <p className="text-2xs text-text-muted uppercase tracking-widest mb-1">Constraints</p>
                 {profile.target_posture.constraints!.map((c, i) => (
-                  <p key={i} className="text-zinc-400 leading-snug">· {c}</p>
+                  <p key={i} className="text-text-secondary leading-snug">· {c}</p>
                 ))}
               </div>
             )}
@@ -676,13 +676,13 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h3 className="text-sm font-semibold text-zinc-300 font-mono">{profile.name}</h3>
+          <h3 className="text-sm font-semibold text-text-secondary font-mono">{profile.name}</h3>
         </div>
         <div className="flex items-center gap-2">
           {status && <span className={`text-xs ${status.startsWith('Error') ? 'text-red-400' : 'text-green-400'}`}>{status}</span>}
           <button
             onClick={() => setShowBackups(v => !v)}
-            className={`text-xs px-2 py-1 rounded border transition-colors ${showBackups ? 'border-amber-500 text-amber-400' : 'border-zinc-700 text-zinc-500 hover:text-zinc-300'}`}
+            className={`text-xs px-2 py-1 rounded border transition-colors ${showBackups ? 'border-amber-500 text-amber-400' : 'border-border-default text-text-muted hover:text-text-secondary'}`}
           >
             Backups
           </button>
@@ -716,16 +716,16 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
       )}
 
       {/* Tab switcher */}
-      <div className="flex gap-1 p-1 bg-zinc-900 rounded-lg w-fit">
+      <div className="flex gap-1 p-1 bg-surface-card rounded-lg w-fit">
         <button
           onClick={() => setConfigView('cards')}
-          className={`px-3 py-1.5 text-xs rounded-md transition-colors ${configView === 'cards' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}
+          className={`px-3 py-1.5 text-xs rounded-md transition-colors ${configView === 'cards' ? 'bg-indigo-600 text-white' : 'text-text-muted hover:text-text-primary'}`}
         >
           Cards
         </button>
         <button
           onClick={() => setConfigView('json')}
-          className={`px-3 py-1.5 text-xs rounded-md transition-colors ${configView === 'json' ? 'bg-indigo-600 text-white' : 'text-zinc-400 hover:text-zinc-200'}`}
+          className={`px-3 py-1.5 text-xs rounded-md transition-colors ${configView === 'json' ? 'bg-indigo-600 text-white' : 'text-text-muted hover:text-text-primary'}`}
         >
           JSON (Advanced)
         </button>
@@ -736,7 +736,7 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
         <div className="space-y-6">
           {(profileData.experience?.length ?? 0) > 0 && (
             <section>
-              <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-widest mb-3">Experience</h3>
+              <h3 className="text-xs font-medium text-text-muted uppercase tracking-widest mb-3">Experience</h3>
               <DndContext collisionDetection={closestCenter} onDragEnd={handleExperienceDragEnd}>
                 <SortableContext items={profileData.experience!.map(e => e.id)} strategy={verticalListSortingStrategy}>
                   <div className="space-y-2">
@@ -756,7 +756,7 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
 
           {(profileData.projects?.length ?? 0) > 0 && (
             <section>
-              <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-widest mb-3">Projects</h3>
+              <h3 className="text-xs font-medium text-text-muted uppercase tracking-widest mb-3">Projects</h3>
               <DndContext collisionDetection={closestCenter} onDragEnd={handleProjectDragEnd}>
                 <SortableContext items={profileData.projects!.map(p => p.id)} strategy={verticalListSortingStrategy}>
                   <div className="space-y-2">
@@ -776,13 +776,13 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
 
           {profileData.skills && Object.keys(profileData.skills).length > 0 && (
             <section>
-              <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-widest mb-3">Skills — drag to reorder</h3>
+              <h3 className="text-xs font-medium text-text-muted uppercase tracking-widest mb-3">Skills — drag to reorder</h3>
               <SkillsRow skills={profileData.skills} onChange={newSkills => { void handleSkillsReorder(newSkills) }} />
             </section>
           )}
 
           {!profileData.experience?.length && !profileData.projects?.length && !profileData.skills && (
-            <p className="text-sm text-zinc-500">
+            <p className="text-sm text-text-muted">
               No profile data yet. Switch to <button onClick={() => setConfigView('json')} className="text-indigo-400 underline">JSON tab</button> to add your resume data.
             </p>
           )}
@@ -800,12 +800,12 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
       )}
 
       {/* Two-panel editor (JSON tab only) */}
-      {configView === 'json' && <div className={`${ isDesktop ? "grid grid-cols-[3fr_2fr]" : "flex flex-col"} gap-0 border border-zinc-700 rounded-lg overflow-hidden`} style={{ height: isDesktop ? 520 : "auto" }}>
+      {configView === 'json' && <div className={`${ isDesktop ? "grid grid-cols-[3fr_2fr]" : "flex flex-col"} gap-0 border border-border-default rounded-lg overflow-hidden`} style={{ height: isDesktop ? 520 : "auto" }}>
         {/* Monaco */}
-        <div className="border-r border-zinc-700 flex flex-col min-h-0">
-          <div className="px-3 py-1.5 bg-zinc-800 border-b border-zinc-700 flex items-center gap-2 shrink-0">
-            <span className="text-2xs text-zinc-500 uppercase tracking-widest font-mono">Editor</span>
-            <span className="ml-auto text-2xs text-zinc-400 font-mono">JSON</span>
+        <div className="border-r border-border-default flex flex-col min-h-0">
+          <div className="px-3 py-1.5 bg-surface-raised border-b border-border-default flex items-center gap-2 shrink-0">
+            <span className="text-2xs text-text-muted uppercase tracking-widest font-mono">Editor</span>
+            <span className="ml-auto text-2xs text-text-secondary font-mono">JSON</span>
           </div>
           {loading ? (
             <div className="flex-1 p-4 space-y-2 overflow-hidden">
@@ -827,7 +827,7 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
                 value={draft}
                 onChange={e => setDraft(e.target.value)}
                 spellCheck={false}
-                className="flex-1 bg-zinc-950 text-zinc-300 text-xs font-mono p-3 resize-none focus:outline-none"
+                className="flex-1 bg-surface-base text-text-secondary text-xs font-mono p-3 resize-none focus:outline-none"
               />
             </div>
           ) : (
@@ -839,7 +839,7 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
               onChange={v => setDraft(v ?? '')}
               onMount={onProfileEditorMount}
               loading={
-                <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm">
+                <div className="flex-1 flex items-center justify-center text-text-muted text-sm">
                   Loading editor…
                 </div>
               }
@@ -862,14 +862,14 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
 
         {/* Mobile JSON viewer fallback */}
       {!isDesktop && configView === 'json' && (
-        <div className="border border-zinc-700 rounded-lg overflow-hidden bg-zinc-950">
-          <div className="px-3 py-2 bg-zinc-800 border-b border-zinc-700 flex items-center gap-2 shrink-0">
-            <span className="text-2xs text-zinc-500 uppercase tracking-widest font-mono">JSON (read-only)</span>
+        <div className="border border-border-default rounded-lg overflow-hidden bg-surface-base">
+          <div className="px-3 py-2 bg-surface-raised border-b border-border-default flex items-center gap-2 shrink-0">
+            <span className="text-2xs text-text-muted uppercase tracking-widest font-mono">JSON (read-only)</span>
           </div>
-          <div className="px-4 py-3 text-xs text-zinc-400 space-y-2 max-h-96 overflow-y-auto">
+          <div className="px-4 py-3 text-xs text-text-secondary space-y-2 max-h-96 overflow-y-auto">
             <p className="text-amber-400 font-medium">JSON editing unavailable on mobile</p>
             <p>Use <button onClick={() => setConfigView('cards')} className="text-indigo-400 underline">Cards view</button> for editing, or switch to a desktop browser.</p>
-            <pre className="mt-3 p-2 bg-zinc-900 rounded text-2xs overflow-x-auto whitespace-pre-wrap break-words">
+            <pre className="mt-3 p-2 bg-surface-card rounded text-2xs overflow-x-auto whitespace-pre-wrap break-words">
               {JSON.stringify(profileData, null, 2).slice(0, 500)}...
             </pre>
           </div>
@@ -877,10 +877,10 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
       )}
 
       {/* Bullets preview */}
-        <div className="flex flex-col bg-zinc-950 min-h-0">
-          <div className="relative px-3 py-1.5 bg-zinc-800 border-b border-zinc-700 flex items-center gap-2 shrink-0">
-            <span className="text-2xs text-zinc-500 uppercase tracking-widest font-mono">Bullets</span>
-            <span className="ml-auto text-2xs text-zinc-400 font-mono">live</span>
+        <div className="flex flex-col bg-surface-base min-h-0">
+          <div className="relative px-3 py-1.5 bg-surface-raised border-b border-border-default flex items-center gap-2 shrink-0">
+            <span className="text-2xs text-text-muted uppercase tracking-widest font-mono">Bullets</span>
+            <span className="ml-auto text-2xs text-text-secondary font-mono">live</span>
           </div>
           <BulletsPreview json={draft} onJump={jumpToJsonPath} />
         </div>
@@ -914,8 +914,8 @@ function ProfileBar({ profiles, activeId, onSwitch, onFork, onUpload, onDelete, 
 
   if (profiles.length === 0) {
     return (
-      <div className="flex items-center gap-3 px-4 py-3 bg-zinc-800/60 border border-zinc-700 rounded-lg">
-        <span className="text-xs text-zinc-500">No profiles yet.</span>
+      <div className="flex items-center gap-3 px-4 py-3 bg-surface-raised/60 border border-border-default rounded-lg">
+        <span className="text-xs text-text-muted">No profiles yet.</span>
         <button onClick={onUpload} className="text-xs px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded">
           Import from disk
         </button>
@@ -924,10 +924,10 @@ function ProfileBar({ profiles, activeId, onSwitch, onFork, onUpload, onDelete, 
   }
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 bg-zinc-800/40 border border-zinc-700 rounded-lg">
+    <div className="flex items-center gap-3 px-4 py-3 bg-surface-raised/40 border border-border-default rounded-lg">
       {/* Profile selector */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
-        <span className="text-xs text-zinc-500 shrink-0">Profile</span>
+        <span className="text-xs text-text-muted shrink-0">Profile</span>
         {renaming === activeId ? (
           <input
             autoFocus
@@ -935,13 +935,13 @@ function ProfileBar({ profiles, activeId, onSwitch, onFork, onUpload, onDelete, 
             onChange={e => setNameDraft(e.target.value)}
             onBlur={() => void commitRename()}
             onKeyDown={e => { if (e.key === 'Enter') void commitRename(); if (e.key === 'Escape') setRenaming(null) }}
-            className="text-sm font-medium bg-zinc-700 border border-zinc-500 rounded px-2 py-0.5 text-zinc-200 focus:outline-none focus:border-indigo-500 w-48"
+            className="text-sm font-medium bg-surface-overlay border border-border-strong rounded px-2 py-0.5 text-text-primary focus:outline-none focus:border-indigo-500 w-48"
           />
         ) : (
           <select
             value={activeId ?? ''}
             onChange={e => onSwitch(e.target.value)}
-            className="text-sm font-medium bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-zinc-200 cursor-pointer focus:outline-none focus:border-indigo-500"
+            className="text-sm font-medium bg-surface-raised border border-border-default rounded px-2 py-1 text-text-primary cursor-pointer focus:outline-none focus:border-indigo-500"
           >
             {profiles.map(p => (
               <option key={p.id} value={p.id}>{p.name}</option>
@@ -951,7 +951,7 @@ function ProfileBar({ profiles, activeId, onSwitch, onFork, onUpload, onDelete, 
         {active && renaming !== activeId && (
           <button
             onClick={() => startRename(active)}
-            className="text-xs text-zinc-400 hover:text-zinc-400"
+            className="text-xs text-text-secondary hover:text-text-primary"
             title="Rename"
           >
             ✎
@@ -965,7 +965,7 @@ function ProfileBar({ profiles, activeId, onSwitch, onFork, onUpload, onDelete, 
         {active && active.is_active !== 1 && (
           <button
             onClick={() => onSwitch(active.id)}
-            className="text-2xs px-2 py-0.5 bg-zinc-700 hover:bg-zinc-600 text-zinc-400 rounded"
+            className="text-2xs px-2 py-0.5 bg-surface-overlay hover:bg-surface-overlay text-text-secondary rounded"
           >
             Set active
           </button>
@@ -976,14 +976,14 @@ function ProfileBar({ profiles, activeId, onSwitch, onFork, onUpload, onDelete, 
       <div className="flex items-center gap-2 shrink-0">
         <button
           onClick={onFork}
-          className="text-xs px-2.5 py-1 bg-zinc-700 hover:bg-zinc-600 text-zinc-300 rounded transition-colors"
+          className="text-xs px-2.5 py-1 bg-surface-overlay hover:bg-surface-overlay text-text-secondary rounded transition-colors"
           title="Fork from active"
         >
           Fork
         </button>
         <button
           onClick={onUpload}
-          className="text-xs px-2.5 py-1 bg-zinc-700 hover:bg-zinc-600 text-zinc-300 rounded transition-colors"
+          className="text-xs px-2.5 py-1 bg-surface-overlay hover:bg-surface-overlay text-text-secondary rounded transition-colors"
           title="Upload JSON file"
         >
           ↑ Upload
@@ -991,7 +991,7 @@ function ProfileBar({ profiles, activeId, onSwitch, onFork, onUpload, onDelete, 
         {profiles.length > 1 && (
           <button
             onClick={onDelete}
-            className="text-xs px-2.5 py-1 bg-zinc-800 hover:bg-red-900/40 border border-zinc-700 hover:border-red-700/50 text-zinc-500 hover:text-red-400 rounded transition-colors"
+            className="text-xs px-2.5 py-1 bg-surface-raised hover:bg-red-900/40 border border-border-default hover:border-red-700/50 text-text-muted hover:text-red-400 rounded transition-colors"
             title="Delete this profile"
           >
             Delete
@@ -1010,18 +1010,18 @@ function ForkModal({ onConfirm, onCancel }: { onConfirm: (name: string) => void;
   useEffect(() => { ref.current?.focus() }, [])
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-5 w-80 space-y-4" onClick={e => e.stopPropagation()}>
-        <h3 className="text-sm font-semibold text-zinc-200">Fork profile</h3>
+      <div className="bg-surface-card border border-border-default rounded-lg p-5 w-80 space-y-4 shadow-modal" onClick={e => e.stopPropagation()}>
+        <h3 className="text-sm font-semibold text-text-primary">Fork profile</h3>
         <input
           ref={ref}
           value={name}
           onChange={e => setName(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && name.trim()) onConfirm(name.trim()); if (e.key === 'Escape') onCancel() }}
           placeholder="New profile name…"
-          className="w-full text-sm bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500"
+          className="w-full text-sm bg-surface-raised border border-border-default rounded px-3 py-2 text-text-primary focus:outline-none focus:border-indigo-500"
         />
         <div className="flex gap-2 justify-end">
-          <button onClick={onCancel} className="text-xs px-3 py-1.5 text-zinc-500 hover:text-zinc-300">Cancel</button>
+          <button onClick={onCancel} className="text-xs px-3 py-1.5 text-text-muted hover:text-text-secondary">Cancel</button>
           <button
             onClick={() => { if (name.trim()) onConfirm(name.trim()) }}
             disabled={!name.trim()}
@@ -1145,7 +1145,7 @@ export default function ConfigPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">Config</h1>
-          <p className="text-sm text-zinc-500 mt-1">
+          <p className="text-sm text-text-muted mt-1">
             Edit resume profiles. Monaco editor · live bullets preview · timestamped backups.
           </p>
         </div>
@@ -1155,10 +1155,10 @@ export default function ConfigPage() {
       {/* Profile section */}
       <div className="space-y-4">
         <div className="relative inline-block">
-          <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Resume Profile</h2>
+          <h2 className="text-xs font-semibold text-text-muted uppercase tracking-wider">Resume Profile</h2>
         </div>
         {profilesLoading || creatingDefault ? (
-          <div className="text-zinc-500 text-sm">Loading profiles…</div>
+          <div className="text-text-muted text-sm">Loading profiles…</div>
         ) : (
           <>
             <ProfileBar

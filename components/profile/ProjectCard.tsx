@@ -33,13 +33,13 @@ export function ProjectCard({ entry, excluded, onToggle }: Props) {
       ref={setNodeRef}
       style={style}
       className={`flex gap-3 p-3 rounded-lg border transition-colors ${
-        excluded ? 'border-zinc-800 bg-zinc-900/30' : 'border-zinc-700 bg-zinc-900'
+        excluded ? 'border-border-subtle bg-surface-card/30' : 'border-border-default bg-surface-card'
       }`}
     >
       <button
         {...attributes}
         {...listeners}
-        className="flex-shrink-0 cursor-grab active:cursor-grabbing text-zinc-600 hover:text-zinc-400 transition-colors"
+        className="flex-shrink-0 cursor-grab active:cursor-grabbing text-text-muted hover:text-text-secondary transition-colors"
         aria-label="Drag to reorder"
         title="Drag to reorder"
       >
@@ -54,7 +54,7 @@ export function ProjectCard({ entry, excluded, onToggle }: Props) {
         onClick={() => onToggle(entry.id)}
         className={`flex-shrink-0 w-4 h-4 mt-1 rounded-sm border-2 transition-colors ${
           excluded
-            ? 'border-zinc-600 bg-transparent'
+            ? 'border-border-strong bg-transparent'
             : 'border-indigo-500 bg-indigo-600'
         }`}
         title={excluded ? 'Click to include' : 'Click to exclude'}
@@ -63,17 +63,17 @@ export function ProjectCard({ entry, excluded, onToggle }: Props) {
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2">
           <span className={`text-sm font-medium transition-colors ${
-            excluded ? 'text-zinc-600 line-through' : 'text-zinc-200'
+            excluded ? 'text-text-muted line-through' : 'text-text-primary'
           }`}>
             {entry.name}
           </span>
           {entry.short_stack && (
-            <span className={`text-xs transition-colors ${excluded ? 'text-zinc-700 line-through' : 'text-zinc-500'}`}>
+            <span className={`text-xs transition-colors ${excluded ? 'text-text-muted line-through' : 'text-text-muted'}`}>
               {entry.short_stack}
             </span>
           )}
           {entry.dates && (
-            <span className={`text-xs ml-auto transition-colors ${excluded ? 'text-zinc-700' : 'text-zinc-600'}`}>
+            <span className={`text-xs ml-auto transition-colors ${excluded ? 'text-text-muted' : 'text-text-muted'}`}>
               {entry.dates}
             </span>
           )}
@@ -81,7 +81,7 @@ export function ProjectCard({ entry, excluded, onToggle }: Props) {
         {preview.length > 0 && (
           <ul className="mt-1 space-y-0.5">
             {preview.map((b, i) => (
-              <li key={i} className={`text-xs truncate transition-colors ${excluded ? 'text-zinc-700 line-through' : 'text-zinc-500'}`}>
+              <li key={i} className={`text-xs truncate transition-colors ${excluded ? 'text-text-muted line-through' : 'text-text-muted'}`}>
                 · {b}
               </li>
             ))}

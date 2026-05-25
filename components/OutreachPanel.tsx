@@ -20,7 +20,7 @@ function parseCard(raw: string | null): AiCard | null {
 }
 
 const STATUS_COLORS: Record<OutreachStatus, string> = {
-  not_contacted: 'bg-zinc-700 text-zinc-400',
+  not_contacted: 'bg-surface-overlay text-text-secondary',
   drafted:       'bg-blue-900 text-blue-300',
   sent:          'bg-green-900 text-green-300',
   replied:       'bg-emerald-900 text-emerald-300',
@@ -75,12 +75,12 @@ function ContactCard({
   }
 
   return (
-    <div className="border border-zinc-700 rounded-md p-3 flex flex-col gap-2 text-sm">
+    <div className="border border-border-default rounded-md p-3 flex flex-col gap-2 text-sm">
       {/* Header row */}
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="font-medium text-zinc-100">{card?.name ?? '(unknown)'}</p>
-          {card?.title && <p className="text-xs text-zinc-400">{card.title}</p>}
+          <p className="font-medium text-text-primary">{card?.name ?? '(unknown)'}</p>
+          {card?.title && <p className="text-xs text-text-secondary">{card.title}</p>}
         </div>
         <select
           value={item.status}
@@ -98,7 +98,7 @@ function ContactCard({
         <select
           value={item.role ?? ''}
           onChange={e => patch({ role: e.target.value as OutreachRole || null })}
-          className="text-xs bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-zinc-300 flex-1"
+          className="text-xs bg-surface-raised border border-border-strong rounded px-2 py-1 text-text-secondary flex-1"
         >
           <option value="">Role...</option>
           {(['recruiter', 'hiring_manager', 'alumni', 'employee', 'other'] as OutreachRole[]).map(r => (
@@ -110,7 +110,7 @@ function ContactCard({
             defaultValue={item.role_custom ?? ''}
             onBlur={e => patch({ role_custom: e.target.value || null })}
             placeholder="Custom role"
-            className="text-xs bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-zinc-300 flex-1"
+            className="text-xs bg-surface-raised border border-border-strong rounded px-2 py-1 text-text-secondary flex-1"
           />
         )}
       </div>
@@ -119,7 +119,7 @@ function ContactCard({
         defaultValue={item.email ?? ''}
         onBlur={e => patch({ email: e.target.value || null })}
         placeholder="email@company.com"
-        className="text-xs bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-zinc-300 w-full"
+        className="text-xs bg-surface-raised border border-border-strong rounded px-2 py-1 text-text-secondary w-full"
       />
 
       <textarea
@@ -127,7 +127,7 @@ function ContactCard({
         onBlur={e => patch({ notes: e.target.value || null })}
         placeholder="Relationship notes..."
         rows={2}
-        className="text-xs bg-zinc-800 border border-zinc-600 rounded px-2 py-1 text-zinc-300 w-full resize-none"
+        className="text-xs bg-surface-raised border border-border-strong rounded px-2 py-1 text-text-secondary w-full resize-none"
       />
 
       {/* Key facts (collapsible) */}
@@ -135,14 +135,14 @@ function ContactCard({
         <div>
           <button
             onClick={() => setFactsOpen(v => !v)}
-            className="text-xs text-zinc-500 hover:text-zinc-300"
+            className="text-xs text-text-muted hover:text-text-secondary"
           >
             {factsOpen ? '▾ Hide facts' : `▸ ${card!.key_facts.length} key facts`}
           </button>
           {factsOpen && (
             <ul className="mt-1 list-disc pl-4 space-y-0.5">
               {card!.key_facts.slice(0, 3).map((f, i) => (
-                <li key={i} className="text-xs text-zinc-400">{f}</li>
+                <li key={i} className="text-xs text-text-secondary">{f}</li>
               ))}
             </ul>
           )}
@@ -172,14 +172,14 @@ function ContactCard({
 
 function DraftBlock({ label, text, copied, onCopy }: { label: string; text: string; copied: boolean; onCopy: () => void }) {
   return (
-    <div className="border border-zinc-700 rounded p-2">
+    <div className="border border-border-default rounded p-2">
       <div className="flex justify-between items-center mb-1">
-        <span className="text-xs text-zinc-500 uppercase">{label}</span>
-        <button onClick={onCopy} className="text-xs text-zinc-400 hover:text-zinc-200">
+        <span className="text-xs text-text-muted uppercase">{label}</span>
+        <button onClick={onCopy} className="text-xs text-text-secondary hover:text-text-primary">
           {copied ? '✓ Copied' : 'Copy'}
         </button>
       </div>
-      <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-sans leading-relaxed">{text}</pre>
+      <pre className="text-xs text-text-secondary whitespace-pre-wrap font-sans leading-relaxed">{text}</pre>
     </div>
   )
 }
@@ -191,27 +191,27 @@ function SourceCard({ item }: { item: OutreachItem }) {
   const [rawOpen, setRawOpen] = useState(false)
 
   return (
-    <div className="border border-zinc-700 rounded-md p-3 flex flex-col gap-1.5 text-sm">
+    <div className="border border-border-default rounded-md p-3 flex flex-col gap-1.5 text-sm">
       <div className="flex items-center gap-2">
-        <span className="text-xs px-1.5 py-0.5 bg-zinc-700 text-zinc-400 rounded">{item.kind}</span>
-        <p className="font-medium text-zinc-100">{card?.name ?? card?.company ?? '(unknown)'}</p>
+        <span className="text-xs px-1.5 py-0.5 bg-surface-overlay text-text-secondary rounded">{item.kind}</span>
+        <p className="font-medium text-text-primary">{card?.name ?? card?.company ?? '(unknown)'}</p>
       </div>
-      {card?.title && <p className="text-xs text-zinc-400">{card.title}</p>}
+      {card?.title && <p className="text-xs text-text-secondary">{card.title}</p>}
       {(card?.key_facts?.length ?? 0) > 0 && (
         <ul className="list-disc pl-4 space-y-0.5">
           {card!.key_facts.slice(0, 3).map((f, i) => (
-            <li key={i} className="text-xs text-zinc-400">{f}</li>
+            <li key={i} className="text-xs text-text-secondary">{f}</li>
           ))}
         </ul>
       )}
       <button
         onClick={() => setRawOpen(v => !v)}
-        className="self-start text-xs text-zinc-500 hover:text-zinc-300"
+        className="self-start text-xs text-text-muted hover:text-text-secondary"
       >
         {rawOpen ? 'Hide source' : 'Show source'}
       </button>
       {rawOpen && (
-        <pre className="text-xs text-zinc-500 whitespace-pre-wrap max-h-32 overflow-y-auto font-sans">{item.raw_markdown.slice(0, 1000)}</pre>
+        <pre className="text-xs text-text-muted whitespace-pre-wrap max-h-32 overflow-y-auto font-sans">{item.raw_markdown.slice(0, 1000)}</pre>
       )}
     </div>
   )
@@ -271,7 +271,7 @@ function InlinePaste({
           onChange={e => setText(e.target.value)}
           placeholder="Paste LinkedIn profile, resume, or company page text…"
           rows={3}
-          className="flex-1 text-xs bg-zinc-800 border border-zinc-700 rounded px-2 py-1.5 text-zinc-300 placeholder-zinc-600 resize-none focus:outline-none focus:border-indigo-500"
+          className="flex-1 text-xs bg-surface-raised border border-border-default rounded px-2 py-1.5 text-text-secondary placeholder-text-muted resize-none focus:outline-none focus:border-indigo-500"
         />
         <div className="flex flex-col gap-1 justify-start">
           <button
@@ -285,7 +285,7 @@ function InlinePaste({
             onClick={() => fileRef.current?.click()}
             disabled={submitting}
             title="Import .md or .txt file"
-            className="text-xs px-2 py-1 bg-zinc-700 hover:bg-zinc-600 disabled:opacity-40 rounded text-zinc-300 transition-colors"
+            className="text-xs px-2 py-1 bg-surface-overlay hover:bg-surface-overlay disabled:opacity-40 rounded text-text-secondary transition-colors"
           >
             File
           </button>
@@ -389,12 +389,12 @@ function FilePicker({
           onChange={e => setPickerPath(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && browse(pickerPath)}
           placeholder="~/repos/Obsidian/..."
-          className="flex-1 text-xs bg-zinc-800 border border-zinc-600 rounded px-2 py-1.5 text-zinc-300"
+          className="flex-1 text-xs bg-surface-raised border border-border-strong rounded px-2 py-1.5 text-text-secondary"
         />
         <button
           onClick={() => browse(pickerPath)}
           disabled={pickerLoading}
-          className="text-xs px-3 py-1.5 bg-zinc-700 text-zinc-300 hover:bg-zinc-600 rounded disabled:opacity-50"
+          className="text-xs px-3 py-1.5 bg-surface-overlay text-text-secondary hover:bg-surface-overlay rounded disabled:opacity-50"
         >
           {pickerLoading ? '...' : 'Browse'}
         </button>
@@ -403,12 +403,12 @@ function FilePicker({
       {pickerError && <p className="text-xs text-red-400">{pickerError}</p>}
 
       {fsData && (
-        <div className="border border-zinc-700 rounded max-h-48 overflow-y-auto text-xs">
+        <div className="border border-border-default rounded max-h-48 overflow-y-auto text-xs">
           {/* Parent nav */}
           {fsData.parent && fsData.parent !== fsData.path && (
             <button
               onClick={() => browse(fsData.parent)}
-              className="w-full text-left px-3 py-1.5 text-zinc-400 hover:bg-zinc-800 border-b border-zinc-700"
+              className="w-full text-left px-3 py-1.5 text-text-secondary hover:bg-surface-raised border-b border-border-default"
             >
               .. (up)
             </button>
@@ -418,7 +418,7 @@ function FilePicker({
             <button
               key={d}
               onClick={() => browse(`${fsData.path}/${d}`)}
-              className="w-full text-left px-3 py-1.5 text-zinc-300 hover:bg-zinc-800 flex items-center gap-2"
+              className="w-full text-left px-3 py-1.5 text-text-secondary hover:bg-surface-raised flex items-center gap-2"
             >
               <span>📁</span> {d}
             </button>
@@ -427,7 +427,7 @@ function FilePicker({
           {currentDirFiles.map(f => {
             const fullPath = `${fsData.path}/${f}`
             return (
-              <label key={f} className="flex items-center gap-2 px-3 py-1.5 hover:bg-zinc-800 cursor-pointer text-zinc-300">
+              <label key={f} className="flex items-center gap-2 px-3 py-1.5 hover:bg-surface-raised cursor-pointer text-text-secondary">
                 <input
                   type="checkbox"
                   checked={selectedPaths.has(fullPath)}
@@ -439,14 +439,14 @@ function FilePicker({
             )
           })}
           {fsData.dirs.length === 0 && currentDirFiles.length === 0 && (
-            <p className="px-3 py-2 text-zinc-500">Empty directory</p>
+            <p className="px-3 py-2 text-text-muted">Empty directory</p>
           )}
         </div>
       )}
 
       {selectedPaths.size > 0 && (
         <div className="flex items-center gap-2">
-          <span className="text-xs text-zinc-500">{selectedPaths.size} selected</span>
+          <span className="text-xs text-text-muted">{selectedPaths.size} selected</span>
           <button
             onClick={ingest}
             disabled={ingesting}
@@ -531,7 +531,7 @@ export default function OutreachPanel({ jobId }: { jobId: string }) {
   const displayBrief = brief ?? (briefText || null)
 
   if (loading) {
-    return <div className="flex-1 flex items-center justify-center text-zinc-500 text-sm">Loading…</div>
+    return <div className="flex-1 flex items-center justify-center text-text-muted text-sm">Loading…</div>
   }
   if (loadError) {
     return <div className="flex-1 flex items-center justify-center text-red-400 text-sm">{loadError}</div>
@@ -541,19 +541,19 @@ export default function OutreachPanel({ jobId }: { jobId: string }) {
     <div className="flex flex-col gap-4 h-full overflow-y-auto p-2">
       {/* Inline paste + file import */}
       <section>
-        <h3 className="text-xs text-zinc-500 uppercase tracking-wide mb-2">Add sources</h3>
+        <h3 className="text-xs text-text-muted uppercase tracking-wide mb-2">Add sources</h3>
         <InlinePaste jobId={jobId} onIngest={handleIngest} />
       </section>
 
       {/* Vault file picker */}
       <section>
-        <h3 className="text-xs text-zinc-500 uppercase tracking-wide mb-2">From vault</h3>
+        <h3 className="text-xs text-text-muted uppercase tracking-wide mb-2">From vault</h3>
         <FilePicker jobId={jobId} onIngest={handleIngest} />
       </section>
 
       {/* Empty state */}
       {items.length === 0 && (
-        <p className="text-sm text-zinc-500 text-center py-4">
+        <p className="text-sm text-text-muted text-center py-4">
           No sources yet. Use the file picker above to ingest LinkedIn profiles or company pages from your Obsidian vault.
         </p>
       )}
@@ -561,7 +561,7 @@ export default function OutreachPanel({ jobId }: { jobId: string }) {
       {/* Contact cards */}
       {personItems.length > 0 && (
         <section>
-          <h3 className="text-xs text-zinc-500 uppercase tracking-wide mb-2">
+          <h3 className="text-xs text-text-muted uppercase tracking-wide mb-2">
             Contacts ({personItems.length})
           </h3>
           <div className="flex flex-col gap-2">
@@ -575,7 +575,7 @@ export default function OutreachPanel({ jobId }: { jobId: string }) {
       {/* Other sources */}
       {otherItems.length > 0 && (
         <section>
-          <h3 className="text-xs text-zinc-500 uppercase tracking-wide mb-2">Sources</h3>
+          <h3 className="text-xs text-text-muted uppercase tracking-wide mb-2">Sources</h3>
           <div className="flex flex-col gap-2">
             {otherItems.map(item => (
               <SourceCard key={item.id} item={item} />
@@ -587,7 +587,7 @@ export default function OutreachPanel({ jobId }: { jobId: string }) {
       {/* Research brief */}
       <section>
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-xs text-zinc-500 uppercase tracking-wide">Research brief</h3>
+          <h3 className="text-xs text-text-muted uppercase tracking-wide">Research brief</h3>
           <button
             onClick={streamResearchBrief}
             disabled={briefStreaming || items.length === 0}
@@ -598,10 +598,10 @@ export default function OutreachPanel({ jobId }: { jobId: string }) {
         </div>
         {briefError && <p className="text-xs text-red-400 mb-1">{briefError}</p>}
         {briefStreaming && !briefText && (
-          <p className="text-xs text-zinc-500 animate-pulse">Generating brief…</p>
+          <p className="text-xs text-text-muted animate-pulse">Generating brief…</p>
         )}
         {(displayBrief) && (
-          <div className="text-sm text-zinc-300 leading-relaxed overflow-y-auto max-h-64 [&_h2]:text-indigo-300 [&_h2]:font-semibold [&_h2]:text-sm [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-zinc-200 [&_h3]:text-xs [&_h3]:font-medium [&_h3]:mt-2 [&_ul]:list-disc [&_ul]:pl-4 [&_p]:mb-1.5">
+          <div className="text-sm text-text-secondary leading-relaxed overflow-y-auto max-h-64 [&_h2]:text-indigo-300 [&_h2]:font-semibold [&_h2]:text-sm [&_h2]:mt-3 [&_h2]:mb-1 [&_h3]:text-text-primary [&_h3]:text-xs [&_h3]:font-medium [&_h3]:mt-2 [&_ul]:list-disc [&_ul]:pl-4 [&_p]:mb-1.5">
             <ReactMarkdown>{displayBrief}</ReactMarkdown>
           </div>
         )}

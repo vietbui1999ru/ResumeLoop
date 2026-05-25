@@ -9,8 +9,8 @@ export function RoleTrackChart({ data }: { data: Record<string, number> }) {
     .slice(0, 15)
 
   return (
-    <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-700">
-      <h2 className="text-sm font-semibold text-zinc-400 mb-3">Role-Track Distribution</h2>
+    <div className="bg-surface-card rounded-lg p-4 border border-border-default">
+      <h2 className="text-sm font-semibold text-text-secondary mb-3">Role-Track Distribution</h2>
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={chartData} margin={{ bottom: 60 }}>
           <XAxis dataKey="track" tick={{ fill: TEXT_COLORS.secondary, fontSize: 12 }} angle={-35} textAnchor="end" interval={0} />

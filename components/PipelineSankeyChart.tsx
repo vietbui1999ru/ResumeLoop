@@ -169,25 +169,25 @@ export function PipelineSankeyChart({ data }: { data: PipelineData }) {
   }
 
   return (
-    <div ref={cardRef} className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+    <div ref={cardRef} className="bg-surface-card border border-border-subtle rounded-lg p-4">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-medium text-zinc-300">Application Pipeline</h2>
+        <h2 className="text-sm font-medium text-text-secondary">Application Pipeline</h2>
 
         <div className="relative">
           <button
             onClick={() => setMenuOpen(v => !v)}
             disabled={exporting}
-            className="text-xs px-2.5 py-1 rounded border border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-500 transition-colors disabled:opacity-40"
+            className="text-xs px-2.5 py-1 rounded border border-border-default text-text-secondary hover:text-text-primary hover:border-border-strong transition-colors disabled:opacity-40"
           >
             {exporting ? 'Exporting…' : 'Export ▾'}
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 z-10 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl overflow-hidden min-w-[100px]">
+            <div className="absolute right-0 top-full mt-1 z-10 bg-surface-raised border border-border-default rounded-lg shadow-card overflow-hidden min-w-[100px]">
               {(['png', 'jpg', 'pdf'] as ExportFormat[]).map(fmt => (
                 <button
                   key={fmt}
                   onClick={() => void handleExport(fmt)}
-                  className="w-full text-left text-xs px-3 py-2 text-zinc-300 hover:bg-zinc-700 uppercase tracking-wide font-mono"
+                  className="w-full text-left text-xs px-3 py-2 text-text-secondary hover:bg-surface-overlay uppercase tracking-wide font-mono"
                 >
                   {fmt}
                 </button>
@@ -210,14 +210,14 @@ export function PipelineSankeyChart({ data }: { data: PipelineData }) {
         </Sankey>
       </ResponsiveContainer>
 
-      <p className="text-xs text-zinc-400 mt-2">
+      <p className="text-xs text-text-secondary mt-2">
         Tag jobs with{' '}
         <code className="text-amber-400">applied</code>{' · '}
         <code className="text-indigo-400">phone-screen</code>{' · '}
         <code className="text-orange-400">interviewed</code>{' · '}
         <code className="text-green-400">offer</code>{' · '}
         <code className="text-red-400">rejected</code>{' · '}
-        <code className="text-zinc-500">ghosted</code>
+        <code className="text-text-muted">ghosted</code>
         {' '}to fill downstream stages.
       </p>
     </div>

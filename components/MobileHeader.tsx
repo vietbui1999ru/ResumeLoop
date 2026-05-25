@@ -1,6 +1,7 @@
 'use client'
 import { Menu } from 'lucide-react'
 import { usePathname } from 'next/navigation'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 const PAGE_LABELS: Record<string, string> = {
   '/':          'Dashboard',
@@ -20,7 +21,7 @@ export function MobileHeader({ onMenuOpen }: MobileHeaderProps) {
   const pathname = usePathname()
   return (
     <header className="flex lg:hidden fixed top-0 left-0 right-0 z-30 h-12
-                       bg-surface-card border-b border-zinc-800
+                       bg-surface-card border-b border-border-default
                        items-center px-4 gap-3
                        pt-[env(safe-area-inset-top)]">
       <button
@@ -35,9 +36,15 @@ export function MobileHeader({ onMenuOpen }: MobileHeaderProps) {
       <div className="w-6 h-6 rounded-md bg-indigo-600 flex items-center justify-center shrink-0">
         <span className="text-2xs font-bold text-white tracking-tight">RA</span>
       </div>
-      <span className="text-sm font-medium text-text-primary">
+      <span className="flex-1 text-sm font-medium text-text-primary">
         {PAGE_LABELS[pathname] ?? 'ResumeLoop'}
       </span>
+      <ThemeToggle
+        size={18}
+        className="w-9 h-9 flex items-center justify-center rounded-lg
+                   text-text-muted hover:text-text-secondary hover:bg-surface-raised
+                   transition-colors"
+      />
     </header>
   )
 }

@@ -230,8 +230,8 @@ export default function ChatPage() {
       
       {/* Desktop sidebar (visible on desktop) */}
       {isDesktop && (
-        <div className="w-48 flex-shrink-0 border-r border-zinc-800 flex flex-col h-full">
-        <div className="p-3 border-b border-zinc-800 flex-shrink-0">
+        <div className="w-48 flex-shrink-0 border-r border-border-subtle flex flex-col h-full">
+        <div className="p-3 border-b border-border-subtle flex-shrink-0">
           <button
             onClick={() => void startNew()}
             className="w-full text-xs text-indigo-400 hover:text-indigo-300 text-left"
@@ -244,10 +244,10 @@ export default function ChatPage() {
             <button
               key={s.id}
               onClick={() => { setActiveSessionId(s.id); loadSessionHistory(s.id); handleNavigate() }}
-              className={`w-full text-left px-3 py-2 text-xs hover:bg-zinc-800 ${s.id === sessionId ? 'bg-zinc-800' : ''}`}
+              className={`w-full text-left px-3 py-2 text-xs hover:bg-surface-raised ${s.id === sessionId ? 'bg-surface-raised' : ''}`}
             >
-              <p className="text-zinc-300 truncate">{s.name}</p>
-              <p className="text-zinc-400">{fmtDate(s.created_at)}</p>
+              <p className="text-text-secondary truncate">{s.name}</p>
+              <p className="text-text-secondary">{fmtDate(s.created_at)}</p>
             </button>
           ))}
         </div>
@@ -259,28 +259,28 @@ export default function ChatPage() {
       <div className="flex-1 flex flex-col min-w-0 h-full">
         {/* Mobile header (mobile only) */}
         {!isDesktop && (
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800 flex-shrink-0">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-border-subtle flex-shrink-0">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="p-2 hover:bg-zinc-800 rounded transition-colors"
+              className="p-2 hover:bg-surface-raised rounded transition-colors"
               aria-label="Open navigation"
             >
               <MessageSquare size={20} />
             </button>
-            <span className="text-sm font-medium text-zinc-300">Chat</span>
+            <span className="text-sm font-medium text-text-secondary">Chat</span>
           </div>
         )}
 
         {/* Tab bar */}
-        <div className="flex items-center border-b border-zinc-800 px-4 pt-3 gap-4 flex-shrink-0">
+        <div className="flex items-center border-b border-border-subtle px-4 pt-3 gap-4 flex-shrink-0">
           <button
             onClick={() => setTab('chat')}
-            className={`text-sm pb-2 border-b-2 ${tab === 'chat' ? 'border-indigo-400 text-indigo-300' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
+            className={`text-sm pb-2 border-b-2 ${tab === 'chat' ? 'border-indigo-400 text-indigo-300' : 'border-transparent text-text-muted hover:text-text-secondary'}`}
           >Chat</button>
           <button
             data-tour="chat-github-import"
             onClick={() => setTab('import')}
-            className={`text-sm pb-2 border-b-2 ${tab === 'import' ? 'border-indigo-400 text-indigo-300' : 'border-transparent text-zinc-500 hover:text-zinc-300'}`}
+            className={`text-sm pb-2 border-b-2 ${tab === 'import' ? 'border-indigo-400 text-indigo-300' : 'border-transparent text-text-muted hover:text-text-secondary'}`}
           >Import from GitHub</button>
           <button
             data-tour="chat-bullets-toggle"
@@ -288,7 +288,7 @@ export default function ChatPage() {
             className={`ml-auto mb-2 text-xs px-2 py-1 rounded border transition-colors ${
               bulletsOpen
                 ? 'border-indigo-700/60 text-indigo-400 bg-indigo-900/20'
-                : 'border-zinc-700 text-zinc-500 hover:text-zinc-300'
+                : 'border-border-default text-text-muted hover:text-text-secondary'
             }`}
             title="Toggle bullets preview"
           >
@@ -307,7 +307,7 @@ export default function ChatPage() {
                 <span className="text-sm text-indigo-300 font-medium">Getting to know your work history</span>
                 <button
                   onClick={() => setGrillMode(false)}
-                  className="ml-auto text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                  className="ml-auto text-xs text-text-muted hover:text-text-secondary transition-colors"
                 >
                   Skip →
                 </button>
@@ -315,14 +315,14 @@ export default function ChatPage() {
             )}
 
             {grillMode && messages.length === 0 && (
-              <div className="px-6 py-3 border-b border-zinc-800 flex-shrink-0">
+              <div className="px-6 py-3 border-b border-border-subtle flex-shrink-0">
                 <button
                   onClick={() => setTab('import')}
                   className="text-xs text-indigo-400 hover:text-indigo-300 underline transition-colors"
                 >
                   Import from GitHub first →
                 </button>
-                <span className="text-xs text-zinc-500 ml-2">then we&apos;ll ask about your work</span>
+                <span className="text-xs text-text-muted ml-2">then we&apos;ll ask about your work</span>
               </div>
             )}
 
@@ -346,7 +346,7 @@ export default function ChatPage() {
               <div ref={bottomRef} />
             </div>
 
-            <div className="border-t border-zinc-800 px-4 py-3 flex gap-2 flex-shrink-0">
+            <div className="border-t border-border-subtle px-4 py-3 flex gap-2 flex-shrink-0">
               <textarea
                 value={input}
                 onChange={e => setInput(e.target.value)}
@@ -354,7 +354,7 @@ export default function ChatPage() {
                 disabled={streaming}
                 rows={2}
                 placeholder="Ask Claude to update your bullets…"
-                className="flex-1 bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm resize-none focus:outline-none focus:border-indigo-500 disabled:opacity-50"
+                className="flex-1 bg-surface-card border border-border-default rounded px-3 py-2 text-sm resize-none focus:outline-none focus:border-indigo-500 disabled:opacity-50"
               />
               <button
                 onClick={send}
@@ -370,10 +370,10 @@ export default function ChatPage() {
 
       {/* Bullets panel — conditional layout */}
       {bulletsOpen && isDesktop && (
-        <div className="w-[35%] min-w-64 flex-shrink-0 border-l border-zinc-800 flex flex-col h-full bg-zinc-950">
-          <div className="px-3 py-1.5 bg-zinc-800/80 border-b border-zinc-700 flex items-center gap-2 flex-shrink-0">
-            <span className="text-2xs text-zinc-500 uppercase tracking-widest font-mono">Bullets</span>
-            <span className="ml-auto text-2xs text-zinc-400 font-mono">live</span>
+        <div className="w-[35%] min-w-64 flex-shrink-0 border-l border-border-subtle flex flex-col h-full bg-surface-base">
+          <div className="px-3 py-1.5 bg-surface-raised/80 border-b border-border-default flex items-center gap-2 flex-shrink-0">
+            <span className="text-2xs text-text-muted uppercase tracking-widest font-mono">Bullets</span>
+            <span className="ml-auto text-2xs text-text-secondary font-mono">live</span>
           </div>
           <BulletsPreview json={profileJson} profileId={activeProfileId} onSaved={() => void loadProfile()} />
         </div>

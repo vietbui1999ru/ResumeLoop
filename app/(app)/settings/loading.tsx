@@ -7,9 +7,9 @@ export default function SettingsLoading() {
       <Skeleton className="h-7 w-24" />
 
       {/* Configured providers list */}
-      <div className="border border-zinc-800 rounded-lg overflow-hidden">
+      <div className="border border-border-subtle rounded-lg overflow-hidden">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-zinc-800 last:border-0">
+          <div key={i} className="flex items-center gap-3 px-4 py-3 border-b border-border-subtle last:border-0">
             <div className="flex-1 space-y-1.5">
               <Skeleton className="h-4 w-44" />
               <Skeleton className="h-3 w-60" />

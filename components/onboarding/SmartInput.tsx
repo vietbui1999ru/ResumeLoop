@@ -67,12 +67,12 @@ export function SmartInput({ onSourceAdded }: { onSourceAdded: (source: unknown)
         value={value}
         onChange={e => { setValue(e.target.value); setError(null) }}
         placeholder="Paste a URL, GitHub profile (github.com/username or just username), or any text — LinkedIn About, bio, resume…"
-        className="w-full h-28 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-sm text-zinc-200 placeholder-zinc-500 resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500"
+        className="w-full h-28 bg-surface-raised border border-border-default rounded-lg px-4 py-3 text-sm text-text-primary placeholder-text-muted resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500"
         disabled={loading}
       />
       {detected && (
         <div className="flex items-center gap-3">
-          <span className="text-xs text-zinc-400">
+          <span className="text-xs text-text-secondary">
             Detected: <span className="text-indigo-400 font-medium">{detected}</span>
           </span>
           <button

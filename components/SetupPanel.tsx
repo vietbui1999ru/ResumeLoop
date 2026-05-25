@@ -60,68 +60,68 @@ function MiniPicker({
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <div className={`w-4 h-4 rounded-full flex items-center justify-center text-2xs shrink-0 ${
-          configured ? 'bg-green-500 text-white' : 'bg-zinc-700 text-zinc-400'
+          configured ? 'bg-green-500 text-white' : 'bg-surface-overlay text-text-secondary'
         }`}>
           {configured ? '✓' : '○'}
         </div>
         <div>
-          <p className="text-sm font-medium text-zinc-200">{label}</p>
-          <p className="text-xs text-zinc-500">{hint}</p>
+          <p className="text-sm font-medium text-text-primary">{label}</p>
+          <p className="text-xs text-text-muted">{hint}</p>
         </div>
       </div>
 
       <div className="ml-6 flex gap-2">
-        <code className="flex-1 text-xs bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-zinc-300 truncate min-w-0">
+        <code className="flex-1 text-xs bg-surface-raised border border-border-default rounded px-3 py-2 text-text-secondary truncate min-w-0">
           {value || '—'}
         </code>
         <button
           onClick={() => { setOpen(o => !o); if (!open) browse(value || '/') }}
-          className="text-xs px-3 py-2 bg-zinc-700 hover:bg-zinc-600 rounded shrink-0 transition-colors"
+          className="text-xs px-3 py-2 bg-surface-overlay hover:bg-surface-overlay rounded shrink-0 transition-colors"
         >
           {open ? 'Close' : 'Browse'}
         </button>
       </div>
 
       {open && (
-        <div className="ml-6 border border-zinc-700 rounded-lg overflow-hidden">
-          <div className="flex gap-1 p-2 bg-zinc-800 border-b border-zinc-700">
+        <div className="ml-6 border border-border-default rounded-lg overflow-hidden">
+          <div className="flex gap-1 p-2 bg-surface-raised border-b border-border-default">
             <input
               value={browsePath}
               onChange={e => setBrowsePath(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && browse(browsePath)}
-              className="flex-1 text-xs bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-zinc-200 font-mono"
+              className="flex-1 text-xs bg-surface-base border border-border-default rounded px-2 py-1 text-text-primary font-mono"
             />
-            <button onClick={() => browse(browsePath)} className="text-xs px-2 py-1 bg-zinc-700 hover:bg-zinc-600 rounded">Go</button>
+            <button onClick={() => browse(browsePath)} className="text-xs px-2 py-1 bg-surface-overlay hover:bg-surface-overlay rounded">Go</button>
             {fs?.parent && fs.parent !== fs.path && (
-              <button onClick={() => browse(fs.parent)} className="text-xs px-2 py-1 bg-zinc-700 hover:bg-zinc-600 rounded">↑</button>
+              <button onClick={() => browse(fs.parent)} className="text-xs px-2 py-1 bg-surface-overlay hover:bg-surface-overlay rounded">↑</button>
             )}
           </div>
 
           <div className="max-h-40 overflow-y-auto">
             {fs?.error && <p className="text-xs text-red-400 px-3 py-2">{fs.error}</p>}
             {!fs?.error && fs?.dirs.length === 0 && (
-              <p className="text-xs text-zinc-500 px-3 py-3">No subdirectories</p>
+              <p className="text-xs text-text-muted px-3 py-3">No subdirectories</p>
             )}
             {fs?.dirs.map(d => (
               <button
                 key={d}
                 onClick={() => browse(`${fs.path}/${d}`)}
-                className="w-full text-left text-xs px-3 py-1.5 hover:bg-zinc-700 text-zinc-300 font-mono border-b border-zinc-800 last:border-0"
+                className="w-full text-left text-xs px-3 py-1.5 hover:bg-surface-overlay text-text-secondary font-mono border-b border-border-subtle last:border-0"
               >
                 📁 {d}
               </button>
             ))}
           </div>
 
-          <div className="flex items-center justify-between gap-2 p-2 bg-zinc-800 border-t border-zinc-700">
-            <span className="text-xs text-zinc-500">
+          <div className="flex items-center justify-between gap-2 p-2 bg-surface-raised border-t border-border-default">
+            <span className="text-xs text-text-muted">
               {fs && !fs.error ? `${fs.md_count} .md · ${fs.docx_count} .docx` : ''}
             </span>
             <div className="flex gap-1">
               <button
                 onClick={create}
                 disabled={creating}
-                className="text-xs px-2 py-1 bg-zinc-600 hover:bg-zinc-500 rounded disabled:opacity-40"
+                className="text-xs px-2 py-1 bg-surface-overlay hover:bg-surface-overlay rounded disabled:opacity-40"
               >
                 {creating ? 'Creating…' : '+ Create'}
               </button>
@@ -224,15 +224,15 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-600/40 mb-4">
             <span className="text-2xl">⚡</span>
           </div>
-          <h2 className="text-xl font-semibold text-white">Set up ResumeLoop</h2>
-          <p className="text-sm text-zinc-400 mt-1">Three things and you&apos;re scanning jobs.</p>
+          <h2 className="text-xl font-semibold text-text-primary">Set up ResumeLoop</h2>
+          <p className="text-sm text-text-secondary mt-1">Three things and you&apos;re scanning jobs.</p>
         </div>
 
         {/* Import guide callout */}
-        <div className="mb-4 flex items-center justify-between bg-zinc-900/60 border border-zinc-800 rounded-xl px-4 py-3">
+        <div className="mb-4 flex items-center justify-between bg-surface-card/60 border border-border-subtle rounded-xl px-4 py-3">
           <div>
-            <p className="text-xs font-medium text-zinc-300">Don&apos;t have .md job files yet?</p>
-            <p className="text-xs text-zinc-500">Use Obsidian Web Clipper to save jobs from any listing page</p>
+            <p className="text-xs font-medium text-text-secondary">Don&apos;t have .md job files yet?</p>
+            <p className="text-xs text-text-muted">Use Obsidian Web Clipper to save jobs from any listing page</p>
           </div>
           <button
             onClick={() => setShowImportGuide(true)}
@@ -246,8 +246,8 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
         <div className="space-y-6">
 
           {/* Step 1 — Jobs folder */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-3">
-            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">Step 1</p>
+          <div className="bg-surface-card border border-border-subtle rounded-xl p-5 space-y-3">
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Step 1</p>
             <MiniPicker
               label="Job Postings Folder"
               hint="Folder containing your .md job description files"
@@ -257,8 +257,8 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
           </div>
 
           {/* Step 2 — Output folder */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-3">
-            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">Step 2</p>
+          <div className="bg-surface-card border border-border-subtle rounded-xl p-5 space-y-3">
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Step 2</p>
             <MiniPicker
               label="Output Folder"
               hint="Where generated DOCX resumes will be saved"
@@ -268,18 +268,18 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
           </div>
 
           {/* Step 3 — AI provider */}
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-3">
-            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">Step 3</p>
+          <div className="bg-surface-card border border-border-subtle rounded-xl p-5 space-y-3">
+            <p className="text-xs font-semibold text-text-muted uppercase tracking-wide">Step 3</p>
 
             <div className="flex items-center gap-2">
               <div className={`w-4 h-4 rounded-full flex items-center justify-center text-2xs shrink-0 ${
-                (provider === 'ollama' || apiKey) ? 'bg-green-500 text-white' : 'bg-zinc-700 text-zinc-400'
+                (provider === 'ollama' || apiKey) ? 'bg-green-500 text-white' : 'bg-surface-overlay text-text-secondary'
               }`}>
                 {(provider === 'ollama' || apiKey) ? '✓' : '○'}
               </div>
               <div>
-                <p className="text-sm font-medium text-zinc-200">AI Provider</p>
-                <p className="text-xs text-zinc-500">Used for resume generation and fit scoring</p>
+                <p className="text-sm font-medium text-text-primary">AI Provider</p>
+                <p className="text-xs text-text-muted">Used for resume generation and fit scoring</p>
               </div>
             </div>
 
@@ -287,7 +287,7 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
               <select
                 value={provider}
                 onChange={e => { setProvider(e.target.value as Provider); setApiKey(''); setAiError('') }}
-                className="w-full text-xs bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-zinc-200"
+                className="w-full text-xs bg-surface-raised border border-border-default rounded px-3 py-2 text-text-primary"
               >
                 {PROVIDERS.map(p => (
                   <option key={p} value={p}>{PROVIDER_LABELS[p]}</option>
@@ -300,11 +300,11 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
                   value={apiKey}
                   onChange={e => { setApiKey(e.target.value); setAiError('') }}
                   placeholder="Paste API key…"
-                  className="w-full text-xs bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-zinc-200 font-mono placeholder:text-zinc-400"
+                  className="w-full text-xs bg-surface-raised border border-border-default rounded px-3 py-2 text-text-primary font-mono placeholder:text-text-secondary"
                 />
               )}
               {provider === 'ollama' && (
-                <p className="text-xs text-zinc-500">Ollama runs locally — no key needed. Make sure it&apos;s running on port 11434.</p>
+                <p className="text-xs text-text-muted">Ollama runs locally — no key needed. Make sure it&apos;s running on port 11434.</p>
               )}
               {aiError && <p className="text-xs text-red-400">{aiError}</p>}
             </div>
@@ -321,7 +321,7 @@ export function SetupPanel({ onComplete }: { onComplete: () => void }) {
             {saving ? 'Saving…' : 'Scan now →'}
           </button>
           {!allConfigured && (
-            <p className="text-center text-xs text-zinc-400 mt-2">Complete all three steps above to continue</p>
+            <p className="text-center text-xs text-text-secondary mt-2">Complete all three steps above to continue</p>
           )}
         </div>
       </div>
