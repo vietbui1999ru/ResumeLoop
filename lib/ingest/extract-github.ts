@@ -2,11 +2,8 @@ import { generateText, jsonSchema } from 'ai'
 import { getModel }        from '../ai-client'
 import { getActiveConfig } from '../user-settings'
 import { logAiUsage }      from '../ai-usage'
-import type { SparseProfile } from './types'
+import type { SparseProfile, AnyToolCall } from './types'
 import { MAX_BULLET_CHARS } from '../config'
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyToolCall = { toolName: string; input: any }
 
 const GH_API = 'https://api.github.com'
 const GH_HEADERS = {

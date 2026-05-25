@@ -1,10 +1,9 @@
 import 'server-only'
 import { getAdapter } from './db-adapter'
 import { encrypt, decrypt } from './crypto'
-
-export type Provider = 'anthropic' | 'openai' | 'google' | 'groq' | 'openrouter' | 'ollama'
-
-export const PROVIDERS: Provider[] = ['anthropic', 'openai', 'google', 'groq', 'openrouter', 'ollama']
+import type { Provider } from './provider-config'
+export type { Provider } from './provider-config'
+export { PROVIDERS, PROVIDER_LABELS } from './provider-config'
 
 export const DEFAULT_MODELS: Record<Provider, string> = {
   anthropic:  'claude-sonnet-4-6',

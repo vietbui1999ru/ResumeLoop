@@ -2,19 +2,7 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useTourContext } from '@/contexts/TourContext'
 import { JobImportGuide } from '@/components/JobImportGuide'
-
-type Provider = 'anthropic' | 'openai' | 'google' | 'groq' | 'openrouter' | 'ollama'
-
-const PROVIDER_LABELS: Record<Provider, string> = {
-  anthropic:  'Anthropic (Claude)',
-  openai:     'OpenAI (GPT)',
-  google:     'Google (Gemini)',
-  groq:       'Groq (Llama)',
-  openrouter: 'OpenRouter',
-  ollama:     'Ollama (local)',
-}
-
-const PROVIDERS: Provider[] = ['anthropic', 'openai', 'google', 'groq', 'openrouter', 'ollama']
+import { type Provider, PROVIDER_LABELS, PROVIDERS } from '@/lib/provider-config'
 
 interface FsInfo {
   path: string

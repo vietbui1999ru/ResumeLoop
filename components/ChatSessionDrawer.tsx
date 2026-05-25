@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
+import { fmtDate } from '@/lib/job-display'
 
 interface Session {
   id: string
@@ -26,8 +27,6 @@ export function ChatSessionDrawer({
   onStartNew,
   onSelectSession,
 }: ChatSessionDrawerProps) {
-  const fmtDate = (iso: string) => new Date(iso).toLocaleDateString()
-
   return (
     <AnimatePresence>
       {open && (

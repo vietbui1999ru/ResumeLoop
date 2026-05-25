@@ -2,11 +2,8 @@ import { generateText, jsonSchema } from 'ai'
 import { getModel }        from '../ai-client'
 import { getActiveConfig } from '../user-settings'
 import { logAiUsage }      from '../ai-usage'
-import type { SparseProfile, IngestionSource, MergeResult, ConflictEntry } from './types'
+import type { SparseProfile, IngestionSource, MergeResult, ConflictEntry, AnyToolCall } from './types'
 import { MAX_BULLET_CHARS } from '../config'
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnyToolCall = { toolName: string; input: any }
 
 const SYSTEM_PROMPT = `You merge multiple partial resume profiles into one complete profile.
 Rules:
