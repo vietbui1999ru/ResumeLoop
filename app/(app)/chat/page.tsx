@@ -275,19 +275,19 @@ export default function ChatPage() {
         <div className="flex items-center border-b border-border-subtle px-4 pt-3 gap-4 flex-shrink-0">
           <button
             onClick={() => setTab('chat')}
-            className={`text-sm pb-2 border-b-2 ${tab === 'chat' ? 'border-indigo-400 text-indigo-300' : 'border-transparent text-text-muted hover:text-text-secondary'}`}
+            className={`text-sm pb-2 border-b-2 ${tab === 'chat' ? 'border-accent text-accent' : 'border-transparent text-text-muted hover:text-text-secondary'}`}
           >Chat</button>
           <button
             data-tour="chat-github-import"
             onClick={() => setTab('import')}
-            className={`text-sm pb-2 border-b-2 ${tab === 'import' ? 'border-indigo-400 text-indigo-300' : 'border-transparent text-text-muted hover:text-text-secondary'}`}
+            className={`text-sm pb-2 border-b-2 ${tab === 'import' ? 'border-accent text-accent' : 'border-transparent text-text-muted hover:text-text-secondary'}`}
           >Import from GitHub</button>
           <button
             data-tour="chat-bullets-toggle"
             onClick={() => setBulletsOpen(v => !v)}
             className={`ml-auto mb-2 text-xs px-2 py-1 rounded border transition-colors ${
               bulletsOpen
-                ? 'border-indigo-700/60 text-indigo-400 bg-indigo-900/20'
+                ? 'border-accent/40 text-accent bg-accent-subtle/30'
                 : 'border-border-default text-text-muted hover:text-text-secondary'
             }`}
             title="Toggle bullets preview"
@@ -303,8 +303,8 @@ export default function ChatPage() {
         ) : (
           <>
             {grillMode && (
-              <div className="flex items-center gap-3 px-6 py-3 bg-indigo-950/60 border-b border-indigo-800/40 flex-shrink-0">
-                <span className="text-sm text-indigo-300 font-medium">Getting to know your work history</span>
+              <div className="flex items-center gap-3 px-6 py-3 bg-accent-subtle border-b border-border-default flex-shrink-0">
+                <span className="text-sm text-accent font-medium">Getting to know your work history</span>
                 <button
                   onClick={() => setGrillMode(false)}
                   className="ml-auto text-xs text-text-muted hover:text-text-secondary transition-colors"
@@ -318,7 +318,7 @@ export default function ChatPage() {
               <div className="px-6 py-3 border-b border-border-subtle flex-shrink-0">
                 <button
                   onClick={() => setTab('import')}
-                  className="text-xs text-indigo-400 hover:text-indigo-300 underline transition-colors"
+                  className="text-xs text-accent hover:text-accent/80 underline transition-colors"
                 >
                   Import from GitHub first →
                 </button>
@@ -329,8 +329,8 @@ export default function ChatPage() {
             <div className="flex-1 overflow-y-auto min-h-0 px-4 md:px-6 py-4 space-y-4">
               {messages.map(m => (
                 <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-2xl ${m.role === 'user' ? 'bg-indigo-900/40 rounded-lg px-4 py-2' : ''}`}>
-                    <p className="text-sm whitespace-pre-wrap">{m.text}</p>
+                  <div className={`max-w-2xl ${m.role === 'user' ? 'bg-accent-subtle rounded-lg px-4 py-2' : ''}`}>
+                    <p className="text-sm whitespace-pre-wrap text-text-primary">{m.text}</p>
                     {m.diff && (
                       <ChatDiff
                         file={m.diff.file}
@@ -354,12 +354,12 @@ export default function ChatPage() {
                 disabled={streaming}
                 rows={2}
                 placeholder="Ask Claude to update your bullets…"
-                className="flex-1 bg-surface-card border border-border-default rounded px-3 py-2 text-sm resize-none focus:outline-none focus:border-indigo-500 disabled:opacity-50"
+                className="flex-1 bg-surface-card border border-border-default rounded px-3 py-2 text-sm resize-none focus:outline-none focus:border-accent disabled:opacity-50"
               />
               <button
                 onClick={send}
                 disabled={streaming || !input.trim()}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded disabled:opacity-50"
+                className="px-4 py-2 bg-accent hover:bg-accent/90 text-white text-sm rounded disabled:opacity-50"
               >
                 Send
               </button>
