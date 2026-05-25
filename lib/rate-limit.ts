@@ -62,8 +62,8 @@ export async function checkRateLimitAsync(
   windowMs = AUTH_WINDOW_MS,
 ): Promise<RateLimitResult> {
   if (process.env.DISABLE_RATE_LIMIT === 'true') {
-    if (process.env.NODE_ENV !== 'test') {
-      throw new Error('DISABLE_RATE_LIMIT is only permitted in NODE_ENV=test')
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('DISABLE_RATE_LIMIT is not permitted in production')
     }
     return { success: true, remaining: limit, reset: Date.now() }
   }
