@@ -551,6 +551,15 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
   const profileEditorRef = useRef<MonacoEditorNS.IStandaloneCodeEditor | null>(null)
   const monacoMountedRef = useRef(false)
 
+  const [monacoTheme, setMonacoTheme] = useState<'vs-dark' | 'vs'>('vs-dark')
+  useEffect(() => {
+    const update = () => setMonacoTheme(document.documentElement.classList.contains('light') ? 'vs' : 'vs-dark')
+    update()
+    const observer = new MutationObserver(update)
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
+  }, [])
+
   // Rebuild source map whenever draft changes — used for preview → Monaco jumps
   const sourceMap = useMemo(() => {
     try { return jsonSourceMap(draft) } catch { return null }
@@ -834,7 +843,7 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
             <MonacoEditor
               height="100%"
               language="json"
-              theme="vs-dark"
+              theme={monacoTheme}
               value={draft}
               onChange={v => setDraft(v ?? '')}
               onMount={onProfileEditorMount}
@@ -843,9 +852,8 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
                   Loading editor…
                 </div>
               }
-              beforeMount={monaco => {
+              beforeMount={() => {
                 console.log('[Monaco] beforeMount — init starting')
-                monaco.editor.defineTheme('vs-dark', { base: 'vs-dark', inherit: true, rules: [], colors: {} })
               }}
               options={{
                 minimap: { enabled: false },
