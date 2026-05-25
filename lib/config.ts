@@ -3,6 +3,8 @@
 // ── Resume domain hard limits ────────────────────────────────────────────────
 // Must stay in sync with CLAUDE.md "Hard Limits" table and JSON schema in ai-reason.ts.
 export const MAX_BULLET_CHARS        = 116
+// Amber warning threshold: bullets over this length but under MAX_BULLET_CHARS turn amber.
+export const AMBER_BULLET_CHARS      = 100
 export const MAX_TAGLINE_CHARS       = 76
 export const MAX_PERSONA_TITLE_CHARS = 60
 // Word-boundary floor for tagline truncation: if lastIndexOf(' ') > this value,
@@ -21,6 +23,12 @@ export const OLLAMA_DEFAULT_BASE_URL = `http://localhost:${OLLAMA_DEFAULT_PORT}/
 // ── SQLite database ───────────────────────────────────────────────────────────
 // Overrideable via DB_PATH env — this is the filename used when DB_PATH is absent.
 export const DEFAULT_DB_FILENAME = 'resume.db'
+
+// ── UI timing ─────────────────────────────────────────────────────────────────
+// Flash duration for toast/status messages (settings save, config save, etc.)
+export const TOAST_DURATION_MS = 3_000
+// Flash duration for copy-to-clipboard confirmation.
+export const COPY_FLASH_MS     = 1_800
 
 // ── Auth rate limits ──────────────────────────────────────────────────────────
 // AUTH_UPSTASH_MAX / AUTH_UPSTASH_WINDOW: used by the Upstash sliding-window limiter.

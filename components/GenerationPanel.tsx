@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { DURATION, EASE } from '@/lib/motion'
+import { TOAST_DURATION_MS } from '@/lib/config'
 
 interface SSEEvent {
   stage: string
@@ -95,7 +96,7 @@ export default function GenerationPanel({
     const allDone   = queue.every(id => progress.get(id)?.done)
     const anyFailed = queue.some(id => progress.get(id)?.failed)
     if (!allDone || anyFailed) return
-    const timer = setTimeout(() => onCloseRef.current(), 3000)
+    const timer = setTimeout(() => onCloseRef.current(), TOAST_DURATION_MS)
     return () => clearTimeout(timer)
   }, [progress, queue])
 

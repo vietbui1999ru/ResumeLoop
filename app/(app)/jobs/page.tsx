@@ -17,6 +17,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { JobCard } from '@/components/JobCard'
 import { DropZone } from '@/components/DropZone'
 import { ACTION_COLORS, FitBadge, clipColor, fmtDate } from '@/lib/job-display'
+import { TOAST_DURATION_MS } from '@/lib/config'
 
 const JobDetailModal  = dynamic(() => import('@/components/JobDetailModal'),  { ssr: false })
 const GenerationPanel = dynamic(() => import('@/components/GenerationPanel'), { ssr: false })
@@ -216,7 +217,7 @@ export default function JobsPage() {
 
   const setRowError = useCallback((id: string, msg: string) => {
     setRowErrors(prev => new Map(prev).set(id, msg))
-    setTimeout(() => setRowErrors(prev => { const n = new Map(prev); n.delete(id); return n }), 3000)
+    setTimeout(() => setRowErrors(prev => { const n = new Map(prev); n.delete(id); return n }), TOAST_DURATION_MS)
   }, [])
 
   const hideJob = useCallback(async (jobId: string, hidden: 0 | 1) => {

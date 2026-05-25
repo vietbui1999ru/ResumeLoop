@@ -105,7 +105,6 @@ interface TourCtx {
   skipToNextPage:   () => void
   skipStep:         () => void
   activateForPage:  (page: string) => void
-  restartPageTour:  (page: string) => void
   reset:            () => void
 }
 
@@ -193,17 +192,6 @@ export function TourProvider({ children }: { children: ReactNode }) {
     router.push(page)
   }, [router])
 
-  const restartPageTour = useCallback((page: string) => {
-    const pageSteps = TOUR_STEPS.filter(s => s.page === page)
-    pageSteps.forEach(s => unmarkSeen(s.id))
-    setSeenIds(prev => {
-      const next = new Set(prev)
-      pageSteps.forEach(s => next.delete(s.id))
-      return next
-    })
-    router.push(page)
-  }, [router])
-
   const reset = useCallback(() => {
     TOUR_STEPS.forEach(s => unmarkSeen(s.id))
     setSeenIds(new Set())
@@ -214,7 +202,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
   }, [pathname, router])
 
   return (
-    <Ctx.Provider value={{ activeStep, pagesWithUnseen, history, advance, back, skipToNextPage, skipStep, activateForPage, restartPageTour, reset }}>
+    <Ctx.Provider value={{ activeStep, pagesWithUnseen, history, advance, back, skipToNextPage, skipStep, activateForPage, reset }}>
       {children}
     </Ctx.Provider>
   )

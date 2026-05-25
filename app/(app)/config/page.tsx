@@ -12,6 +12,7 @@ import { SkillsRow } from '@/components/profile/SkillsRow'
 import { JsonDiffPreview } from '@/components/profile/JsonDiffPreview'
 import type { editor as MonacoEditorNS } from 'monaco-editor'
 import { parse as jsonSourceMap } from 'json-source-map'
+import { TOAST_DURATION_MS } from '@/lib/config'
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false })
 
 interface ProfileData {
@@ -401,7 +402,7 @@ function BackupPanel({ file, currentContent, onRestored }: {
     if (r.ok) { setStatus('Restored'); setDiffTarget(null); onRestored() }
     else { const d = await r.json(); setStatus(`Error: ${d.error}`) }
     setRestoring(false)
-    setTimeout(() => setStatus(''), 3000)
+    setTimeout(() => setStatus(''), TOAST_DURATION_MS)
   }
 
   const fmtTs = (ts: string) => ts.replace('T', ' ').replace(/-(\d{2})-(\d{2})$/, ':$1:$2')
@@ -636,7 +637,7 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
     if (res.ok) { setContent(payload); setDraft(payload); setStatus('Saved'); onSaved() }
     else setStatus(`Error: ${d.error}`)
     setSaving(false)
-    setTimeout(() => setStatus(''), 3000)
+    setTimeout(() => setStatus(''), TOAST_DURATION_MS)
   }
 
   const handleToggleExclude = useCallback(async (id: string) => {
@@ -1101,7 +1102,7 @@ export default function ConfigPage() {
     const file = e.target.files?.[0]
     if (!file) return
     const text = await file.text()
-    try { JSON.parse(text) } catch { setStatus('Invalid JSON — file rejected'); setTimeout(() => setStatus(''), 3000); return }
+    try { JSON.parse(text) } catch { setStatus('Invalid JSON — file rejected'); setTimeout(() => setStatus(''), TOAST_DURATION_MS); return }
     const name = file.name.replace(/\.json$/i, '')
     const r = await fetch('/api/profiles', {
       method: 'POST',
