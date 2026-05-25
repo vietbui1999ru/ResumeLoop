@@ -9,16 +9,19 @@ Live at **[resumeloop.me](https://resumeloop.me)** · [Try Demo](https://resumel
 - **Clip** job postings via Obsidian Web Clipper → lands directly in the jobs table
 - **Paste** raw JD markdown inline — no file system required
 - **Scan** a local folder of JD `.md` files (desktop Chrome/Edge, or any browser in local mode)
-- **Score** each job for fit percentage and role track (GenAI, Systems, IT-track)
+- **Upload** `.md` files via drag-and-drop on jobs page; see failed imports in summary
+- **Score** each job for fit percentage and role track (GenAI, Systems, IT-track, SRE)
 - **Generate** a 1-page tailored DOCX + PDF resume per job via AI reasoning + `buildv2.js`
 - **Preview** resume PDF inline, side-by-side with the job description
-- **Track** application pipeline stages (Saved → Applied → Phone Screen → Interview → Offer)
+- **Track** application pipeline stages (Saved → Applied → Phone Screen → Interview → Offer) — stage and action columns stay bidirectionally synced
 - **Chat** with your resume data — refine bullets live with a side-by-side bullets editor, import GitHub repos as context, and review AI-suggested diffs before applying them
 - **Outreach** — import LinkedIn/alumni contact files per job, get AI contact summaries and draft emails + LinkedIn messages
+- **Profile editor** — drag-to-reorder experience, projects, and skills; toggle inclusion/exclusion per entry; preview JSON diffs before saving
 - **Sessions** — maintain multiple resume profile variants (e.g. one for systems roles, one for GenAI)
 - **Personal info** — edit name, phone, location, LinkedIn, portfolio, and work authorization from the account page; writes into the active resume profile's `contact` block
 - **Profile ingestion** — `/onboarding` builds your resume profile from any combination of: a GitHub handle, a LinkedIn/portfolio URL (Firecrawl-powered scrape with raw fetch fallback), or pasted text; extracts structured data, merges sources with most-specific-wins conflict resolution, and flags conflicts for review before saving
 - **Onboarding tour** — interactive step-by-step guide covering every major workflow; restartable from any page
+- **Mobile & desktop** — fully responsive design with touch-optimized inputs and layouts
 - **Feedback** — community bug reports and feature requests via GitHub Discussions (Giscus)
 
 ## Quick Start
@@ -45,7 +48,7 @@ Persists `resume.db` and file outputs as bind-mounts. See [`docs/deploy.md`](doc
 
 1. **Settings → Job Postings Folder** — point to your Obsidian vault folder containing job `.md` files (Chrome/Edge desktop only — File System Access API)
 2. **Settings → AI Provider** — add an API key (Anthropic recommended; required for Chat)
-3. **Jobs → Scan** — imports and scores all `.md` files, or use **Paste Job** to import one inline
+3. **Jobs → Scan** or **Upload .md files** — imports and scores all files, or use **Paste Job** to import one inline
 4. Check jobs in the table → **Generate N selected**
 
 An interactive **onboarding tour** launches automatically on first sign-in and guides you through each step. Restart it any time from the Help menu.
@@ -78,7 +81,7 @@ Push to `main` → GitHub Actions builds, pushes to ECR, deploys to ECS, verifie
 - **OAuth** — Google and GitHub (configure via `GOOGLE_CLIENT_ID/SECRET`, `GITHUB_CLIENT_ID/SECRET`)
 - **Demo** — per-IP sessions; same IP gets the same demo account back on return; reset button wipes and re-creates; auto-purged every 6 hours via in-process cron (`instrumentation.node.ts`)
 - **Rate limiting** — login: 10 attempts/min per IP + 20/hr per email; demo creation: 30/min per IP; demo reset: 3/hr per IP; global API: 300 req/min per IP
-- Desktop only — mobile browsers are redirected to a "not supported" page
+- **Mobile support** — responsive layouts for all screen sizes; touch-optimized inputs and menus
 
 ## Security
 
@@ -99,10 +102,10 @@ Push to `main` → GitHub Actions builds, pushes to ECR, deploys to ECS, verifie
 
 ```
 Request
-  └─ middleware.ts          global rate limit → mobile redirect → auth guard
+  └─ middleware.ts          global rate limit → auth guard
        └─ Next.js App Router
             ├─ app/(app)/   authenticated pages (jobs, chat, config, account, settings, feedback)
-            └─ app/api/     REST routes (53 handlers)
+            └─ app/api/     REST routes (75 handlers)
 
 Data layer
   ├─ lib/db-adapter.ts      DbAdapter interface (query / queryOne / run / runInTransaction)
@@ -179,11 +182,12 @@ Auth state is pre-established via `e2e/auth.setup.ts` and reused across specs �
 
 ## Tech Stack
 
-- **Next.js 14** App Router + TypeScript
+- **Next.js 15** App Router + TypeScript
 - **Vercel AI SDK** — multi-provider LLM abstraction (Anthropic, OpenAI, Google, Groq, OpenRouter, Ollama)
 - **SQLite** (local via `better-sqlite3`) / **Neon Postgres** (cloud) — same `DbAdapter` interface
 - **NextAuth v5** — credentials + OAuth (Google, GitHub) + JWT session management
 - **Upstash Redis** — rate limiting in cloud mode (token bucket); in-process Map fallback locally
+- **dnd-kit** — drag-and-drop reordering for profile editor
 - **LibreOffice headless** — DOCX → PDF conversion
 - **docx** — programmatic DOCX generation
 - **gray-matter** — YAML frontmatter parsing for JD files
@@ -201,6 +205,7 @@ Auth state is pre-established via `e2e/auth.setup.ts` and reused across specs �
 | `lib/ai-reason.ts` | AI bullet selection and fit scoring logic |
 | `lib/prompt-context.ts` | Builds LLM prompt context from profile + JD |
 | `lib/ai-client.ts` | `getModel(userId)` — resolves active provider + model from DB |
+| `lib/pipeline-tags.ts` | TAG_TO_ACTION / ACTION_TO_TAG maps for bidirectional stage-action sync |
 | `lib/db-adapter.ts` | `DbAdapter` interface + `SqliteAdapter` + `NeonAdapter` with `translatePlaceholders()` |
 | `lib/db.ts` | SQLite schema init, `hasColumn()` migration guards, FTS5 triggers |
 | `lib/crypto.ts` | AES-256-GCM encrypt/decrypt for sensitive fields at rest |
@@ -211,7 +216,14 @@ Auth state is pre-established via `e2e/auth.setup.ts` and reused across specs �
 | `contexts/TourContext.tsx` | Interactive onboarding tour — 35+ steps across all pages, tracks seen state |
 | `contexts/SessionContext.tsx` | Chat session management — supports multiple independent sessions per user |
 | `components/BulletsPreview.tsx` | Live bullets editor panel in Chat (Rendered / Markdown / JSON tabs) |
+| `components/DropZone.tsx` | Drag-and-drop zone for uploading `.md` files; shows progress and failed filenames |
 | `components/GithubIngest.tsx` | GitHub repo sync for Chat context |
+| `components/MobileHeader.tsx` | Mobile-optimized header with menu drawer |
+| `components/MobileDrawer.tsx` | Touch-optimized navigation drawer for mobile |
+| `components/profile/ExperienceCard.tsx` | Draggable card for work experience with include/exclude toggle |
+| `components/profile/ProjectCard.tsx` | Draggable card for projects with include/exclude toggle |
+| `components/profile/SkillsRow.tsx` | Skill category row with include/exclude toggle |
+| `components/profile/JsonDiffPreview.tsx` | Preview JSON diffs before saving profile changes |
 | `components/onboarding/SmartInput.tsx` | Auto-detects input type (GitHub handle / URL / paste) and routes to the correct ingest endpoint |
 | `components/onboarding/SourceBoard.tsx` | Multi-source ingestion board — add, preview, and merge sources before saving profile |
 | `components/onboarding/ProfileReview.tsx` | Editable profile review step — shows extracted fields and inline conflict warnings |
@@ -220,7 +232,7 @@ Auth state is pre-established via `e2e/auth.setup.ts` and reused across specs �
 | `lib/ingest/extract-paste.ts` | Raw text → LLM-extracted sparse profile |
 | `lib/ingest/merge.ts` | Most-specific-wins merge strategy + conflict detection across multiple sources |
 | `instrumentation.node.ts` | In-process cron — runs demo cleanup every 6 hours at server startup |
-| `middleware.ts` | Global rate limit + mobile redirect + auth guard |
+| `middleware.ts` | Global rate limit + auth guard |
 | `infra/setup-alb.sh` | One-shot ALB provisioning script |
 | `infra/otel-collector.yml` | OTel Collector config — receives traces from app, forwards to Tempo with bearer auth |
 | `infra/tempo.yml` | Tempo trace storage config with metrics generator for span-to-metric derivation |
@@ -231,13 +243,13 @@ Auth state is pre-established via `e2e/auth.setup.ts` and reused across specs �
 
 | Metric | Count |
 |---|---|
-| TypeScript files | 315 |
-| Lines of code (TS/TSX) | ~27,000 |
-| API routes | 58 |
-| React components | 33 |
-| Lib modules | 53 |
-| Vitest test files | 53 |
-| Playwright E2E spec files | 6 |
-| npm dependencies | 53 (35 prod + 18 dev) |
-| Git commits | 293 |
-| Project age | ~6 weeks |
+| TypeScript files | 690 |
+| Lines of code (TS/TSX) | ~73,000 |
+| API routes | 75 |
+| React components | 42 |
+| Lib modules | 57 |
+| Vitest test files | 303 |
+| Playwright E2E spec files | 5 |
+| npm dependencies | 54 (36 prod + 18 dev) |
+| Git commits | 326 |
+| Project age | ~11 weeks |
