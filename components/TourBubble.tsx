@@ -12,10 +12,10 @@ const POS_CLASS: Record<Position, (align: Align) => string> = {
 }
 
 const ARROW_CLASS: Record<Position, string> = {
-  below: 'absolute -top-[7px] left-4 w-3 h-3 bg-indigo-950 border-l border-t border-indigo-600/60 rotate-45',
-  above: 'absolute -bottom-[7px] left-4 w-3 h-3 bg-indigo-950 border-r border-b border-indigo-600/60 rotate-45',
-  right: 'absolute -left-[7px] top-3 w-3 h-3 bg-indigo-950 border-l border-b border-indigo-600/60 rotate-45',
-  left:  'absolute -right-[7px] top-3 w-3 h-3 bg-indigo-950 border-r border-t border-indigo-600/60 rotate-45',
+  below: 'absolute -top-[7px] left-4 w-3 h-3 bg-surface-overlay border-l border-t border-border-strong rotate-45',
+  above: 'absolute -bottom-[7px] left-4 w-3 h-3 bg-surface-overlay border-r border-b border-border-strong rotate-45',
+  right: 'absolute -left-[7px] top-3 w-3 h-3 bg-surface-overlay border-l border-b border-border-strong rotate-45',
+  left:  'absolute -right-[7px] top-3 w-3 h-3 bg-surface-overlay border-r border-t border-border-strong rotate-45',
 }
 
 export function TourBubble({
@@ -53,12 +53,12 @@ export function TourBubble({
       onClick={e => e.stopPropagation()}
     >
       <div className={ARROW_CLASS[position]} />
-      <div className="relative bg-indigo-950 border border-indigo-600/60 rounded-lg p-3 shadow-xl shadow-black/50">
-        <p className="text-xs font-semibold text-indigo-200 mb-1">{title}</p>
+      <div className="relative bg-surface-overlay border border-border-strong rounded-lg p-3 shadow-xl shadow-black/20">
+        <p className="text-xs font-semibold text-text-primary mb-1">{title}</p>
         <p className="text-xs text-text-secondary leading-relaxed">{body}</p>
         <button
           onClick={dismiss}
-          className="mt-2.5 text-xs px-3 py-1 bg-indigo-600 hover:bg-indigo-500 rounded transition-colors"
+          className="mt-2.5 text-xs px-3 py-1 bg-accent hover:bg-accent/90 text-white rounded transition-colors"
         >
           Got it
         </button>

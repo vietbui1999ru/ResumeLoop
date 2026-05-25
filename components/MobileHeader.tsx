@@ -34,7 +34,7 @@ export function MobileHeader({ onMenuOpen }: MobileHeaderProps) {
         <Menu size={20} strokeWidth={1.75} />
       </button>
       <div className="w-6 h-6 rounded-md bg-indigo-600 flex items-center justify-center shrink-0">
-        <span className="text-2xs font-bold text-white tracking-tight">RA</span>
+        <span className="text-2xs font-bold text-white tracking-tight">RL</span>
       </div>
       <span className="flex-1 text-sm font-medium text-text-primary">
         {PAGE_LABELS[pathname] ?? 'ResumeLoop'}

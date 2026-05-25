@@ -127,8 +127,8 @@ function BubbleArrow({ rect, placement }: { rect: Rect; placement: BubblePlaceme
     return (
       <div className="pointer-events-none absolute" style={{ ...arrowStyle, top: -8 }}>
         <svg viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M6 0L12 8H0L6 0Z" fill="rgb(55 48 163)" />
-          <path d="M6 1L11 8H1L6 1Z" stroke="rgba(99,102,241,0.6)" strokeWidth="0.5" fill="none" />
+          <path d="M6 0L12 8H0L6 0Z" style={{ fill: 'rgb(var(--color-surface-overlay))' }} />
+          <path d="M6 1L11 8H1L6 1Z" style={{ stroke: 'rgb(var(--color-border-strong))', fill: 'none' }} strokeWidth="0.5" />
         </svg>
       </div>
     )
@@ -136,8 +136,8 @@ function BubbleArrow({ rect, placement }: { rect: Rect; placement: BubblePlaceme
   return (
     <div className="pointer-events-none absolute" style={{ ...arrowStyle, bottom: -8 }}>
       <svg viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M6 8L0 0H12L6 8Z" fill="rgb(55 48 163)" />
-        <path d="M6 7L1 0H11L6 7Z" stroke="rgba(99,102,241,0.6)" strokeWidth="0.5" fill="none" />
+        <path d="M6 8L0 0H12L6 8Z" style={{ fill: 'rgb(var(--color-surface-overlay))' }} />
+        <path d="M6 7L1 0H11L6 7Z" style={{ stroke: 'rgb(var(--color-border-strong))', fill: 'none' }} strokeWidth="0.5" />
       </svg>
     </div>
   )
@@ -152,8 +152,8 @@ function PageProgress({ step }: { step: TourStepDef }) {
         <div
           key={s.id}
           className={`h-1.5 rounded-full transition-all duration-150 ${
-            i < idx   ? 'w-3 bg-indigo-600'
-            : i === idx ? 'w-4 bg-indigo-400'
+            i < idx   ? 'w-3 bg-accent'
+            : i === idx ? 'w-4 bg-accent-light'
             : 'w-1.5 bg-surface-overlay'
           }`}
         />
@@ -200,14 +200,14 @@ export function TourOverlay() {
         role="dialog"
         aria-modal="true"
         aria-label={`Tour: ${activeStep.title}`}
-        className="fixed z-[80] w-80 bg-indigo-950 border border-indigo-500/70 rounded-xl p-4 shadow-2xl shadow-black/70"
+        className="fixed z-[80] w-80 bg-surface-overlay border border-border-strong rounded-xl p-4 shadow-2xl shadow-black/20"
         style={bStyle}
       >
         {/* Arrow connector (only when target found and not centered) */}
         {rect && <BubbleArrow rect={rect} placement={placement} />}
 
         <PageProgress step={activeStep} />
-        <p className="text-sm font-semibold text-white mb-1">{activeStep.title}</p>
+        <p className="text-sm font-semibold text-text-primary mb-1">{activeStep.title}</p>
         <p className="text-xs text-text-secondary leading-relaxed mb-4">{activeStep.body}</p>
 
         <div className="flex items-center justify-between gap-2">
@@ -240,7 +240,7 @@ export function TourOverlay() {
             <button
               ref={nextRef}
               onClick={isVeryLast ? reset : advance}
-              className="text-xs px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className="text-xs px-3 py-1.5 bg-accent hover:bg-accent/90 text-white rounded-lg transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-accent/50"
               aria-label={isVeryLast ? 'Restart tour from the beginning' : isLast ? 'Finish tour for this page' : 'Next tour step'}
             >
               {isVeryLast ? 'Restart Tour' : isLast ? 'Done ✓' : 'Next →'}

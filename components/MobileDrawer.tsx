@@ -82,7 +82,7 @@ export function MobileDrawer({ open, onClose }: MobileDrawerProps) {
             {/* Close button */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
               <div className="w-6 h-6 rounded-md bg-indigo-600 flex items-center justify-center">
-                <span className="text-2xs font-bold text-white tracking-tight">RA</span>
+                <span className="text-2xs font-bold text-white tracking-tight">RL</span>
               </div>
               <button
                 onClick={onClose}
