@@ -155,3 +155,37 @@
 button, a, input, select, textarea {
   touch-action: manipulation;
 }
+
+/* Amber warning text — readable in light mode.
+ * Dark mode: amber palette reads fine on dark surfaces.
+ * Light mode: amber-200/300/400/500 are too light on white → override to text-primary.
+ * On hover over paragraph/list-item: dim to text-secondary (grey-ish), matching
+ * the "reduced amber" visual weight used in dark mode. */
+.text-amber-200,
+.text-amber-300,
+.text-amber-400,
+.text-amber-500 {
+  transition: color 150ms;
+}
+
+html.light .text-amber-200,
+html.light .text-amber-300,
+html.light .text-amber-400,
+html.light .text-amber-500 {
+  color: rgb(var(--color-text-primary));
+}
+
+html.light .text-amber-200:hover,
+html.light .text-amber-300:hover,
+html.light .text-amber-400:hover,
+html.light .text-amber-500:hover,
+html.light p:hover .text-amber-200,
+html.light p:hover .text-amber-300,
+html.light p:hover .text-amber-400,
+html.light p:hover .text-amber-500,
+html.light li:hover .text-amber-200,
+html.light li:hover .text-amber-300,
+html.light li:hover .text-amber-400,
+html.light li:hover .text-amber-500 {
+  color: rgb(var(--color-text-secondary));
+}
