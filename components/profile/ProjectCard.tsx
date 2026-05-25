@@ -1,6 +1,7 @@
 'use client'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { GripVertical } from 'lucide-react'
 
 interface ProjectEntry {
   id: string
@@ -38,10 +39,11 @@ export function ProjectCard({ entry, excluded, onToggle }: Props) {
       <button
         {...attributes}
         {...listeners}
-        className="flex-shrink-0 cursor-grab active:cursor-grabbing text-zinc-600 hover:text-zinc-400 mt-1"
+        className="flex-shrink-0 cursor-grab active:cursor-grabbing text-zinc-600 hover:text-zinc-400 transition-colors"
         aria-label="Drag to reorder"
+        title="Drag to reorder"
       >
-        ⠿
+        <GripVertical size={16} strokeWidth={1.75} />
       </button>
 
       {/* Toggle checkbox — no icon, shape+color carries the state */}

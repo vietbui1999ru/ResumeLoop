@@ -1,10 +1,13 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { useSearchParams } from 'next/navigation'
 import ChatDiff from '@/components/ChatDiff'
 import GithubIngest from '@/components/GithubIngest'
 import { BulletsPreview } from '@/components/BulletsPreview'
 import { useSession } from '@/contexts/SessionContext'
+import { MobileDrawer } from '@/components/MobileDrawer'
+import { MessageSquare } from 'lucide-react'
 
 const newId = () => crypto.randomUUID()
 
@@ -38,6 +41,8 @@ export default function ChatPage() {
   const [profileJson, setProfileJson] = useState('')
   const [activeProfileId, setActiveProfileId] = useState<string | undefined>(undefined)
   const [bulletsOpen, setBulletsOpen] = useState(true)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
   const [grillMode, setGrillMode] = useState(false)
   const [hydrated, setHydrated] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -193,6 +198,10 @@ export default function ChatPage() {
     } catch { /* ignore */ }
   }, [])
 
+  const handleNavigate = useCallback(() => {
+    if (!isDesktop) setSidebarOpen(false)
+  }, [isDesktop])
+
   const startNew = async () => {
     try {
       const res = await fetch('/api/sessions', {
@@ -212,8 +221,17 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-full">
-      {/* Session sidebar */}
-      <div className="w-48 flex-shrink-0 border-r border-zinc-800 flex flex-col h-full">
+      {/* Mobile drawer for sidebar (mobile/tablet only) */}
+      {!isDesktop && (
+        <MobileDrawer 
+          open={sidebarOpen} 
+          onClose={() => setSidebarOpen(false)} 
+        />
+      )}
+      
+      {/* Desktop sidebar (visible on desktop) */}
+      {isDesktop && (
+        <div className="w-48 flex-shrink-0 border-r border-zinc-800 flex flex-col h-full">
         <div className="p-3 border-b border-zinc-800 flex-shrink-0">
           <button
             onClick={() => void startNew()}
@@ -226,7 +244,7 @@ export default function ChatPage() {
           {sessions.map(s => (
             <button
               key={s.id}
-              onClick={() => { setActiveSessionId(s.id); loadSessionHistory(s.id) }}
+              onClick={() => { setActiveSessionId(s.id); loadSessionHistory(s.id); handleNavigate() }}
               className={`w-full text-left px-3 py-2 text-xs hover:bg-zinc-800 ${s.id === sessionId ? 'bg-zinc-800' : ''}`}
             >
               <p className="text-zinc-300 truncate">{s.name}</p>
@@ -236,8 +254,24 @@ export default function ChatPage() {
         </div>
       </div>
 
+      )}
+
       {/* Chat column */}
       <div className="flex-1 flex flex-col min-w-0 h-full">
+        {/* Mobile header (mobile only) */}
+        {!isDesktop && (
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800 flex-shrink-0">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 hover:bg-zinc-800 rounded transition-colors"
+              aria-label="Open navigation"
+            >
+              <MessageSquare size={20} />
+            </button>
+            <span className="text-sm font-medium text-zinc-300">Chat</span>
+          </div>
+        )}
+
         {/* Tab bar */}
         <div className="flex items-center border-b border-zinc-800 px-4 pt-3 gap-4 flex-shrink-0">
           <button
@@ -293,7 +327,7 @@ export default function ChatPage() {
               </div>
             )}
 
-            <div className="flex-1 overflow-y-auto min-h-0 px-6 py-4 space-y-4">
+            <div className="flex-1 overflow-y-auto min-h-0 px-4 md:px-6 py-4 space-y-4">
               {messages.map(m => (
                 <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-2xl ${m.role === 'user' ? 'bg-indigo-900/40 rounded-lg px-4 py-2' : ''}`}>
@@ -335,8 +369,8 @@ export default function ChatPage() {
         )}
       </div>
 
-      {/* Bullets panel — collapsible */}
-      {bulletsOpen && (
+      {/* Bullets panel — conditional layout */}
+      {bulletsOpen && isDesktop && (
         <div className="w-[35%] min-w-64 flex-shrink-0 border-l border-zinc-800 flex flex-col h-full bg-zinc-950">
           <div className="px-3 py-1.5 bg-zinc-800/80 border-b border-zinc-700 flex items-center gap-2 flex-shrink-0">
             <span className="text-2xs text-zinc-500 uppercase tracking-widest font-mono">Bullets</span>

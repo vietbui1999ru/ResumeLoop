@@ -519,9 +519,12 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange, currentAc
 
   // Mobile bottom sheet
   if (mounted && !isDesktop) {
+    // Reorder panels by importance on mobile: critical → secondary
+    const mobilePanelOrder: PanelId[] = ['jd', 'pdf', 'cover', 'reasoning', 'outreach', 'case']
+    
     return createPortal(
       <AnimatePresence>
-        {/* Backdrop */}
+        {/* Backdrop — semi-transparent, swipe-down closes */}
         <motion.div
           className="fixed inset-0 bg-black/60 z-40"
           onClick={onClose}
@@ -529,68 +532,93 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange, currentAc
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         />
-        {/* Sheet */}
+        {/* Bottom sheet */}
         <motion.div
           className="fixed bottom-0 left-0 right-0 z-50 bg-surface-card
-                     rounded-t-2xl flex flex-col h-[90dvh]"
+                     rounded-t-2xl flex flex-col h-[90dvh] max-h-[90dvh]"
           onClick={e => e.stopPropagation()}
           initial={{ y: '100%' }}
           animate={{ y: 0 }}
           exit={{ y: '100%' }}
           transition={{ type: 'spring', damping: 28, stiffness: 300 }}
         >
-          {/* Drag handle indicator */}
-          <div className="flex justify-center pt-2 pb-1 shrink-0">
-            <div className="w-10 h-1 rounded-full bg-zinc-600" />
+          {/* Drag handle indicator — bigger affordance */}
+          <div className="flex justify-center pt-3 pb-2 shrink-0">
+            <div className="w-12 h-1 rounded-full bg-zinc-600" />
           </div>
 
-          {/* Header: company/role + close */}
-          <div className="flex items-center justify-between px-4 py-3
-                          border-b border-zinc-800 shrink-0">
-            <div>
-              <p className="text-sm font-semibold text-zinc-100">{job?.company ?? ''}</p>
-              <p className="text-xs text-zinc-400">{job?.role_title ?? ''}</p>
+          {/* Header: company/role + close button (48px touch target) */}
+          <div className="flex items-start justify-between px-4 py-2 shrink-0">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-zinc-100 truncate">{job?.company ?? ''}</p>
+              <p className="text-xs text-zinc-400 truncate">{job?.role_title ?? ''}</p>
             </div>
             <button
               onClick={onClose}
-              className="w-9 h-9 flex items-center justify-center
-                         text-text-muted hover:text-text-secondary rounded-lg"
+              aria-label="Close job detail"
+              className="w-12 h-12 flex items-center justify-center shrink-0
+                         text-text-muted hover:text-text-secondary rounded-lg
+                         -mr-2 -mt-2"
+              title="Close (Esc)"
             >
-              <X size={16} />
+              <X size={20} strokeWidth={1.5} />
             </button>
           </div>
 
-          {/* Scrollable tab bar */}
-          <div className="flex overflow-x-auto border-b border-zinc-800 shrink-0
-                          bg-surface-card [scrollbar-width:none] [-webkit-overflow-scrolling:touch]">
-            {PANELS.map(({ id, label }) => (
-              <button
-                key={id}
-                onClick={() => setActivePanel(id)}
-                className={`px-4 py-2.5 text-xs font-medium whitespace-nowrap
-                            border-b-2 transition-colors duration-100 shrink-0 ${
-                  activePanel === id
-                    ? 'border-indigo-500 text-indigo-400'
-                    : 'border-transparent text-text-muted hover:text-text-secondary'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
+          {/* Tab bar with priority ordering — scrolls if needed */}
+          <div className="flex overflow-x-auto gap-0.5 border-b border-zinc-800 
+                          shrink-0 bg-surface-card px-2 py-2 [scrollbar-width:none] 
+                          [-webkit-overflow-scrolling:touch] scroll-smooth">
+            {mobilePanelOrder.map((id) => {
+              const panel = PANELS.find(p => p.id === id)
+              if (!panel) return null
+              
+              // Highlight critical tabs
+              const isCritical = ['jd', 'pdf', 'cover'].includes(id)
+              const isActive = activePanel === id
+              
+              return (
+                <button
+                  key={id}
+                  onClick={() => setActivePanel(id)}
+                  className={`px-3 py-2 text-xs font-medium whitespace-nowrap
+                             border-b-2 transition-colors duration-100 shrink-0
+                             rounded-t-sm h-10 flex items-center justify-center ${
+                    isActive
+                      ? 'border-indigo-500 text-indigo-400 bg-indigo-500/10'
+                      : isCritical
+                        ? 'border-transparent text-text-secondary hover:text-text-primary'
+                        : 'border-transparent text-text-muted hover:text-text-secondary'
+                  }`}
+                  title={`${panel.label} panel`}
+                >
+                  {panel.label}
+                </button>
+              )
+            })}
           </div>
 
-          {/* Panel content */}
-          <div className="flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)]">
+          {/* Panel content — scrolls independently per tab */}
+          <div className="flex-1 overflow-y-auto min-h-0 pb-[env(safe-area-inset-bottom)]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activePanel}
-                initial={{ opacity: 0, x: 8 }}
+                initial={{ opacity: 0, x: 12 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -8 }}
-                transition={{ duration: 0.1 }}
-                className="min-h-full"
+                exit={{ opacity: 0, x: -12 }}
+                transition={{ duration: 0.15 }}
+                className="min-h-full w-full"
               >
-                {renderMobilePanel(activePanel)}
+                {/* Loading skeleton while data loads */}
+                {loading ? (
+                  <div className="px-4 py-4 space-y-3">
+                    <div className="h-4 bg-zinc-800 rounded w-3/4" />
+                    <div className="h-4 bg-zinc-800 rounded w-1/2" />
+                    <div className="h-4 bg-zinc-800 rounded w-2/3" />
+                  </div>
+                ) : (
+                  renderMobilePanel(activePanel)
+                )}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -599,6 +627,7 @@ export default function JobDetailModal({ jobId, onClose, onTagsChange, currentAc
       document.body
     )
   }
+
 
   const modalContent = (
     <motion.div
