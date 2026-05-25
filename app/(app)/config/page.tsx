@@ -1,4 +1,5 @@
 'use client'
+import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
@@ -531,6 +532,7 @@ function CandidateProfileCard({ json, onEdit }: { json: string; onEdit?: () => v
 // ── Two-panel Monaco editor (JSON + bullets preview) ─────────────────────────
 
 function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => void }) {
+  const isDesktop = useMediaQuery('(min-width: 1024px)')
   const [content, setContent]     = useState('')
   const [draft, setDraft]         = useState('')
   const [loading, setLoading]     = useState(true)
@@ -797,7 +799,7 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
       )}
 
       {/* Two-panel editor (JSON tab only) */}
-      {configView === 'json' && <div className="grid grid-cols-[3fr_2fr] gap-0 border border-zinc-700 rounded-lg overflow-hidden" style={{ height: 520 }}>
+      {configView === 'json' && <div className={`${ isDesktop ? "grid grid-cols-[3fr_2fr]" : "flex flex-col"} gap-0 border border-zinc-700 rounded-lg overflow-hidden`} style={{ height: isDesktop ? 520 : "auto" }}>
         {/* Monaco */}
         <div className="border-r border-zinc-700 flex flex-col min-h-0">
           <div className="px-3 py-1.5 bg-zinc-800 border-b border-zinc-700 flex items-center gap-2 shrink-0">
@@ -857,7 +859,23 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
           )}
         </div>
 
-        {/* Bullets preview */}
+        {/* Mobile JSON viewer fallback */}
+      {!isDesktop && configView === 'json' && (
+        <div className="border border-zinc-700 rounded-lg overflow-hidden bg-zinc-950">
+          <div className="px-3 py-2 bg-zinc-800 border-b border-zinc-700 flex items-center gap-2 shrink-0">
+            <span className="text-2xs text-zinc-500 uppercase tracking-widest font-mono">JSON (read-only)</span>
+          </div>
+          <div className="px-4 py-3 text-xs text-zinc-400 space-y-2 max-h-96 overflow-y-auto">
+            <p className="text-amber-400 font-medium">JSON editing unavailable on mobile</p>
+            <p>Use <button onClick={() => setConfigView('cards')} className="text-indigo-400 underline">Cards view</button> for editing, or switch to a desktop browser.</p>
+            <pre className="mt-3 p-2 bg-zinc-900 rounded text-2xs overflow-x-auto whitespace-pre-wrap break-words">
+              {JSON.stringify(profileData, null, 2).slice(0, 500)}...
+            </pre>
+          </div>
+        </div>
+      )}
+
+      {/* Bullets preview */}
         <div className="flex flex-col bg-zinc-950 min-h-0">
           <div className="relative px-3 py-1.5 bg-zinc-800 border-b border-zinc-700 flex items-center gap-2 shrink-0">
             <span className="text-2xs text-zinc-500 uppercase tracking-widest font-mono">Bullets</span>
