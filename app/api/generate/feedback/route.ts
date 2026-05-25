@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { getAdapter } from '@/lib/db-adapter'
 import { PATHS } from '@/lib/paths'
+import { isCloud } from '@/lib/app-mode'
 import fs from 'fs'
 import path from 'path'
 
@@ -50,20 +51,25 @@ export async function POST(req: Request) {
   const MAX_LOG_BYTES = 512 * 1024  // 512 KB — ~2500 entries before trim
   const MAX_ENTRIES   = 100
 
-  const logPath = PATHS.feedback.rawLog
-  fs.mkdirSync(path.dirname(logPath), { recursive: true })
-  fs.appendFileSync(logPath, entry, 'utf8')
+  if (isCloud()) {
+    // Disk writes are ephemeral on ECS/Fargate — route to stdout (CloudWatch)
+    console.log('[feedback]', entry.trim())
+  } else {
+    const logPath = PATHS.feedback.rawLog
+    fs.mkdirSync(path.dirname(logPath), { recursive: true })
+    fs.appendFileSync(logPath, entry, 'utf8')
 
-  // Trim if oversized to prevent disk DoS and prompt injection accumulation
-  try {
-    const raw = fs.readFileSync(logPath, 'utf8')
-    if (Buffer.byteLength(raw, 'utf8') > MAX_LOG_BYTES) {
-      const parts = raw.split(/(?=\n## \d{4}-\d{2}-\d{2})/).filter(s => s.trim())
-      if (parts.length > MAX_ENTRIES) {
-        fs.writeFileSync(logPath, parts.slice(-MAX_ENTRIES).join(''), 'utf8')
+    // Trim if oversized to prevent disk DoS and prompt injection accumulation
+    try {
+      const raw = fs.readFileSync(logPath, 'utf8')
+      if (Buffer.byteLength(raw, 'utf8') > MAX_LOG_BYTES) {
+        const parts = raw.split(/(?=\n## \d{4}-\d{2}-\d{2})/).filter(s => s.trim())
+        if (parts.length > MAX_ENTRIES) {
+          fs.writeFileSync(logPath, parts.slice(-MAX_ENTRIES).join(''), 'utf8')
+        }
       }
-    }
-  } catch { /* trim failure is non-fatal */ }
+    } catch { /* trim failure is non-fatal */ }
+  }
 
   void outputId  // stored in entry label; not needed for log write
 

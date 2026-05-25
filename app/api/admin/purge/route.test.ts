@@ -53,10 +53,11 @@ describe('POST /api/admin/purge', () => {
   })
 
   it('hard-deletes all data for each expired user in FK-safe order', async () => {
-    const mockRun = vi.fn()
+    const mockRunInTransaction = vi.fn().mockResolvedValue(undefined)
     mockGetAdapter.mockResolvedValue({
       query: vi.fn().mockResolvedValue([{ id: 'expired-user' }]),
-      run: mockRun,
+      run: vi.fn(),
+      runInTransaction: mockRunInTransaction,
     } as any)
 
     const res = await POST(makeReq('test-secret'))
@@ -65,14 +66,16 @@ describe('POST /api/admin/purge', () => {
     expect(res.status).toBe(200)
     expect(body).toEqual({ purged: 1 })
 
-    const allCalls = mockRun.mock.calls.map(([sql]: [string]) => sql)
-    // transaction wraps each user's deletes
-    expect(allCalls[0]).toBe('BEGIN')
-    expect(allCalls[allCalls.length - 1]).toBe('COMMIT')
-    // users row must be deleted last among DELETE statements
-    const deleteCalls = allCalls.filter((s: string) => s.trim().startsWith('DELETE'))
-    expect(deleteCalls[deleteCalls.length - 1]).toMatch(/DELETE FROM users/)
-    // all non-transaction calls used the expired user's id or the scoped key
-    expect(mockRun).toHaveBeenCalledWith(expect.any(String), ['expired-user'])
+    expect(mockRunInTransaction).toHaveBeenCalledOnce()
+    const ops: Array<{ sql: string; params: unknown[] }> = mockRunInTransaction.mock.calls[0][0]
+    const sqls = ops.map(o => o.sql.trim())
+
+    // users row must be last to respect FK order
+    expect(sqls[sqls.length - 1]).toMatch(/DELETE FROM users/)
+    // all ops reference the expired user's id (either directly or as part of a scoped key)
+    for (const op of ops) {
+      const hasRef = op.params?.some(p => String(p).includes('expired-user'))
+      expect(hasRef, `op missing user ref: ${op.sql}`).toBe(true)
+    }
   })
 })
