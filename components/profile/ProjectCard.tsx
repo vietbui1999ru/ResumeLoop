@@ -39,6 +39,7 @@ export function ProjectCard({ entry, excluded, onToggle }: Props) {
       <button
         {...attributes}
         {...listeners}
+        style={{ touchAction: 'none' }}
         className="flex-shrink-0 cursor-grab active:cursor-grabbing text-text-muted hover:text-text-secondary transition-colors"
         aria-label="Drag to reorder"
         title="Drag to reorder"

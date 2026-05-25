@@ -2,8 +2,8 @@
 import { useMediaQuery } from '@/hooks/useMediaQuery'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
-import { DndContext, closestCenter, type DragEndEvent } from '@dnd-kit/core'
-import { SortableContext, arrayMove, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { DndContext, closestCenter, type DragEndEvent, useSensor, useSensors, PointerSensor, TouchSensor, KeyboardSensor } from '@dnd-kit/core'
+import { SortableContext, arrayMove, verticalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { Skeleton } from '@/components/Skeleton'
 import { BulletsPreview } from '@/components/BulletsPreview'
 import { ExperienceCard } from '@/components/profile/ExperienceCard'
@@ -548,6 +548,12 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
   const [initialProfile,          setInitialProfile]           = useState<CandidateProfile | null>(null)
   const [profileEditorKey,        setProfileEditorKey]         = useState(0)
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
   const profileEditorRef = useRef<MonacoEditorNS.IStandaloneCodeEditor | null>(null)
   const monacoMountedRef = useRef(false)
 
@@ -746,7 +752,7 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
           {(profileData.experience?.length ?? 0) > 0 && (
             <section>
               <h3 className="text-xs font-medium text-text-muted uppercase tracking-widest mb-3">Experience</h3>
-              <DndContext collisionDetection={closestCenter} onDragEnd={handleExperienceDragEnd}>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleExperienceDragEnd}>
                 <SortableContext items={profileData.experience!.map(e => e.id)} strategy={verticalListSortingStrategy}>
                   <div className="space-y-2">
                     {profileData.experience!.map(entry => (
@@ -766,7 +772,7 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
           {(profileData.projects?.length ?? 0) > 0 && (
             <section>
               <h3 className="text-xs font-medium text-text-muted uppercase tracking-widest mb-3">Projects</h3>
-              <DndContext collisionDetection={closestCenter} onDragEnd={handleProjectDragEnd}>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleProjectDragEnd}>
                 <SortableContext items={profileData.projects!.map(p => p.id)} strategy={verticalListSortingStrategy}>
                   <div className="space-y-2">
                     {profileData.projects!.map(entry => (
