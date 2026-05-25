@@ -30,8 +30,8 @@ export function GiscusWidget() {
 
   if (state === 'error') {
     return (
-      <div data-testid="giscus-widget" className="rounded-lg border border-zinc-700 bg-zinc-900/40 p-6 space-y-3">
-        <p className="text-sm text-zinc-400">
+      <div data-testid="giscus-widget" className="rounded-lg border border-border-default bg-surface-card/40 p-6 space-y-3">
+        <p className="text-sm text-text-secondary">
           Comments failed to load. GitHub Discussions may not be configured yet, or your
           network is blocking external scripts.
         </p>
@@ -50,8 +50,8 @@ export function GiscusWidget() {
   return (
     <div data-testid="giscus-widget" className="min-h-[300px]">
       {state === 'loading' && (
-        <div className="flex items-center gap-2 text-sm text-zinc-500 py-6">
-          <span className="w-4 h-4 border-2 border-zinc-700 border-t-indigo-400 rounded-full animate-spin shrink-0" />
+        <div className="flex items-center gap-2 text-sm text-text-muted py-6">
+          <span className="w-4 h-4 border-2 border-border-default border-t-indigo-400 rounded-full animate-spin shrink-0" />
           Loading comments…
         </div>
       )}

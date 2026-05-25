@@ -28,16 +28,16 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-surface-base flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8">
-          <h1 className="text-xl font-semibold text-zinc-100">Reset password</h1>
-          <p className="text-sm text-zinc-500 mt-1">We&apos;ll send a reset link to your email.</p>
+          <h1 className="text-xl font-semibold text-text-primary">Reset password</h1>
+          <p className="text-sm text-text-muted mt-1">We&apos;ll send a reset link to your email.</p>
         </div>
 
         {submitted ? (
           <div className="space-y-4">
-            <p className="text-sm text-zinc-300">
+            <p className="text-sm text-text-secondary">
               If that email is registered, you&apos;ll receive a reset link shortly.
             </p>
             <Link href="/auth/signin" className="text-xs text-indigo-400 hover:text-indigo-300">
@@ -47,11 +47,11 @@ export default function ForgotPasswordPage() {
         ) : (
           <form onSubmit={submit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="text-xs text-zinc-500 block mb-1">Email</label>
+              <label htmlFor="email" className="text-xs text-text-muted block mb-1">Email</label>
               <input
                 id="email" type="email" required
                 value={email} onChange={e => setEmail(e.target.value)}
-                className="w-full text-sm bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500"
+                className="w-full text-sm bg-surface-card border border-border-default rounded px-3 py-2 text-text-secondary focus:outline-none focus:border-indigo-500"
                 placeholder="you@example.com"
               />
             </div>
@@ -65,7 +65,7 @@ export default function ForgotPasswordPage() {
               {loading ? 'Sending…' : 'Send reset link'}
             </button>
 
-            <p className="text-xs text-zinc-500 text-center">
+            <p className="text-xs text-text-muted text-center">
               <Link href="/auth/signin" className="text-indigo-400 hover:text-indigo-300">Back to sign in</Link>
             </p>
           </form>

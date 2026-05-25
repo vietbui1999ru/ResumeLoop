@@ -3,12 +3,14 @@ import { SessionProvider as NextAuthProvider } from 'next-auth/react'
 import { SessionProvider } from '@/contexts/SessionContext'
 import { TourProvider } from '@/contexts/TourContext'
 import { FontSizeSync } from '@/components/FontSizeSync'
+import { ThemeSync } from '@/components/ThemeSync'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <NextAuthProvider>
       <SessionProvider>
         <TourProvider>
+          <ThemeSync />
           <FontSizeSync />
           {children}
         </TourProvider>

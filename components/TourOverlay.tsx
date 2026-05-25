@@ -154,11 +154,11 @@ function PageProgress({ step }: { step: TourStepDef }) {
           className={`h-1.5 rounded-full transition-all duration-150 ${
             i < idx   ? 'w-3 bg-indigo-600'
             : i === idx ? 'w-4 bg-indigo-400'
-            : 'w-1.5 bg-zinc-700'
+            : 'w-1.5 bg-surface-overlay'
           }`}
         />
       ))}
-      <span className="ml-1 text-2xs text-zinc-500">{idx + 1} / {pageSteps.length}</span>
+      <span className="ml-1 text-2xs text-text-muted">{idx + 1} / {pageSteps.length}</span>
     </div>
   )
 }
@@ -208,21 +208,21 @@ export function TourOverlay() {
 
         <PageProgress step={activeStep} />
         <p className="text-sm font-semibold text-white mb-1">{activeStep.title}</p>
-        <p className="text-xs text-zinc-300 leading-relaxed mb-4">{activeStep.body}</p>
+        <p className="text-xs text-text-secondary leading-relaxed mb-4">{activeStep.body}</p>
 
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             <button
               onClick={back}
               disabled={history.length === 0}
-              className="text-xs text-zinc-500 hover:text-zinc-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="text-xs text-text-muted hover:text-text-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               aria-label="Go to previous step"
             >
               ← Prev
             </button>
             <button
               onClick={skipStep}
-              className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+              className="text-xs text-text-muted hover:text-text-secondary transition-colors"
               aria-label="Dismiss this step"
             >
               Later
@@ -232,7 +232,7 @@ export function TourOverlay() {
           <div className="flex items-center gap-3">
             <button
               onClick={skipToNextPage}
-              className="text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+              className="text-xs text-text-secondary hover:text-text-primary transition-colors"
               aria-label="Skip all steps on this page"
             >
               Skip page

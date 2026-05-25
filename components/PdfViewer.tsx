@@ -31,18 +31,18 @@ export default function PdfViewer({ url }: { url: string }) {
   const handleLoadError = useCallback((err: Error) => setError(err.message), [])
 
   if (error) return (
-    <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
+    <div className="absolute inset-0 flex items-center justify-center bg-surface-raised">
       <p className="text-red-400 text-sm px-4 text-center">Failed to load PDF: {error}</p>
     </div>
   )
 
   return (
-    <div ref={containerRef} className="absolute inset-0 overflow-auto bg-zinc-800 flex flex-col items-center py-4 gap-4">
+    <div ref={containerRef} className="absolute inset-0 overflow-auto bg-surface-raised flex flex-col items-center py-4 gap-4">
       <Document
         file={url}
         onLoadSuccess={handleLoadSuccess}
         onLoadError={handleLoadError}
-        loading={<p className="text-zinc-400 text-sm mt-8">Loading PDF…</p>}
+        loading={<p className="text-text-secondary text-sm mt-8">Loading PDF…</p>}
         error={<p className="text-red-400 text-sm mt-8 px-4 text-center">Failed to load PDF</p>}
       >
         {numPages && Array.from({ length: numPages }, (_, i) => (

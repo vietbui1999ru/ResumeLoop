@@ -32,11 +32,11 @@ export default function ChatDiff({ file, description, diff, sessionId, onApplied
   const lines = diff.split('\n')
 
   return (
-    <div className="rounded border border-zinc-700 bg-zinc-900 my-2 overflow-hidden">
-      <div className="px-3 py-2 border-b border-zinc-700 flex items-center justify-between">
+    <div className="rounded border border-border-default bg-surface-card my-2 overflow-hidden">
+      <div className="px-3 py-2 border-b border-border-default flex items-center justify-between">
         <div>
           <span className="text-xs font-mono text-indigo-300">{file}</span>
-          <span className="ml-2 text-xs text-zinc-400">{description}</span>
+          <span className="ml-2 text-xs text-text-secondary">{description}</span>
         </div>
         {state === 'pending' && (
           <div className="flex gap-2">
@@ -50,14 +50,14 @@ export default function ChatDiff({ file, description, diff, sessionId, onApplied
             <button
               disabled={busy}
               onClick={() => apply(false)}
-              className="px-2 py-0.5 text-xs bg-zinc-700 hover:bg-zinc-600 text-zinc-300 rounded disabled:opacity-50"
+              className="px-2 py-0.5 text-xs bg-surface-overlay hover:bg-surface-overlay text-text-secondary rounded disabled:opacity-50"
             >
               Reject
             </button>
           </div>
         )}
         {state === 'accepted' && <span className="text-xs text-green-400">Applied ✓</span>}
-        {state === 'rejected' && <span className="text-xs text-zinc-500">Declined</span>}
+        {state === 'rejected' && <span className="text-xs text-text-muted">Declined</span>}
       </div>
       <pre className="overflow-x-auto text-xs font-mono px-3 py-2 max-h-60 leading-relaxed">
         {lines.map((line, i) => (
@@ -68,7 +68,7 @@ export default function ChatDiff({ file, description, diff, sessionId, onApplied
                 ? 'text-green-400'
                 : line.startsWith('-') && !line.startsWith('---')
                 ? 'text-red-400'
-                : 'text-zinc-400'
+                : 'text-text-secondary'
             }
           >
             {line}

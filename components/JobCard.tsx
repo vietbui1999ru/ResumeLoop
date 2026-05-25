@@ -35,7 +35,7 @@ export function JobCard({ job, selected, onSelect, onOpen, onActionChange, genSt
     <div
       className={`bg-surface-card border rounded-lg p-4 cursor-pointer
                   transition-colors duration-100 active:bg-surface-raised
-                  ${selected ? 'border-indigo-500 bg-indigo-500/5' : 'border-zinc-800'}
+                  ${selected ? 'border-indigo-500 bg-indigo-500/5' : 'border-border-subtle'}
                   ${job.hidden ? 'opacity-40' : ''}`}
       onClick={onOpen}
     >
@@ -56,15 +56,15 @@ export function JobCard({ job, selected, onSelect, onOpen, onActionChange, genSt
             {job.visa_status === 'kill' && (
               <span className="text-red-500 text-2xs" title="No sponsorship">⊘</span>
             )}
-            <span className="text-sm font-medium text-zinc-200">{job.company}</span>
+            <span className="text-sm font-medium text-text-primary">{job.company}</span>
             <FitBadge pct={job.fit_pct} />
           </div>
           {/* Row 2: role + track badge */}
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs text-zinc-400 truncate">{job.role_title}</span>
+            <span className="text-xs text-text-secondary truncate">{job.role_title}</span>
             {job.role_track && (
-              <span className="text-2xs px-1.5 py-0.5 bg-zinc-800 border border-zinc-700/80
-                               text-zinc-500 rounded font-mono leading-none shrink-0">
+              <span className="text-2xs px-1.5 py-0.5 bg-surface-raised border border-border-default/80
+                               text-text-muted rounded font-mono leading-none shrink-0">
                 {job.role_track}
               </span>
             )}
@@ -80,8 +80,8 @@ export function JobCard({ job, selected, onSelect, onOpen, onActionChange, genSt
         <select
           value={job.action ?? '0-Saved'}
           onChange={e => onActionChange(e.target.value)}
-          className={`h-9 bg-zinc-800 border border-zinc-700 rounded px-2 text-xs
-                      ${ACTION_COLORS[job.action ?? '0-Saved'] ?? 'text-zinc-400'}`}
+          className={`h-9 bg-surface-raised border border-border-default rounded px-2 text-xs
+                      ${ACTION_COLORS[job.action ?? '0-Saved'] ?? 'text-text-secondary'}`}
         >
           {VALID_ACTIONS.map(a => <option key={a} value={a}>{a}</option>)}
         </select>

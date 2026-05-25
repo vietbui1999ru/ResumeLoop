@@ -93,11 +93,62 @@
     line-height: 1.625; /* leading-relaxed */
   }
 
+  /* === Light mode token overrides ===
+   * html.light overrides :root dark defaults.
+   * Surface: warm-neutral off-white stack. Text: near-black → zinc-700 → zinc-500.
+   * Accent deepened to indigo-600 for AA contrast on white.
+   */
+  html.light {
+    /* Surface */
+    --color-surface-base:    248 248 250;
+    --color-surface-card:    255 255 255;
+    --color-surface-raised:  241 241 245;
+    --color-surface-overlay: 228 228 231;
+
+    /* Border */
+    --color-border-subtle:   228 228 231;
+    --color-border-default:  212 212 216;
+    --color-border-strong:   161 161 170;
+
+    /* Text */
+    --color-text-primary:    9 9 11;
+    --color-text-secondary:  63 63 70;
+    --color-text-muted:      113 113 122;
+
+    /* Semantic — deeper for contrast on white */
+    --color-accent:          79 70 229;
+    --color-accent-light:    99 102 241;
+    --color-accent-subtle:   238 242 255;
+    --color-error:           220 38 38;
+    --color-success:         21 128 61;
+    --color-warning:         180 83 9;
+
+    /* Chart palette — deeper for readability on light backgrounds */
+    --color-chart-scraped:      #4f46e5;
+    --color-chart-proceed:      #6366f1;
+    --color-chart-resume-built: #2563eb;
+    --color-chart-applied:      #d97706;
+    --color-chart-interviewed:  #ea580c;
+    --color-chart-offer:        #16a34a;
+    --color-chart-rejected:     #dc2626;
+    --color-chart-visa-kill:    #e11d48;
+    --color-chart-pending:      #71717a;
+    --color-chart-other:        #52525b;
+
+    /* Shadows — lighter for light mode */
+    --shadow-sm:    0 1px 2px rgb(0 0 0 / 0.08);
+    --shadow-card:  0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    --shadow-modal: 0 20px 25px -5px rgb(0 0 0 / 0.12), 0 8px 10px -6px rgb(0 0 0 / 0.06);
+  }
+
   /* Custom scrollbar — thin, zinc-colored */
   ::-webkit-scrollbar        { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track  { background: transparent; }
   ::-webkit-scrollbar-thumb  { background: #27272a; border-radius: 9999px; }
   ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+
+  html.light ::-webkit-scrollbar-thumb       { background: #d4d4d8; }
+  html.light ::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
 }
 
 /* Mobile touch — removes 300ms tap delay on iOS < 13 */

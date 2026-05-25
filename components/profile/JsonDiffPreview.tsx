@@ -36,9 +36,9 @@ export function JsonDiffPreview({ oldJson, newJson, onAccept, onReject }: Props)
   const changed = lines.filter(l => l.type !== 'same').length
 
   return (
-    <div className="rounded border border-zinc-700 bg-zinc-900 overflow-hidden">
-      <div className="px-3 py-2 border-b border-zinc-700 flex items-center justify-between">
-        <span className="text-xs text-zinc-400">{changed} line{changed !== 1 ? 's' : ''} changed</span>
+    <div className="rounded border border-border-default bg-surface-card overflow-hidden">
+      <div className="px-3 py-2 border-b border-border-default flex items-center justify-between">
+        <span className="text-xs text-text-secondary">{changed} line{changed !== 1 ? 's' : ''} changed</span>
         <div className="flex gap-2">
           <button
             disabled={busy}
@@ -50,7 +50,7 @@ export function JsonDiffPreview({ oldJson, newJson, onAccept, onReject }: Props)
           <button
             disabled={busy}
             onClick={onReject}
-            className="px-2 py-0.5 text-xs bg-zinc-700 hover:bg-zinc-600 text-zinc-300 rounded"
+            className="px-2 py-0.5 text-xs bg-surface-overlay hover:bg-surface-overlay text-text-secondary rounded"
           >
             Cancel
           </button>
@@ -63,7 +63,7 @@ export function JsonDiffPreview({ oldJson, newJson, onAccept, onReject }: Props)
             className={
               line.type === 'add' ? 'text-green-400'
               : line.type === 'remove' ? 'text-red-400'
-              : 'text-zinc-600'
+              : 'text-text-muted'
             }
           >
             {line.type === 'same' ? `  ${line.text}` : line.text}

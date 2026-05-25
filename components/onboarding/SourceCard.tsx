@@ -2,7 +2,7 @@
 import type { IngestionSource } from '@/lib/ingest/types'
 
 const STATUS_RING: Record<IngestionSource['status'], string> = {
-  pending:    'border-zinc-700',
+  pending:    'border-border-default',
   processing: 'border-amber-600 animate-pulse',
   done:       'border-green-700',
   failed:     'border-red-800',
@@ -28,17 +28,17 @@ function summary(src: IngestionSource): string {
 
 export function SourceCard({ source, onDelete }: { source: IngestionSource; onDelete: (id: string) => void }) {
   return (
-    <div className={`flex items-start justify-between gap-3 bg-zinc-900 border rounded-lg p-4 ${STATUS_RING[source.status]}`}>
+    <div className={`flex items-start justify-between gap-3 bg-surface-card border rounded-lg p-4 ${STATUS_RING[source.status]}`}>
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium text-indigo-400 uppercase tracking-wide">{TYPE_LABEL[source.type]}</span>
-          <span className="text-xs text-zinc-500">{STATUS_TEXT[source.status]}</span>
+          <span className="text-xs text-text-muted">{STATUS_TEXT[source.status]}</span>
         </div>
-        <p className="text-sm text-zinc-300 truncate">{source.inputRaw}</p>
-        {source.status === 'done'   && <p className="text-xs text-zinc-500">{summary(source)}</p>}
+        <p className="text-sm text-text-secondary truncate">{source.inputRaw}</p>
+        {source.status === 'done'   && <p className="text-xs text-text-muted">{summary(source)}</p>}
         {source.status === 'failed' && source.errorMsg && <p className="text-xs text-red-400">{source.errorMsg}</p>}
       </div>
-      <button onClick={() => onDelete(source.id)} className="text-zinc-600 hover:text-zinc-400 text-xs shrink-0" aria-label="Remove source">✕</button>
+      <button onClick={() => onDelete(source.id)} className="text-text-muted hover:text-text-secondary text-xs shrink-0" aria-label="Remove source">✕</button>
     </div>
   )
 }

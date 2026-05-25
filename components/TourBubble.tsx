@@ -55,7 +55,7 @@ export function TourBubble({
       <div className={ARROW_CLASS[position]} />
       <div className="relative bg-indigo-950 border border-indigo-600/60 rounded-lg p-3 shadow-xl shadow-black/50">
         <p className="text-xs font-semibold text-indigo-200 mb-1">{title}</p>
-        <p className="text-xs text-zinc-300 leading-relaxed">{body}</p>
+        <p className="text-xs text-text-secondary leading-relaxed">{body}</p>
         <button
           onClick={dismiss}
           className="mt-2.5 text-xs px-3 py-1 bg-indigo-600 hover:bg-indigo-500 rounded transition-colors"

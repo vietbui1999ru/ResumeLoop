@@ -16,12 +16,12 @@ function VerifyContent() {
     return () => ac.abort()
   }, [token])
 
-  if (status === 'loading') return <p className="text-sm text-zinc-400">Verifying…</p>
+  if (status === 'loading') return <p className="text-sm text-text-secondary">Verifying…</p>
 
   if (status === 'ok') {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-zinc-200">Email verified! You can now sign in.</p>
+        <p className="text-sm text-text-secondary">Email verified! You can now sign in.</p>
         <Link href="/auth/signin" className="text-sm text-indigo-400 hover:text-indigo-300">Sign in</Link>
       </div>
     )
@@ -37,10 +37,10 @@ function VerifyContent() {
 
 export default function VerifyEmailPage() {
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-surface-base flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8">
-          <h1 className="text-xl font-semibold text-zinc-100">Verify email</h1>
+          <h1 className="text-xl font-semibold text-text-primary">Verify email</h1>
         </div>
         <Suspense>
           <VerifyContent />

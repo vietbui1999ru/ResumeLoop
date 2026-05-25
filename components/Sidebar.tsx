@@ -14,6 +14,7 @@ import {
   Star,
 } from 'lucide-react'
 import { useTourContext } from '@/contexts/TourContext'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 const NAV = [
   { href: '/jobs',     label: 'Jobs',      Icon: Briefcase },
@@ -54,7 +55,7 @@ export function Sidebar() {
   const hasUnseen = pagesWithUnseen.length > 0
 
   return (
-    <nav className="hidden lg:flex w-16 shrink-0 border-r border-zinc-800 bg-surface-card flex-col items-center py-3 gap-0.5 h-full">
+    <nav className="hidden lg:flex w-16 shrink-0 border-r border-border-default bg-surface-card flex-col items-center py-3 gap-0.5 h-full">
       {/* Logo mark */}
       <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center mb-3 shrink-0">
         <span className="text-2xs font-bold text-white tracking-tight">RA</span>
@@ -85,6 +86,9 @@ export function Sidebar() {
 
       {/* Spacer */}
       <div className="flex-1" />
+
+      {/* Theme toggle */}
+      <ThemeToggle className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-text-secondary hover:bg-surface-raised transition-colors duration-100" />
 
       {/* Feedback page */}
       <Link
@@ -134,8 +138,8 @@ export function Sidebar() {
         </button>
 
         {menuOpen && hasUnseen && (
-          <div className="absolute bottom-full left-full mb-1 ml-1 w-44 bg-surface-card border border-zinc-700 rounded-lg shadow-xl shadow-black/50 py-1 z-[90]">
-            <p className="px-3 py-1.5 text-2xs font-semibold text-zinc-500 uppercase tracking-wider">
+          <div className="absolute bottom-full left-full mb-1 ml-1 w-44 bg-surface-card border border-border-default rounded-lg shadow-modal py-1 z-[90]">
+            <p className="px-3 py-1.5 text-2xs font-semibold text-text-muted uppercase tracking-wider">
               Continue tour
             </p>
             {pagesWithUnseen.map(page => (
@@ -145,15 +149,15 @@ export function Sidebar() {
                   setMenuOpen(false)
                   activateForPage(page)
                 }}
-                className="w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:bg-surface-raised hover:text-zinc-100 transition-colors"
+                className="w-full text-left px-3 py-1.5 text-xs text-text-secondary hover:bg-surface-raised hover:text-text-primary transition-colors"
               >
                 {PAGE_LABELS[page] ?? page}
               </button>
             ))}
-            <div className="border-t border-zinc-800 mt-1 pt-1">
+            <div className="border-t border-border-subtle mt-1 pt-1">
               <button
                 onClick={() => { setMenuOpen(false); reset() }}
-                className="w-full text-left px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                className="w-full text-left px-3 py-1.5 text-xs text-text-muted hover:text-text-secondary transition-colors"
               >
                 Restart tour
               </button>

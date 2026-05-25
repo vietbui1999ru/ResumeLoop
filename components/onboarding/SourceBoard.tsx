@@ -53,7 +53,7 @@ export function SourceBoard({ onMergeComplete }: { onMergeComplete: (r: MergeRes
 
       {sources.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-sm font-medium text-zinc-400">Sources ({sources.length})</h2>
+          <h2 className="text-sm font-medium text-text-secondary">Sources ({sources.length})</h2>
           {sources.map(s => <SourceCard key={s.id} source={s} onDelete={handleDelete} />)}
         </div>
       )}

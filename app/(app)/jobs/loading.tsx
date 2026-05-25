@@ -5,7 +5,7 @@ export default function JobsLoading() {
   return (
     <div className="flex flex-col min-h-full">
       {/* Sticky header skeleton — identical classes to real header */}
-      <div className="sticky top-0 z-10 bg-surface-base border-b border-zinc-800 px-6 pt-4 pb-3 space-y-2.5">
+      <div className="sticky top-0 z-10 bg-surface-base border-b border-border-subtle px-6 pt-4 pb-3 space-y-2.5">
         {/* Row 1: title + session switcher + scan */}
         <div className="flex items-center gap-3">
           <Skeleton className="h-6 w-14" />

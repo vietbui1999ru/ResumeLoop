@@ -45,25 +45,25 @@ export function ChatSessionDrawer({
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 280 }}
-            className="fixed inset-y-0 left-0 w-64 z-50 bg-zinc-950 border-r border-zinc-800 flex flex-col
+            className="fixed inset-y-0 left-0 w-64 z-50 bg-surface-base border-r border-border-subtle flex flex-col
                        pt-[env(safe-area-inset-top)]"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
-              <h2 className="text-sm font-semibold text-zinc-300">Sessions</h2>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
+              <h2 className="text-sm font-semibold text-text-secondary">Sessions</h2>
               <button
                 onClick={onClose}
                 aria-label="Close sessions drawer"
                 className="w-8 h-8 flex items-center justify-center
-                           text-zinc-500 hover:text-zinc-300 rounded-lg
-                           hover:bg-zinc-800 transition-colors"
+                           text-text-muted hover:text-text-secondary rounded-lg
+                           hover:bg-surface-raised transition-colors"
               >
                 <X size={18} strokeWidth={1.75} />
               </button>
             </div>
 
             {/* New session button */}
-            <div className="px-3 py-2 border-b border-zinc-800 flex-shrink-0">
+            <div className="px-3 py-2 border-b border-border-subtle flex-shrink-0">
               <button
                 onClick={() => {
                   onStartNew()
@@ -79,7 +79,7 @@ export function ChatSessionDrawer({
             {/* Sessions list */}
             <nav className="flex-1 overflow-y-auto min-h-0 px-2 py-2">
               {sessions.length === 0 ? (
-                <p className="px-3 py-4 text-xs text-zinc-500 text-center">
+                <p className="px-3 py-4 text-xs text-text-muted text-center">
                   No sessions yet
                 </p>
               ) : (
@@ -92,12 +92,12 @@ export function ChatSessionDrawer({
                     }}
                     className={`w-full text-left px-3 py-2 text-xs rounded-lg transition-colors
                                ${s.id === activeSessionId
-                      ? 'bg-zinc-800 text-zinc-100'
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                      ? 'bg-surface-raised text-text-primary'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-surface-raised/50'
                     }`}
                   >
-                    <p className="text-zinc-300 truncate font-medium">{s.name}</p>
-                    <p className="text-zinc-500 text-2xs">{fmtDate(s.created_at)}</p>
+                    <p className="text-text-secondary truncate font-medium">{s.name}</p>
+                    <p className="text-text-muted text-2xs">{fmtDate(s.created_at)}</p>
                   </button>
                 ))
               )}

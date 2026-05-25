@@ -22,15 +22,15 @@ export function ProfileReview({ profile, conflicts, onAccept, onBack, saving }: 
       <ConflictBanner conflicts={conflicts} />
 
       <section className="space-y-3">
-        <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Contact</h2>
+        <h2 className="text-xs font-semibold text-text-secondary uppercase tracking-wide">Contact</h2>
         <div className="grid grid-cols-2 gap-3">
           {(['name', 'email', 'location', 'linkedin', 'github', 'website'] as const).map(f => (
             <div key={f} className="space-y-1">
-              <label className="text-xs text-zinc-500 capitalize">{f}</label>
+              <label className="text-xs text-text-muted capitalize">{f}</label>
               <input
                 value={local.contact?.[f] ?? ''}
                 onChange={e => setContact(f, e.target.value)}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-sm text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full bg-surface-raised border border-border-default rounded px-2 py-1 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
             </div>
           ))}
@@ -39,18 +39,18 @@ export function ProfileReview({ profile, conflicts, onAccept, onBack, saving }: 
 
       {(local.experience ?? []).length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">
+          <h2 className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
             Work Experience ({local.experience!.length})
           </h2>
           {local.experience!.map(exp => (
-            <div key={exp.id} className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-2">
+            <div key={exp.id} className="bg-surface-card border border-border-subtle rounded-lg p-4 space-y-2">
               <div className="flex gap-2 flex-wrap text-sm">
-                <span className="font-medium text-zinc-200">{exp.title ?? '—'}</span>
-                <span className="text-zinc-400">@ {exp.company ?? '—'}</span>
-                {exp.dates && <span className="text-xs text-zinc-500 self-center">{exp.dates}</span>}
+                <span className="font-medium text-text-primary">{exp.title ?? '—'}</span>
+                <span className="text-text-secondary">@ {exp.company ?? '—'}</span>
+                {exp.dates && <span className="text-xs text-text-muted self-center">{exp.dates}</span>}
               </div>
               {(exp.bullets?.genai ?? []).map((b, i) => (
-                <p key={i} className="text-xs text-zinc-400 pl-2 border-l border-zinc-700">{b}</p>
+                <p key={i} className="text-xs text-text-secondary pl-2 border-l border-border-default">{b}</p>
               ))}
             </div>
           ))}
@@ -59,17 +59,17 @@ export function ProfileReview({ profile, conflicts, onAccept, onBack, saving }: 
 
       {(local.projects ?? []).length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">
+          <h2 className="text-xs font-semibold text-text-secondary uppercase tracking-wide">
             Projects ({local.projects!.length})
           </h2>
           {local.projects!.map(proj => (
-            <div key={proj.id} className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-2">
+            <div key={proj.id} className="bg-surface-card border border-border-subtle rounded-lg p-4 space-y-2">
               <div className="flex gap-2 flex-wrap text-sm">
-                <span className="font-medium text-zinc-200">{proj.name ?? proj.id}</span>
-                {proj.short_stack && <span className="text-xs text-zinc-500 self-center">{proj.short_stack}</span>}
+                <span className="font-medium text-text-primary">{proj.name ?? proj.id}</span>
+                {proj.short_stack && <span className="text-xs text-text-muted self-center">{proj.short_stack}</span>}
               </div>
               {(proj.bullets ?? []).map((b, i) => (
-                <p key={i} className="text-xs text-zinc-400 pl-2 border-l border-zinc-700">{b}</p>
+                <p key={i} className="text-xs text-text-secondary pl-2 border-l border-border-default">{b}</p>
               ))}
             </div>
           ))}
@@ -77,7 +77,7 @@ export function ProfileReview({ profile, conflicts, onAccept, onBack, saving }: 
       )}
 
       <div className="flex gap-3 pt-2">
-        <button onClick={onBack} className="px-4 py-2 text-sm text-zinc-400 hover:text-zinc-200 border border-zinc-700 rounded-lg">
+        <button onClick={onBack} className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary border border-border-default rounded-lg">
           ← Add more sources
         </button>
         <button

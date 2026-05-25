@@ -6,8 +6,8 @@ export function FitDistChart({ data }: { data: Record<string, number> }) {
   const chartData = Object.entries(data).map(([bucket, count]) => ({ bucket, count }))
 
   return (
-    <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-700">
-      <h2 className="text-sm font-semibold text-zinc-400 mb-3">Fit% Distribution</h2>
+    <div className="bg-surface-card rounded-lg p-4 border border-border-default">
+      <h2 className="text-sm font-semibold text-text-secondary mb-3">Fit% Distribution</h2>
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={chartData}>
           <XAxis dataKey="bucket" tick={{ fill: TEXT_COLORS.secondary, fontSize: 13 }} />

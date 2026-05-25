@@ -58,7 +58,7 @@ function SortTh({ label, col, sort, onSort, className = '' }: {
       className={`pb-2 pr-4 text-left cursor-pointer select-none whitespace-nowrap ${className}`}
       onClick={() => onSort(col)}
     >
-      <span className={active ? 'text-indigo-400' : 'text-zinc-500'}>
+      <span className={active ? 'text-indigo-400' : 'text-text-muted'}>
         {label}{active ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : ''}
       </span>
     </th>
@@ -379,14 +379,14 @@ export default function JobsPage() {
     <div className={`flex flex-col min-h-full ${drawerOpen ? 'pb-20' : ''}`}>
 
       {/* ── Sticky header ──────────────────────────────────────── */}
-      <div className="sticky top-0 z-10 bg-surface-base border-b border-zinc-800">
+      <div className="sticky top-0 z-10 bg-surface-base border-b border-border-subtle">
         {isDesktop ? (
           <div className="px-6 pt-4 pb-3 space-y-2.5">
 
             {/* Row 1: title + scan */}
             <div className="flex items-center gap-3">
               <h1 className="text-lg font-semibold">Jobs</h1>
-              <span className="text-xs text-zinc-500">{visible.length} shown</span>
+              <span className="text-xs text-text-muted">{visible.length} shown</span>
               <SessionSwitcher />
               <div className="ml-auto flex items-center gap-2">
                 {scanStatus && (
@@ -397,20 +397,20 @@ export default function JobsPage() {
                 <button
                   data-tour="paste-jd-btn"
                   onClick={() => setShowPasteModal(true)}
-                  className="text-sm px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded transition-colors text-zinc-300"
+                  className="text-sm px-3 py-1.5 bg-surface-raised hover:bg-surface-overlay border border-border-default rounded transition-colors text-text-secondary"
                   title="Paste a job posting (.md format)"
                 >
                   Paste
                 </button>
                 <div data-tour="scan-btn" className="relative inline-block">
-                  <button onClick={scan} className="text-sm px-3 py-1.5 bg-zinc-700 hover:bg-zinc-600 rounded transition-colors">
+                  <button onClick={scan} className="text-sm px-3 py-1.5 bg-surface-overlay hover:bg-surface-overlay rounded transition-colors">
                     Scan
                   </button>
                 </div>
                 {IS_CLOUD && (
                   <button
                     onClick={() => uploadRef.current?.click()}
-                    className="text-sm px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded transition-colors text-zinc-300"
+                    className="text-sm px-3 py-1.5 bg-surface-raised hover:bg-surface-overlay border border-border-default rounded transition-colors text-text-secondary"
                     title="Upload .md job files"
                   >
                     Upload .md
@@ -425,17 +425,17 @@ export default function JobsPage() {
                 value={q}
                 onChange={e => setQ(e.target.value)}
                 placeholder="Search company, role…"
-                className="flex-1 min-w-0 h-8 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary placeholder:text-text-muted focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-colors duration-100"
+                className="flex-1 min-w-0 h-8 rounded-lg bg-surface-card border border-border-subtle text-sm px-2 text-text-secondary placeholder:text-text-muted focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-colors duration-100"
               />
               <select
                 value={actionFilter}
                 onChange={e => setActionFilter(e.target.value)}
-                className="shrink-0 h-8 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary focus:outline-none focus:border-indigo-500 transition-colors duration-100"
+                className="shrink-0 h-8 rounded-lg bg-surface-card border border-border-subtle text-sm px-2 text-text-secondary focus:outline-none focus:border-indigo-500 transition-colors duration-100"
               >
                 <option value="">All stages</option>
                 {VALID_ACTIONS.map(a => <option key={a} value={a}>{a}</option>)}
               </select>
-              <div className="shrink-0 flex items-center gap-0.5 h-8 bg-surface-card border border-zinc-800 rounded-lg px-2 transition-colors duration-100">
+              <div className="shrink-0 flex items-center gap-0.5 h-8 bg-surface-card border border-border-subtle rounded-lg px-2 transition-colors duration-100">
                 <span className="text-text-muted text-xs mr-1">Fit</span>
                 {([0, 60, 70, 80, 90] as const).map(val => (
                   <button
@@ -444,7 +444,7 @@ export default function JobsPage() {
                     className={`px-1.5 py-0.5 rounded text-xs transition-colors ${
                       fitMin === val
                         ? 'bg-indigo-600 text-white'
-                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-700'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-surface-overlay'
                     }`}
                   >
                     {val === 0 ? 'Any' : `${val}%`}
@@ -457,8 +457,8 @@ export default function JobsPage() {
                   hasActiveSecondary
                     ? 'border-indigo-500 text-indigo-400 bg-indigo-950/30'
                     : showSecondary
-                      ? 'border-zinc-500 text-zinc-300 bg-zinc-800'
-                      : 'border-zinc-700 text-zinc-400 hover:text-zinc-200'
+                      ? 'border-border-strong text-text-secondary bg-surface-raised'
+                      : 'border-border-default text-text-secondary hover:text-text-primary'
                 }`}
               >
                 Filters{hasActiveSecondary ? ' ●' : ' ▾'}
@@ -471,7 +471,7 @@ export default function JobsPage() {
                 <select
                   value={trackFilter}
                   onChange={e => setTrackFilter(e.target.value)}
-                  className="h-8 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary focus:outline-none focus:border-indigo-500 transition-colors duration-100"
+                  className="h-8 rounded-lg bg-surface-card border border-border-subtle text-sm px-2 text-text-secondary focus:outline-none focus:border-indigo-500 transition-colors duration-100"
                 >
                   <option value="">All tracks</option>
                   {allTracks.map(t => <option key={t} value={t}>{t}</option>)}
@@ -479,7 +479,7 @@ export default function JobsPage() {
                 <select
                   value={tagFilter}
                   onChange={e => setTagFilter(e.target.value)}
-                  className="h-8 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary focus:outline-none focus:border-indigo-500 transition-colors duration-100"
+                  className="h-8 rounded-lg bg-surface-card border border-border-subtle text-sm px-2 text-text-secondary focus:outline-none focus:border-indigo-500 transition-colors duration-100"
                 >
                   <option value="">All tags</option>
                   {allTagOptions.map(t => <option key={t} value={t}>{t}</option>)}
@@ -487,28 +487,28 @@ export default function JobsPage() {
                 <select
                   value={visaFilter}
                   onChange={e => setVisaFilter(e.target.value as typeof visaFilter)}
-                  className="h-8 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary focus:outline-none focus:border-indigo-500 transition-colors duration-100"
+                  className="h-8 rounded-lg bg-surface-card border border-border-subtle text-sm px-2 text-text-secondary focus:outline-none focus:border-indigo-500 transition-colors duration-100"
                 >
                   <option value="proceed">Visa: proceed</option>
                   <option value="kill">Visa: kill</option>
                   <option value="all">Visa: all</option>
                 </select>
-                <div className="flex items-center gap-1.5 bg-zinc-800 border border-zinc-700 rounded px-2.5 py-1.5 text-sm">
-                  <span className="text-zinc-500">From</span>
+                <div className="flex items-center gap-1.5 bg-surface-raised border border-border-default rounded px-2.5 py-1.5 text-sm">
+                  <span className="text-text-muted">From</span>
                   <input
                     type="date"
                     value={fromDate}
                     onChange={e => setFromDate(e.target.value)}
-                    className="bg-transparent text-zinc-200 [color-scheme:dark]"
+                    className="bg-transparent text-text-secondary [color-scheme:dark]"
                   />
                   {fromDate && (
-                    <button onClick={() => setFromDate('')} className="text-zinc-500 hover:text-zinc-300">✕</button>
+                    <button onClick={() => setFromDate('')} className="text-text-muted hover:text-text-secondary">✕</button>
                   )}
                 </div>
                 <button
                   onClick={() => setShowHidden(v => !v)}
                   className={`text-sm px-3 py-1.5 rounded border transition-colors ${
-                    showHidden ? 'border-amber-500 text-amber-400' : 'border-zinc-700 text-zinc-500 hover:text-zinc-300'
+                    showHidden ? 'border-amber-500 text-amber-400' : 'border-border-default text-text-muted hover:text-text-secondary'
                   }`}
                 >
                   Show hidden
@@ -521,7 +521,7 @@ export default function JobsPage() {
             {/* Mobile Row 1: title + count + buttons */}
             <div className="flex items-center gap-2">
               <h1 className="text-base font-semibold">Jobs</h1>
-              <span className="text-xs text-zinc-500">{visible.length}</span>
+              <span className="text-xs text-text-muted">{visible.length}</span>
               <div className="ml-auto flex items-center gap-1.5">
                 {scanStatus && (
                   <span className={`text-xs ${scanStatus.startsWith('✗') ? 'text-red-400' : 'text-green-400'}`}>
@@ -530,16 +530,16 @@ export default function JobsPage() {
                 )}
                 <button
                   onClick={() => setShowPasteModal(true)}
-                  className="text-xs px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded transition-colors text-zinc-300"
+                  className="text-xs px-2.5 py-1.5 bg-surface-raised hover:bg-surface-overlay border border-border-default rounded transition-colors text-text-secondary"
                 >Paste</button>
                 <button
                   onClick={scan}
-                  className="text-xs px-2.5 py-1.5 bg-zinc-700 hover:bg-zinc-600 rounded transition-colors"
+                  className="text-xs px-2.5 py-1.5 bg-surface-overlay hover:bg-surface-overlay rounded transition-colors"
                 >Scan</button>
                 {IS_CLOUD && (
                   <button
                     onClick={() => uploadRef.current?.click()}
-                    className="text-xs px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded transition-colors text-zinc-300"
+                    className="text-xs px-2.5 py-1.5 bg-surface-raised hover:bg-surface-overlay border border-border-default rounded transition-colors text-text-secondary"
                   >Upload</button>
                 )}
               </div>
@@ -549,7 +549,7 @@ export default function JobsPage() {
               value={q}
               onChange={e => setQ(e.target.value)}
               placeholder="Search company, role…"
-              className="w-full h-9 rounded-lg bg-surface-card border border-zinc-800 text-sm px-3
+              className="w-full h-9 rounded-lg bg-surface-card border border-border-subtle text-sm px-3
                          text-text-secondary placeholder:text-text-muted focus:outline-none
                          focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-colors"
             />
@@ -559,7 +559,7 @@ export default function JobsPage() {
               className={`w-full flex items-center justify-between h-9 px-3 rounded-lg border text-sm transition-colors ${
                 hasActiveSecondary
                   ? 'border-indigo-500 text-indigo-400 bg-indigo-950/30'
-                  : 'border-zinc-700 text-zinc-400'
+                  : 'border-border-default text-text-secondary'
               }`}
             >
               <span>Filters{hasActiveSecondary ? ` (${[trackFilter, tagFilter, fromDate].filter(Boolean).length + (visaFilter !== 'proceed' ? 1 : 0) + (showHidden ? 1 : 0)} active)` : ''}</span>
@@ -571,7 +571,7 @@ export default function JobsPage() {
                 <select
                   value={trackFilter}
                   onChange={e => setTrackFilter(e.target.value)}
-                  className="w-full h-9 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary focus:outline-none"
+                  className="w-full h-9 rounded-lg bg-surface-card border border-border-subtle text-sm px-2 text-text-secondary focus:outline-none"
                 >
                   <option value="">All tracks</option>
                   {allTracks.map(t => <option key={t} value={t}>{t}</option>)}
@@ -579,7 +579,7 @@ export default function JobsPage() {
                 <select
                   value={tagFilter}
                   onChange={e => setTagFilter(e.target.value)}
-                  className="w-full h-9 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary focus:outline-none"
+                  className="w-full h-9 rounded-lg bg-surface-card border border-border-subtle text-sm px-2 text-text-secondary focus:outline-none"
                 >
                   <option value="">All tags</option>
                   {allTagOptions.map(t => <option key={t} value={t}>{t}</option>)}
@@ -587,25 +587,25 @@ export default function JobsPage() {
                 <select
                   value={visaFilter}
                   onChange={e => setVisaFilter(e.target.value as typeof visaFilter)}
-                  className="w-full h-9 rounded-lg bg-surface-card border border-zinc-800 text-sm px-2 text-text-secondary focus:outline-none"
+                  className="w-full h-9 rounded-lg bg-surface-card border border-border-subtle text-sm px-2 text-text-secondary focus:outline-none"
                 >
                   <option value="proceed">Visa: proceed</option>
                   <option value="kill">Visa: kill</option>
                   <option value="all">Visa: all</option>
                 </select>
-                <div className="flex items-center gap-2 h-9 bg-zinc-800 border border-zinc-700 rounded px-3 text-sm">
-                  <span className="text-zinc-500">From</span>
+                <div className="flex items-center gap-2 h-9 bg-surface-raised border border-border-default rounded px-3 text-sm">
+                  <span className="text-text-muted">From</span>
                   <input
                     type="date"
                     value={fromDate}
                     onChange={e => setFromDate(e.target.value)}
-                    className="bg-transparent text-zinc-200 [color-scheme:dark] flex-1"
+                    className="bg-transparent text-text-secondary [color-scheme:dark] flex-1"
                   />
                   {fromDate && (
-                    <button onClick={() => setFromDate('')} className="text-zinc-500 hover:text-zinc-300">✕</button>
+                    <button onClick={() => setFromDate('')} className="text-text-muted hover:text-text-secondary">✕</button>
                   )}
                 </div>
-                <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer h-9 px-1">
+                <label className="flex items-center gap-2 text-sm text-text-secondary cursor-pointer h-9 px-1">
                   <input
                     type="checkbox"
                     checked={showHidden}
@@ -617,7 +617,7 @@ export default function JobsPage() {
                 {hasActiveSecondary && (
                   <button
                     onClick={() => { setTrackFilter(''); setTagFilter(''); setFromDate(''); setShowHidden(false); setVisaFilter('proceed') }}
-                    className="text-xs text-zinc-500 hover:text-zinc-300 px-1"
+                    className="text-xs text-text-muted hover:text-text-secondary px-1"
                   >Clear filters</button>
                 )}
               </div>
@@ -643,16 +643,16 @@ export default function JobsPage() {
           {initialLoading ? <JobsTableSkeleton /> : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-800">
+              <tr className="border-b border-border-subtle">
                 <th className="pb-2 pr-3 w-6">
                   <AnimatedCheckbox checked={allVisibleSelected} onChange={toggleAll} label="Select all" />
                 </th>
                 <SortTh label="Company"  col="company"    sort={sort} onSort={onSort} />
                 <SortTh label="Role"     col="role_title" sort={sort} onSort={onSort} />
                 <SortTh label="Fit%"     col="fit_pct"    sort={sort} onSort={onSort} className="w-14" />
-                <th className="pb-2 pr-4 w-40 text-left text-zinc-500">Action</th>
+                <th className="pb-2 pr-4 w-40 text-left text-text-muted">Action</th>
                 <SortTh label="Clipped"  col="clipped_at" sort={sort} onSort={onSort} className="w-20" />
-                <th className="pb-2 w-20 text-left text-zinc-500">Resume</th>
+                <th className="pb-2 w-20 text-left text-text-muted">Resume</th>
                 <th className="pb-2 w-6" />
               </tr>
             </thead>
@@ -666,7 +666,7 @@ export default function JobsPage() {
                   return (
                     <tr
                       key={job.id}
-                      className={`border-b border-zinc-800/60 hover:bg-surface-raised hover:-translate-y-px transition-all duration-100 cursor-pointer group ${job.id === selectedJobId ? 'border-l-2 border-indigo-500 bg-indigo-500/5' : ''} ${job.hidden ? 'opacity-40' : ''}`}
+                      className={`border-b border-border-subtle/60 hover:bg-surface-raised hover:-translate-y-px transition-all duration-100 cursor-pointer group ${job.id === selectedJobId ? 'border-l-2 border-indigo-500 bg-indigo-500/5' : ''} ${job.hidden ? 'opacity-40' : ''}`}
                       onClick={() => setSelectedJobId(job.id)}
                     >
                       {/* Checkbox */}
@@ -684,7 +684,7 @@ export default function JobsPage() {
                           {job.visa_status === 'kill' && (
                             <span className="text-red-500 text-2xs" title="No sponsorship">⊘</span>
                           )}
-                          <span className="text-zinc-200">{job.company}</span>
+                          <span className="text-text-secondary">{job.company}</span>
                         </div>
                       </td>
 
@@ -702,17 +702,17 @@ export default function JobsPage() {
                                 if (e.key === 'Escape') setEditingTitleId(null)
                               }}
                               onClick={e => e.stopPropagation()}
-                              className="text-zinc-200 bg-zinc-800 border border-indigo-500 rounded px-1.5 py-0.5 text-sm outline-none min-w-0 w-48"
+                              className="text-text-secondary bg-surface-raised border border-indigo-500 rounded px-1.5 py-0.5 text-sm outline-none min-w-0 w-48"
                             />
                           ) : (
                             <span
-                              className="text-zinc-300 cursor-text hover:text-zinc-100"
+                              className="text-text-secondary cursor-text hover:text-text-primary"
                               title="Double-click to edit title"
                               onDoubleClick={e => startTitleEdit(job.id, job.role_title, e)}
                             >{job.role_title}</span>
                           )}
                           {job.role_track && (
-                            <span className="text-2xs px-1.5 py-0.5 bg-zinc-800 border border-zinc-700/80 text-zinc-500 rounded font-mono leading-none">
+                            <span className="text-2xs px-1.5 py-0.5 bg-surface-raised border border-border-default/80 text-text-muted rounded font-mono leading-none">
                               {job.role_track}
                             </span>
                           )}
@@ -725,7 +725,7 @@ export default function JobsPage() {
                                   title={tag.label}
                                   onClick={e => { e.stopPropagation(); void handleTagToggle(job.id, tag.key) }}
                                   className={`w-2.5 h-2.5 rounded-full transition-all hover:scale-125 cursor-pointer ${
-                                    active ? tag.dot : 'bg-zinc-600 opacity-25 hover:opacity-70'
+                                    active ? tag.dot : 'bg-border-default opacity-25 hover:opacity-70'
                                   }`}
                                 />
                               )
@@ -748,7 +748,7 @@ export default function JobsPage() {
                             data-tour={idx === 0 ? 'action-cell' : undefined}
                             value={currentAction}
                             onChange={e => void handleActionChange(job.id, e.target.value)}
-                            className={`bg-zinc-800 border border-zinc-700 rounded px-1.5 py-0.5 text-xs ${ACTION_COLORS[currentAction] ?? 'text-zinc-400'}`}
+                            className={`bg-surface-raised border border-border-default rounded px-1.5 py-0.5 text-xs ${ACTION_COLORS[currentAction] ?? 'text-text-secondary'}`}
                           >
                             {VALID_ACTIONS.map(a => <option key={a} value={a}>{a}</option>)}
                           </select>
@@ -780,7 +780,7 @@ export default function JobsPage() {
                               title="Click to view error"
                             >✗ failed</button>
                           )
-                          return <span className="text-zinc-400 text-xs">{st}</span>
+                          return <span className="text-text-secondary text-xs">{st}</span>
                         })() : job.has_reasoning ? (
                           <button
                             onClick={e => { e.stopPropagation(); setReasoningJobId(job.id) }}
@@ -797,8 +797,8 @@ export default function JobsPage() {
                           onClick={() => void hideJob(job.id, job.hidden ? 0 : 1)}
                           className={`opacity-20 group-hover:opacity-100 text-sm leading-none px-1 rounded transition-all duration-150 ${
                             job.hidden
-                              ? 'text-zinc-400 hover:text-green-400'
-                              : 'text-zinc-400 hover:text-red-400'
+                              ? 'text-text-secondary hover:text-green-400'
+                              : 'text-text-secondary hover:text-red-400'
                           }`}
                           title={job.hidden ? 'Unhide' : 'Hide'}
                         >
@@ -814,7 +814,7 @@ export default function JobsPage() {
           )}
 
           {!initialLoading && visible.length === 0 && (
-            <p className="text-zinc-500 text-sm text-center py-10">No jobs match current filters.</p>
+            <p className="text-text-muted text-sm text-center py-10">No jobs match current filters.</p>
           )}
         </div>
       ) : (
@@ -833,7 +833,7 @@ export default function JobsPage() {
                 />
               ))}
               {visible.length === 0 && (
-                <p className="text-zinc-500 text-sm text-center py-10">No jobs match current filters.</p>
+                <p className="text-text-muted text-sm text-center py-10">No jobs match current filters.</p>
               )}
             </>
           )}
@@ -872,7 +872,7 @@ export default function JobsPage() {
 
       {/* ── Sticky bottom drawer — selection + generation ──────── */}
       {drawerOpen && (
-        <div className="fixed bottom-0 left-0 right-0 z-20 bg-surface-card border-t border-zinc-800 shadow-xl shadow-black/40 px-6 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:left-12">
+        <div className="fixed bottom-0 left-0 right-0 z-20 bg-surface-card border-t border-border-subtle shadow-modal px-6 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:left-12">
           {!showPanel ? (
             /* Compact selection bar */
             <div className="flex flex-col gap-2">
@@ -884,8 +884,8 @@ export default function JobsPage() {
                 </div>
               )}
               <div className="flex items-center gap-3">
-                <span className="text-sm text-zinc-300 font-medium">{selected.size} selected</span>
-                <button onClick={() => setSelected(new Set())} className="text-xs text-zinc-500 hover:text-zinc-300">
+                <span className="text-sm text-text-secondary font-medium">{selected.size} selected</span>
+                <button onClick={() => setSelected(new Set())} className="text-xs text-text-muted hover:text-text-secondary">
                   Clear
                 </button>
                 <div className="ml-auto">
@@ -967,7 +967,7 @@ export default function JobsPage() {
           onClick={() => setErrorDetail(null)}
         >
           <div
-            className="bg-zinc-900 border border-red-800 rounded-lg p-4 w-full max-w-2xl shadow-2xl shadow-black/60"
+            className="bg-surface-card border border-red-800 rounded-lg p-4 w-full max-w-2xl shadow-modal"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-3">
@@ -975,11 +975,11 @@ export default function JobsPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => void navigator.clipboard.writeText(errorDetail)}
-                  className="text-xs text-zinc-400 hover:text-zinc-200 px-2 py-0.5 border border-zinc-700 hover:border-zinc-500 rounded"
+                  className="text-xs text-text-secondary hover:text-text-primary px-2 py-0.5 border border-border-default hover:border-border-strong rounded"
                 >Copy</button>
                 <button
                   onClick={() => setErrorDetail(null)}
-                  className="text-zinc-500 hover:text-zinc-300 text-sm leading-none"
+                  className="text-text-muted hover:text-text-secondary text-sm leading-none"
                 >✕</button>
               </div>
             </div>

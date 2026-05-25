@@ -144,15 +144,15 @@ export default function AccountPage() {
 
   return (
     <div className="max-w-xl mx-auto p-6 space-y-12">
-      <h1 className="text-lg font-semibold text-zinc-100">Account</h1>
+      <h1 className="text-lg font-semibold text-text-primary">Account</h1>
 
       {/* Personal info */}
       <section data-tour="account-personal-info">
-        <h2 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-4">Personal info</h2>
+        <h2 className="text-xs font-medium text-text-muted uppercase tracking-wider mb-4">Personal info</h2>
         {contactLoading ? (
-          <p className="text-xs text-zinc-500">Loading…</p>
+          <p className="text-xs text-text-muted">Loading…</p>
         ) : activeProfileId === null ? (
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-text-muted">
             No active resume profile —{' '}
             <Link href="/config" className="text-indigo-400 hover:text-indigo-300 underline">
               set one up on Config
@@ -162,12 +162,12 @@ export default function AccountPage() {
           <form onSubmit={saveContact} className="space-y-3 max-w-sm">
             {(Object.keys(CONTACT_LABELS) as (keyof ContactFields)[]).map(field => (
               <div key={field}>
-                <label className="text-xs text-zinc-500 block mb-1">{CONTACT_LABELS[field]}</label>
+                <label className="text-xs text-text-muted block mb-1">{CONTACT_LABELS[field]}</label>
                 <input
                   type="text"
                   value={contact[field] ?? ''}
                   onChange={e => setContact(prev => ({ ...prev, [field]: e.target.value }))}
-                  className="w-full text-sm bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500"
+                  className="w-full text-sm bg-surface-card border border-border-default rounded px-3 py-2 text-text-secondary focus:outline-none focus:border-indigo-500"
                 />
               </div>
             ))}
@@ -176,7 +176,7 @@ export default function AccountPage() {
                 {contactStatus}
               </p>
             )}
-            <p className="text-xs text-zinc-600">Updates the active resume profile · visible in Config</p>
+            <p className="text-xs text-text-muted">Updates the active resume profile · visible in Config</p>
             <button
               type="submit"
               disabled={contactSaving || contactLoading || !activeProfileId || activeProfileId === 'none'}
@@ -190,14 +190,14 @@ export default function AccountPage() {
 
       {/* Profile info */}
       <section className="space-y-2">
-        <h2 className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Profile</h2>
-        <p className="text-sm text-zinc-300">{session?.user.email}</p>
+        <h2 className="text-xs font-medium text-text-muted uppercase tracking-wider">Profile</h2>
+        <p className="text-sm text-text-secondary">{session?.user.email}</p>
         {session?.user.isDemo && (
           <p className="text-xs text-amber-500">Demo account — data resets periodically</p>
         )}
         <button
           onClick={() => signOut({ callbackUrl: '/auth/signin' })}
-          className="text-sm px-4 py-2 bg-zinc-800 hover:bg-red-900/40 border border-zinc-700 hover:border-red-700/50 text-zinc-400 hover:text-red-400 rounded transition-colors"
+          className="text-sm px-4 py-2 bg-surface-raised hover:bg-red-900/40 border border-border-default hover:border-red-700/50 text-text-secondary hover:text-red-400 rounded transition-colors"
         >
           Sign out
         </button>
@@ -206,27 +206,27 @@ export default function AccountPage() {
       {/* Change password */}
       {!session?.user.isDemo && (
         <section>
-          <h2 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-4">Change password</h2>
+          <h2 className="text-xs font-medium text-text-muted uppercase tracking-wider mb-4">Change password</h2>
           <form onSubmit={changePassword} className="space-y-3 max-w-sm">
             <div>
-              <label className="text-xs text-zinc-500 block mb-1">Current password</label>
+              <label className="text-xs text-text-muted block mb-1">Current password</label>
               <input
                 type="password" required value={current} onChange={e => setCurrent(e.target.value)}
-                className="w-full text-sm bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500"
+                className="w-full text-sm bg-surface-card border border-border-default rounded px-3 py-2 text-text-secondary focus:outline-none focus:border-indigo-500"
               />
             </div>
             <div>
-              <label className="text-xs text-zinc-500 block mb-1">New password</label>
+              <label className="text-xs text-text-muted block mb-1">New password</label>
               <input
                 type="password" required value={newPwd} onChange={e => setNewPwd(e.target.value)}
-                className="w-full text-sm bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500"
+                className="w-full text-sm bg-surface-card border border-border-default rounded px-3 py-2 text-text-secondary focus:outline-none focus:border-indigo-500"
               />
             </div>
             <div>
-              <label className="text-xs text-zinc-500 block mb-1">Confirm new password</label>
+              <label className="text-xs text-text-muted block mb-1">Confirm new password</label>
               <input
                 type="password" required value={newPwd2} onChange={e => setNewPwd2(e.target.value)}
-                className="w-full text-sm bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500"
+                className="w-full text-sm bg-surface-card border border-border-default rounded px-3 py-2 text-text-secondary focus:outline-none focus:border-indigo-500"
               />
             </div>
             {pwError   && <p className="text-xs text-red-400">{pwError}</p>}
@@ -246,12 +246,12 @@ export default function AccountPage() {
         <section>
           <h2 className="text-xs font-medium text-red-500 uppercase tracking-wider mb-4">Danger zone</h2>
           <div className="border border-red-900/40 rounded p-4 space-y-3 max-w-sm bg-red-950/10">
-            <p className="text-sm text-zinc-300">Delete account</p>
-            <p className="text-xs text-zinc-500">This permanently deletes your account and all data. Type <code className="text-zinc-400">delete</code> to confirm.</p>
+            <p className="text-sm text-text-secondary">Delete account</p>
+            <p className="text-xs text-text-muted">This permanently deletes your account and all data. Type <code className="text-text-secondary">delete</code> to confirm.</p>
             <input
               type="text" value={delConfirm} onChange={e => setDelConfirm(e.target.value)}
               placeholder="delete"
-              className="w-full text-sm bg-zinc-900 border border-red-900/50 rounded px-3 py-2 text-zinc-200 focus:outline-none focus:border-red-600"
+              className="w-full text-sm bg-surface-card border border-red-900/50 rounded px-3 py-2 text-text-secondary focus:outline-none focus:border-red-600"
             />
             {delError && <p className="text-xs text-red-400">{delError}</p>}
             <button

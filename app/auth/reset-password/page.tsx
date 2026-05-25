@@ -35,7 +35,7 @@ function ResetForm() {
 
   if (!token) {
     return (
-      <div className="text-sm text-zinc-400">
+      <div className="text-sm text-text-secondary">
         Invalid reset link.{' '}
         <Link href="/auth/forgot-password" className="text-indigo-400 hover:text-indigo-300">Request a new one</Link>
       </div>
@@ -45,20 +45,20 @@ function ResetForm() {
   return (
     <form onSubmit={submit} className="space-y-4">
       <div>
-        <label htmlFor="password" className="text-xs text-zinc-500 block mb-1">New password</label>
+        <label htmlFor="password" className="text-xs text-text-muted block mb-1">New password</label>
         <input
           id="password" type="password" required autoComplete="new-password"
           value={password} onChange={e => setPassword(e.target.value)}
-          className="w-full text-sm bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500"
+          className="w-full text-sm bg-surface-card border border-border-default rounded px-3 py-2 text-text-secondary focus:outline-none focus:border-indigo-500"
           placeholder="At least 8 characters"
         />
       </div>
       <div>
-        <label htmlFor="password2" className="text-xs text-zinc-500 block mb-1">Confirm password</label>
+        <label htmlFor="password2" className="text-xs text-text-muted block mb-1">Confirm password</label>
         <input
           id="password2" type="password" required autoComplete="new-password"
           value={password2} onChange={e => setPassword2(e.target.value)}
-          className="w-full text-sm bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-zinc-200 focus:outline-none focus:border-indigo-500"
+          className="w-full text-sm bg-surface-card border border-border-default rounded px-3 py-2 text-text-secondary focus:outline-none focus:border-indigo-500"
           placeholder="••••••••"
         />
       </div>
@@ -77,10 +77,10 @@ function ResetForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-surface-base flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8">
-          <h1 className="text-xl font-semibold text-zinc-100">Set new password</h1>
+          <h1 className="text-xl font-semibold text-text-primary">Set new password</h1>
         </div>
         <Suspense>
           <ResetForm />

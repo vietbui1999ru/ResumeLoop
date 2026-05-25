@@ -60,10 +60,10 @@ export function CloudFolderPicker({ handleKey, label, hint, onSelect }: Props) {
 
   if (!supported) {
     return (
-      <div className="bg-zinc-900 border border-amber-700/50 rounded-lg p-4 space-y-2">
+      <div className="bg-surface-card border border-amber-700/50 rounded-lg p-4 space-y-2">
         <div>
-          <p className="text-sm font-medium text-zinc-200">{label}</p>
-          <p className="text-xs text-zinc-500 mt-0.5">{hint}</p>
+          <p className="text-sm font-medium text-text-primary">{label}</p>
+          <p className="text-xs text-text-muted mt-0.5">{hint}</p>
         </div>
         <div className="flex items-start gap-2 text-xs text-amber-300 bg-amber-950/40 border border-amber-700/40 rounded px-3 py-2">
           <span className="shrink-0 mt-0.5">⚠</span>
@@ -77,14 +77,14 @@ export function CloudFolderPicker({ handleKey, label, hint, onSelect }: Props) {
   }
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 space-y-3">
+    <div className="bg-surface-card border border-border-subtle rounded-lg p-4 space-y-3">
       <div>
-        <p className="text-sm font-medium text-zinc-200">{label}</p>
-        <p className="text-xs text-zinc-500 mt-0.5">{hint}</p>
+        <p className="text-sm font-medium text-text-primary">{label}</p>
+        <p className="text-xs text-text-muted mt-0.5">{hint}</p>
       </div>
 
       <div className="flex gap-2 items-center">
-        <code className="flex-1 text-xs bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-zinc-300 truncate">
+        <code className="flex-1 text-xs bg-surface-raised border border-border-default rounded px-3 py-2 text-text-secondary truncate">
           {folderName ?? 'No folder selected'}
         </code>
         {perm === 'prompt' && (
@@ -92,7 +92,7 @@ export function CloudFolderPicker({ handleKey, label, hint, onSelect }: Props) {
             Re-grant
           </button>
         )}
-        <button onClick={selectFolder} className="text-xs px-3 py-2 bg-zinc-700 hover:bg-zinc-600 rounded">
+        <button onClick={selectFolder} className="text-xs px-3 py-2 bg-surface-overlay hover:bg-surface-overlay rounded">
           {folderName ? 'Change' : 'Select folder'}
         </button>
       </div>

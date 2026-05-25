@@ -30,15 +30,15 @@ export function OutputHistoryTable({ outputs: initialOutputs }: { outputs: Outpu
 
   return (
     <>
-      <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-700">
+      <div className="bg-surface-card rounded-lg p-4 border border-border-default">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-zinc-400">Resume Output History</h2>
+          <h2 className="text-sm font-semibold text-text-secondary">Resume Output History</h2>
           <button
             onClick={refresh}
             disabled={refreshing}
             title="Refresh"
             aria-label="Refresh output history"
-            className="text-zinc-500 hover:text-zinc-200 disabled:opacity-40 transition-colors"
+            className="text-text-muted hover:text-text-primary disabled:opacity-40 transition-colors"
           >
             <svg
               className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`}
@@ -53,7 +53,7 @@ export function OutputHistoryTable({ outputs: initialOutputs }: { outputs: Outpu
         <div className="overflow-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-zinc-500 border-b border-zinc-700">
+              <tr className="text-left text-text-muted border-b border-border-default">
                 <th className="pb-2 pr-4">Company</th>
                 <th className="pb-2 pr-4">Role</th>
                 <th className="pb-2 pr-4">Track</th>
@@ -66,20 +66,20 @@ export function OutputHistoryTable({ outputs: initialOutputs }: { outputs: Outpu
                 <tr
                   key={i}
                   onClick={() => setSelectedJobId(o.job_id)}
-                  className="border-b border-zinc-800 hover:bg-zinc-800/50 cursor-pointer"
+                  className="border-b border-border-subtle hover:bg-surface-raised/50 cursor-pointer"
                 >
-                  <td className="py-2 pr-4 text-zinc-200">{o.company}</td>
-                  <td className="py-2 pr-4 text-zinc-300">{o.role_title}</td>
-                  <td className="py-2 pr-4 text-zinc-400 text-xs">{o.role_track}</td>
+                  <td className="py-2 pr-4 text-text-primary">{o.company}</td>
+                  <td className="py-2 pr-4 text-text-secondary">{o.role_title}</td>
+                  <td className="py-2 pr-4 text-text-muted text-xs">{o.role_track}</td>
                   <td className="py-2 pr-4">
-                    <span className={o.job_fit >= 60 ? 'text-green-400' : 'text-zinc-400'}>{o.job_fit}%</span>
+                    <span className={o.job_fit >= 60 ? 'text-green-400' : 'text-text-secondary'}>{o.job_fit}%</span>
                   </td>
-                  <td className="py-2 text-zinc-500 text-xs">{new Date(o.built_at).toLocaleDateString()}</td>
+                  <td className="py-2 text-text-muted text-xs">{new Date(o.built_at).toLocaleDateString()}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {outputs.length === 0 && <p className="text-zinc-400 text-sm mt-4">No resumes built yet.</p>}
+          {outputs.length === 0 && <p className="text-text-secondary text-sm mt-4">No resumes built yet.</p>}
         </div>
       </div>
 
