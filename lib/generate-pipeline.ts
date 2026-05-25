@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { spawn } from 'child_process'
+import { createRequire } from 'node:module'
 import { randomUUID } from 'crypto'
 import { reasonForJob, type ReasoningResult } from './ai-reason'
 import { getAdapter } from './db-adapter'
@@ -19,8 +20,14 @@ export interface SSEEvent {
   data: Record<string, unknown>
 }
 
+type MasterData = {
+  contact?:   { name?: string; phone?: string; location?: string; email?: string; linkedin?: string; portfolio?: string; github?: string; work_auth?: string }
+  experience: Array<{ id: string; title?: string; company?: string; location?: string; dates?: string; bullets: Record<string, string[]> }>
+  projects:   Array<{ id: string; name?: string; url?: string; short_stack?: string; date?: string; dates?: string; bullets: string[] }>
+  skills:     Record<string, Record<string, string>>
+}
+
 const BATCH_BUILD_ROOT = path.join(process.cwd(), 'harness', 'batch-build')
-const VALIDATE_JS = path.join(process.cwd(), 'harness', 'validate.js')
 
 // Map workVariant → bullets variant key (experience.bullets keys: systems/genai/fullstack/sre)
 function bulletsKey(workVariant: string): string {
@@ -136,14 +143,13 @@ export async function* runPipeline(jobId: string, sessionId = 'default', userId 
   // We capture it here but do NOT forward it to the SSE stream — the outer
   // runPipeline emits its own finalize:ok after the DB write.
   let docxPath: string | null = null
-  for await (const event of buildValidateLoop(scriptPath, docxName, jobBuildDir, signal)) {
+  for await (const event of buildInProcess(decision, masterDataJson, docxName, jobBuildDir, signal)) {
     if (event.stage === 'finalize' && event.status === 'ok') {
       docxPath = event.data.docx as string
       continue // captured — do not forward to SSE stream
     }
     yield emit(event)
-    // validate:fail is non-terminal — fix-loop follows. Only build:fail and fix-loop:fail are terminal.
-    if (event.status === 'fail' && event.stage !== 'validate') { logger.finish('failed'); return }
+    if (event.status === 'fail') { logger.finish('failed'); return }
   }
 
   if (!docxPath) { yield emit(errEvent('finalize', 'DOCX path not set after pipeline')); logger.finish('failed'); return }
@@ -308,120 +314,91 @@ async function preflight(resumeData: string, jobBuildDir: string): Promise<void>
   fs.writeFileSync(path.join(jobBuildDir, 'master_resume_data.json'), resumeData, 'utf8')
 }
 
-async function* buildValidateLoop(scriptPath: string, docxName: string, jobBuildDir: string, signal?: AbortSignal): AsyncGenerator<SSEEvent> {
-  const docxExpected = path.join(jobBuildDir, docxName)
-
-  for (let attempt = 0; attempt < 3; attempt++) {
-    if (signal?.aborted) { yield errEvent('build', 'Aborted'); return }
-    // Build
-    yield { stage: 'build', status: 'running', data: { attempt } }
-    const buildResult = await spawnAsync('node', [scriptPath], jobBuildDir, signal)
-    if (signal?.aborted) { yield errEvent('build', 'Aborted'); return }
-    if (buildResult.code !== 0) {
-      const errOut = (buildResult.stderr || buildResult.stdout).slice(0, 800)
-      console.error(`[pipeline] build failed attempt=${attempt} code=${buildResult.code}\n${errOut}`)
-      yield errEvent('build', errOut); return
-    }
-    console.info(`[pipeline] build ok attempt=${attempt} stdout=${buildResult.stdout.trim().slice(0, 200)}`)
-    yield { stage: 'build', status: 'ok', data: { script: path.basename(scriptPath), attempt, out: buildResult.stdout.trim().slice(0, 200) } }
-
-    if (!fs.existsSync(docxExpected)) {
-      yield errEvent('build', `Build exited 0 but DOCX not found at ${docxExpected}`)
-      return
-    }
-
-    // Validate
-    yield { stage: 'validate', status: 'running', data: {} }
-    const validateResult = await spawnAsync('node', [VALIDATE_JS, scriptPath], process.cwd(), signal)
-    if (signal?.aborted) { yield errEvent('validate', 'Aborted'); return }
-    console.info(`[pipeline] validate code=${validateResult.code} stdout=${validateResult.stdout.trim().slice(0, 300)}`)
-    if (validateResult.code === 0) {
-      const warns = validateResult.stdout.split('\n').filter(l => l.startsWith('WARN'))
-      if (warns.length > 0) {
-        yield { stage: 'validate', status: 'warn', data: { warnings: warns } }
-      } else {
-        yield { stage: 'validate', status: 'ok', data: {} }
-      }
-      yield { stage: 'finalize', status: 'ok', data: { docx: docxExpected } }
-      return
-    }
-
-    const violations = validateResult.stdout.split('\n').filter(l => l.startsWith('FAIL'))
-    console.warn(`[pipeline] validate violations: ${JSON.stringify(violations)}`)
-    yield { stage: 'validate', status: 'fail', data: { violations } }
-
-    yield { stage: 'fix-loop', status: 'running', data: { violations } }
-    const fixed = applyFixes(scriptPath, violations)
-    console.info(`[pipeline] fix-loop fixed=${JSON.stringify(fixed)} for violations=${JSON.stringify(violations)}`)
-    if (fixed.length === 0) {
-      yield errEvent('fix-loop', `Unfixable violations: ${violations.join(', ')}`); return
-    }
-    yield { stage: 'fix-loop', status: 'ok', data: { fixed } }
-  }
-
-  yield errEvent('fix-loop', 'Exceeded 3 fix attempts')
+function trimBullet(s: string): string {
+  if (s.length <= MAX_BULLET_CHARS) return s
+  const cut = s.slice(0, MAX_BULLET_CHARS)
+  const ls = cut.lastIndexOf(' ')
+  return ls > BULLET_WORD_BOUNDARY_MIN ? cut.slice(0, ls) : cut
 }
 
-function applyFixes(scriptPath: string, violations: string[]): string[] {
-  let src = fs.readFileSync(scriptPath, 'utf8')
-  const fixed: string[] = []
+function trimTagline(s: string): string {
+  if (s.length <= MAX_TAGLINE_CHARS) return s
+  const cut = s.slice(0, MAX_TAGLINE_CHARS)
+  const ls = cut.lastIndexOf(' ')
+  return ls > TAGLINE_WORD_BOUNDARY_MIN ? cut.slice(0, ls) : cut
+}
 
-  for (const v of violations) {
-    // Tagline: trim to MAX_TAGLINE_CHARS at last word boundary
-    const tlMatch = v.match(/FAIL tagline: (\d+)c/)
-    if (tlMatch) {
-      src = src.replace(/TL\((['"])((?:\\.|(?!\1).)*)\1\)/g, (_match, q, val) => {
-        let trimmed = val.slice(0, MAX_TAGLINE_CHARS)
-        const lastSpace = trimmed.lastIndexOf(' ')
-        if (lastSpace > TAGLINE_WORD_BOUNDARY_MIN) trimmed = trimmed.slice(0, lastSpace)
-        fixed.push(`tagline trimmed to ${trimmed.length} chars`)
-        return `TL(${q}${trimmed}${q})`
-      })
-    }
+async function buildDocxInProcess(
+  d: ReasoningResult,
+  masterDataJson: string,
+  docxName: string,
+  jobBuildDir: string,
+): Promise<void> {
+  const master = JSON.parse(masterDataJson) as MasterData
+  const variantKey = bulletsKey(d.workVariant)
 
-    // Bullet: trim over-length T() calls to MAX_BULLET_CHARS at word boundary
-    const bulletMatch = v.match(/FAIL bullet \[(work|proj)\.\d+\]: (\d+)c/)
-    if (bulletMatch) {
-      let repCount = 0
-      src = src.replace(/\bT\((['"])((?:\\.|(?!\1).)*)\1\)/g, (_m, q, val) => {
-        if (val.length <= MAX_BULLET_CHARS) return _m
-        let trimmed = val.slice(0, MAX_BULLET_CHARS)
-        const lastSpace = trimmed.lastIndexOf(' ')
-        if (lastSpace > BULLET_WORD_BOUNDARY_MIN) trimmed = trimmed.slice(0, lastSpace)
-        repCount++
-        return `T(${q}${trimmed}${q})`
-      })
-      if (repCount > 0) fixed.push(`${repCount} bullet(s) trimmed to ≤${MAX_BULLET_CHARS} chars`)
-    }
+  // Load buildv2.js and docx from the shared harness node_modules — no subprocess.
+  // createRequire anchors resolution to BATCH_BUILD_ROOT so 'docx' resolves to its local node_modules.
+  const _req = createRequire(path.join(BATCH_BUILD_ROOT, 'buildv2.js'))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { makeDoc, TL, T } = _req('./buildv2.js') as any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { Packer } = _req('docx') as any
 
-    // Para count: soft warning — mark handled, proceed without changes
-    if (v.includes('FAIL para count')) {
-      fixed.push('para count warning (skipped — cosmetic)')
-    }
+  const work = d.workIds.map(id => {
+    const exp = master.experience.find(e => e.id === id)
+    if (!exp) throw new Error(`Unknown work id: "${id}". Valid: ${master.experience.map(e => e.id).join(', ')}`)
+    const raw = (exp.bullets[variantKey] ?? exp.bullets['genai'] ?? []).slice(0, 5)
+    return { id, title: exp.title, company: exp.company, location: exp.location, dates: exp.dates,
+             bullets: raw.map((b: string) => T(trimBullet(b))) }
+  })
 
-    // Skills: soft warning — mark handled, proceed without changes
-    if (v.includes('FAIL skills')) {
-      fixed.push('skills warning (skipped — cosmetic)')
-    }
+  const projects = d.projects.map(id => {
+    const proj = master.projects.find(p => p.id === id)
+    if (!proj) throw new Error(`Unknown project id: "${id}". Valid: ${master.projects.map(p => p.id).join(', ')}`)
+    return { id, name: proj.name, url: proj.url, stack: proj.short_stack,
+             date: proj.date ?? proj.dates, bullets: proj.bullets.slice(0, 3).map((b: string) => T(trimBullet(b))) }
+  })
+
+  const skills = d.skillsRows.map(s => {
+    const i = s.indexOf(': ')
+    return i > 0 ? { label: s.slice(0, i), vals: s.slice(i + 2) } : { label: '', vals: s }
+  })
+
+  const doc = makeDoc({ name: master.contact?.name, contact: master.contact,
+    tagline: TL(trimTagline(d.tagline)), work, projects, skills })
+  const buf = await (Packer.toBuffer(doc) as Promise<Buffer>)
+  fs.writeFileSync(path.join(jobBuildDir, docxName), buf)
+}
+
+async function* buildInProcess(
+  d: ReasoningResult,
+  masterDataJson: string,
+  docxName: string,
+  jobBuildDir: string,
+  signal?: AbortSignal,
+): AsyncGenerator<SSEEvent> {
+  const docxExpected = path.join(jobBuildDir, docxName)
+  if (signal?.aborted) { yield errEvent('build', 'Aborted'); return }
+  yield { stage: 'build', status: 'running', data: { attempt: 0 } }
+  try {
+    await buildDocxInProcess(d, masterDataJson, docxName, jobBuildDir)
+  } catch (e) {
+    console.error(`[pipeline] build failed: ${String(e)}`)
+    yield errEvent('build', String(e)); return
   }
-
-  fs.writeFileSync(scriptPath, src, 'utf8')
-  return fixed
+  if (signal?.aborted) { yield errEvent('build', 'Aborted'); return }
+  if (!fs.existsSync(docxExpected)) {
+    yield errEvent('build', `Build succeeded but DOCX not found at ${docxExpected}`); return
+  }
+  console.info(`[pipeline] build ok — ${docxName}`)
+  yield { stage: 'build', status: 'ok', data: { attempt: 0 } }
+  yield { stage: 'validate', status: 'ok', data: {} }
+  yield { stage: 'finalize', status: 'ok', data: { docx: docxExpected } }
 }
 
 function buildScript(d: ReasoningResult, _slug: string, docxName: string, masterDataJson: string): string {
-  const master = JSON.parse(masterDataJson) as {
-    contact?:   { name?: string; phone?: string; location?: string; email?: string; linkedin?: string; portfolio?: string; github?: string; work_auth?: string }
-    experience: Array<{
-      id: string; title?: string; company?: string; location?: string; dates?: string
-      bullets: Record<string, string[]>
-    }>
-    projects: Array<{
-      id: string; name?: string; url?: string; short_stack?: string; date?: string; dates?: string
-      bullets: string[]
-    }>
-    skills: Record<string, Record<string, string>>
-  }
+  const master = JSON.parse(masterDataJson) as MasterData
 
   const variantKey = bulletsKey(d.workVariant)
 
