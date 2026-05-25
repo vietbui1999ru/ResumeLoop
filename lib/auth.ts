@@ -70,7 +70,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             if (changedMs > (token.iat as number) * 1000) return null
           }
         } catch {
-          // DB unavailable — allow existing token to continue (fail open)
+          return null
         }
       }
       return token
@@ -135,10 +135,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       : []),
     Credentials({
       credentials: {
-        email:    { label: 'Email',    type: 'email' },
-        password: { label: 'Password', type: 'password' },
+        email:     { label: 'Email',     type: 'email' },
+        password:  { label: 'Password',  type: 'password' },
+        demoToken: { label: 'Demo Token', type: 'text' },
       },
       async authorize(credentials, req) {
+        const demoToken = (credentials?.demoToken as string | undefined)?.trim()
+        if (demoToken) {
+          const { consumeDemoToken } = await import('@/lib/demo-token-store')
+          const demo = consumeDemoToken(demoToken)
+          if (!demo) return null
+          const db  = await getAdapter()
+          const row = await db.queryOne<UserRow>(
+            `SELECT id, email, password, is_demo, email_verified, deleted_at FROM users WHERE email = ?`,
+            [demo.email],
+          )
+          return validateCredentials(demo.email, demo.password, row)
+        }
+
         const email    = (credentials?.email    as string | undefined)?.trim().toLowerCase()
         const password = (credentials?.password as string | undefined) ?? ''
         if (!email || !password) return null

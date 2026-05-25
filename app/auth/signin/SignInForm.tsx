@@ -44,8 +44,8 @@ export default function SignInForm({ showDemoHint, oauthProviders = [] }: { show
     try {
       const res = await fetch('/api/auth/demo', { method: 'POST' })
       if (!res.ok) { setError('Demo unavailable — try again'); setDemoLoading(false); return }
-      const { email: demoEmail, password: demoPassword } = await res.json() as { email: string; password: string }
-      const result = await signIn('credentials', { email: demoEmail, password: demoPassword, redirect: false })
+      const { token: demoToken } = await res.json() as { token: string }
+      const result = await signIn('credentials', { demoToken, redirect: false })
       if (result?.error) { setError('Demo sign-in failed'); setDemoLoading(false); return }
       router.push('/')
       router.refresh()

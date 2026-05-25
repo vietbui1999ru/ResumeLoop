@@ -1,5 +1,7 @@
 import { NextResponse }   from 'next/server'
 import { lookup }         from 'node:dns/promises'
+import * as https         from 'node:https'
+import * as http          from 'node:http'
 import { auth }           from '@/lib/auth'
 import { createIngestionSource, updateIngestionSource } from '@/lib/ingest/db'
 import { extractFromUrl } from '@/lib/ingest/extract-url'
@@ -42,34 +44,57 @@ function isDisallowedHost(hostname: string): boolean {
   return false
 }
 
-async function assertPublicHost(hostname: string): Promise<void> {
+// Returns the first safe resolved IP for hostname, throws if disallowed.
+async function resolvePublicHost(hostname: string): Promise<string> {
   const host = normalizeHost(hostname)
   if (isDisallowedHost(host)) throw new Error('disallowed-host')
 
-  // If hostname is not a direct IP, resolve DNS and block private/link-local targets.
-  if (!/^\d{1,3}(\.\d{1,3}){3}$/.test(host) && !host.includes(':')) {
-    const resolved = await lookup(host, { all: true, verbatim: true })
-    if (!resolved.length || resolved.some(r => isDisallowedHost(r.address))) {
-      throw new Error('disallowed-host')
-    }
-  }
+  // Direct IP — no DNS resolution needed.
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host) || host.includes(':')) return host
+
+  const resolved = await lookup(host, { all: true, verbatim: true })
+  const safe = resolved.find(r => !isDisallowedHost(r.address))
+  if (!safe) throw new Error('disallowed-host')
+  return safe.address
+}
+
+// HEAD request pinned to a pre-resolved IP — prevents DNS rebinding between check and fetch.
+function pinnedHead(url: URL, resolvedIp: string): Promise<{ status: number; location: string | null }> {
+  return new Promise((resolve, reject) => {
+    const lib = url.protocol === 'https:' ? https : http
+    const port = url.port ? parseInt(url.port, 10) : url.protocol === 'https:' ? 443 : 80
+    const req = lib.request(
+      {
+        hostname: resolvedIp,
+        port,
+        path: url.pathname + url.search,
+        method: 'HEAD',
+        headers: { Host: url.hostname, 'User-Agent': 'Mozilla/5.0 (compatible; ResumeLoop/1.0)' },
+        servername: url.hostname,
+        timeout: 8_000,
+      },
+      (res) => {
+        resolve({ status: res.statusCode ?? 0, location: res.headers.location ?? null })
+        res.resume()
+      },
+    )
+    req.on('timeout', () => req.destroy(new Error('timeout')))
+    req.on('error', reject)
+    req.end()
+  })
 }
 
 async function validateRedirectChain(rawUrl: string): Promise<string> {
   let current = new URL(rawUrl)
   for (let i = 0; i < 5; i += 1) {
     if (!['http:', 'https:'].includes(current.protocol)) throw new Error('invalid-url')
-    await assertPublicHost(current.hostname)
+    const resolvedIp = await resolvePublicHost(current.hostname)
 
-    const resp = await fetch(current.toString(), {
-      method: 'GET',
-      redirect: 'manual',
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ResumeLoop/1.0)' },
-      signal: AbortSignal.timeout(8_000),
-    })
+    // Use pinned IP for the request — same IP that passed validation, no TOCTOU window.
+    const resp = await pinnedHead(current, resolvedIp)
     if (resp.status < 300 || resp.status >= 400) return current.toString()
 
-    const location = resp.headers.get('location')
+    const location = resp.location
     if (!location) return current.toString()
     current = new URL(location, current)
   }
