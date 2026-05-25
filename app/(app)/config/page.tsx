@@ -875,8 +875,8 @@ function ProfileEditor({ profile, onSaved }: { profile: Profile; onSaved: () => 
             <span className="text-2xs text-text-muted uppercase tracking-widest font-mono">JSON (read-only)</span>
           </div>
           <div className="px-4 py-3 text-xs text-text-secondary space-y-2 max-h-96 overflow-y-auto">
-            <p className="text-amber-400 font-medium">JSON editing unavailable on mobile</p>
-            <p>Use <button onClick={() => setConfigView('cards')} className="text-indigo-400 underline">Cards view</button> for editing, or switch to a desktop browser.</p>
+            <p className="text-warning font-medium">JSON editing unavailable on mobile</p>
+            <p>Use <button onClick={() => setConfigView('cards')} className="text-accent underline">Cards view</button> for editing, or switch to a desktop browser.</p>
             <pre className="mt-3 p-2 bg-surface-card rounded text-2xs overflow-x-auto whitespace-pre-wrap break-words">
               {JSON.stringify(profileData, null, 2).slice(0, 500)}...
             </pre>
