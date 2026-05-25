@@ -46,13 +46,15 @@ export function ProjectCard({ entry, excluded, onToggle }: Props) {
 
       {/* Toggle checkbox — no icon, shape+color carries the state */}
       <button
+        role="checkbox"
+        aria-checked={!excluded}
+        aria-label={entry.name}
         onClick={() => onToggle(entry.id)}
         className={`flex-shrink-0 w-4 h-4 mt-1 rounded-sm border-2 transition-colors ${
           excluded
             ? 'border-zinc-600 bg-transparent'
             : 'border-indigo-500 bg-indigo-600'
         }`}
-        aria-label={excluded ? 'Include this project' : 'Exclude this project'}
         title={excluded ? 'Click to include' : 'Click to exclude'}
       />
 
