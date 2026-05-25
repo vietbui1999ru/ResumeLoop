@@ -1,6 +1,7 @@
 import path from 'path'
 import fs from 'fs'
 import { getDb, initSchema } from '../lib/db'
+import { OLLAMA_DEFAULT_BASE_URL } from '../lib/config'
 
 export default async function globalSetup() {
   process.env.DB_PATH = path.resolve('./test.db')
@@ -40,7 +41,7 @@ export default async function globalSetup() {
   db.prepare(
     `INSERT INTO user_settings (user_id, provider, encrypted_key, model, base_url)
      VALUES (?, ?, ?, ?, ?)`
-  ).run('test-user-id', 'ollama', '', 'gemma4:e2b', 'http://localhost:11434/v1')
+  ).run('test-user-id', 'ollama', '', 'gemma4:e2b', OLLAMA_DEFAULT_BASE_URL)
 
   db.prepare(
     `INSERT INTO app_settings (key, value) VALUES (?, ?)`

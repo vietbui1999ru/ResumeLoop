@@ -2,7 +2,7 @@ import { generateText, jsonSchema } from 'ai'
 import { getModel } from './ai-client'
 import { logAiUsage } from './ai-usage'
 import { getActiveConfig } from './user-settings'
-import { MAX_BULLET_CHARS } from './config'
+import { MAX_BULLET_CHARS, BULLET_WORD_BOUNDARY_MIN } from './config'
 
 export interface ProjectEntry {
   id: string
@@ -36,7 +36,7 @@ export function validateBullets(bullets: string[]): string[] {
     if (b.length <= MAX_BULLET_CHARS) return b
     const trimmed = b.slice(0, MAX_BULLET_CHARS)
     const lastSpace = trimmed.lastIndexOf(' ')
-    return lastSpace > 90 ? trimmed.slice(0, lastSpace) : trimmed
+    return lastSpace > BULLET_WORD_BOUNDARY_MIN ? trimmed.slice(0, lastSpace) : trimmed
   })
 }
 

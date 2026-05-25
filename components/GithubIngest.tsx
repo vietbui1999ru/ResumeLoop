@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useSession } from '@/contexts/SessionContext'
+import { MAX_BULLET_CHARS } from '@/lib/config'
 
 interface ProjectEntry {
   id: string
@@ -58,7 +59,7 @@ export default function GithubIngest() {
     }
   }
 
-  const charClass = (s: string) => s.length > 116 ? 'text-red-400' : 'text-zinc-300'
+  const charClass = (s: string) => s.length > MAX_BULLET_CHARS ? 'text-red-400' : 'text-zinc-300'
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
@@ -110,7 +111,7 @@ export default function GithubIngest() {
                     rows={2}
                     className="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-sm resize-none focus:outline-none focus:border-indigo-500"
                   />
-                  <span className={`text-xs ${charClass(b)}`}>{b.length}/116</span>
+                  <span className={`text-xs ${charClass(b)}`}>{b.length}/{MAX_BULLET_CHARS}</span>
                 </div>
               </div>
             ))}
