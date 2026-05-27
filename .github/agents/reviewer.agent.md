@@ -6,7 +6,8 @@
 
 name: reviewer
 ---
-description: "Deep reviewer for code quality, architecture, design patterns, structure, and performance. Invoke for PR review, tech debt audit, or architectural critique."
+description: "Deep reviewer for code quality, architecture, design patterns, structure, and performance. Invoke for PR review, tech debt
+audit, or architectural critique."
 mode: agent
 tools:
 - codebase
