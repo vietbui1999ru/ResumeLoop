@@ -23,7 +23,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@giscus/react": "^3.1.0",
-    "@mendable/firecrawl-js": "^4.24.2",
+    "@mendable/firecrawl-js": "^4.25.2",
     "@monaco-editor/react": "^4.7.0",
     "@neondatabase/serverless": "^1.1.0",
     "@upstash/ratelimit": "^2.0.8",

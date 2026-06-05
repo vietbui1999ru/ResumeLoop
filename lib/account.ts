@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto'
-import bcrypt from 'bcryptjs'
 import { getAdapter } from './db-adapter'
 import { isCloud } from './app-mode'
+import { hashPassword } from './password'
 
 /**
  * Delete all user data in dependency order, then the user row.
@@ -36,7 +36,7 @@ export async function deleteAccount(userId: string): Promise<void> {
  * once they expire (max 15 min).
  */
 export async function changePassword(userId: string, newPassword: string): Promise<void> {
-  const hash = await bcrypt.hash(newPassword, 12)
+  const hash = await hashPassword(newPassword)
   const db   = await getAdapter()
   await db.run(
     `UPDATE users SET password = ?, password_changed_at = CURRENT_TIMESTAMP WHERE id = ?`,
@@ -47,7 +47,7 @@ export async function changePassword(userId: string, newPassword: string): Promi
 /** Register a new credentials user. Returns the new user id. */
 export async function createUser(email: string, password: string): Promise<string> {
   const id   = randomUUID()
-  const hash = await bcrypt.hash(password, 12)
+  const hash = await hashPassword(password)
   const db   = await getAdapter()
   // Only gate on email verification if Resend is actually configured.
   // Without RESEND_API_KEY the verification email is silently dropped, permanently locking users out.
