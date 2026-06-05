@@ -22,6 +22,10 @@ function ensureUserIdColumn(db: DB, table: string): void {
   db.prepare(alter).run()
 }
 
+function hasTable(db: DB, name: string): boolean {
+  const row = db.prepare(`SELECT COUNT(*) as c FROM sqlite_master WHERE type='table' AND name=?`).get(name) as { c: number }
+  return row.c > 0
+}
 
 export function getDb(): DB {
   if (globalForDb._db) { _db = globalForDb._db; return globalForDb._db }
@@ -84,6 +88,7 @@ export function initSchema(db: DB): void {
       tagline       TEXT,
       reasoning     TEXT,
       cover_letter  TEXT,
+      session_id    TEXT,
       user_id       TEXT NOT NULL DEFAULT 'default',
       built_at      DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -187,6 +192,10 @@ export function initSchema(db: DB): void {
       name       TEXT NOT NULL,
       data       TEXT NOT NULL,
       is_active  INTEGER NOT NULL DEFAULT 0,
+      kind       TEXT NOT NULL DEFAULT 'custom',
+      source     TEXT NOT NULL DEFAULT 'upload',
+      persona_md TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -234,33 +243,103 @@ export function initSchema(db: DB): void {
       ON ingestion_sources(user_id, created_at DESC);
   `)
 
-  // Migrate existing DBs that predate session_id column on jd_outputs
-  const hasSessionId = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_outputs') WHERE name='session_id'`).get() as { c: number }).c > 0
-  if (!hasSessionId) db.exec(`ALTER TABLE jd_outputs ADD COLUMN session_id TEXT`)
+  // Seed demo user (pre-hashed bcrypt of 'demo', rounds=10) — local/self-hosted mode only
+  if (!isCloud()) {
+    const demoExists = (db.prepare(`SELECT COUNT(*) as c FROM users WHERE email = 'demo@demo.com'`).get() as { c: number }).c > 0
+    if (!demoExists) db.prepare(`INSERT INTO users (id, email, password, is_demo, email_verified) VALUES (?, ?, ?, 1, 1)`)
+      .run('demo-user', 'demo@demo.com', '$2b$10$p/KLnbVfAXylbVN9Eonw/emuhlarCDbTI4P5CZchZET/5zEAd1hmW')
+  }
 
-  // Migrate existing DBs that predate file_mtime column
-  const hasMtime = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_jobs') WHERE name='file_mtime'`).get() as { c: number }).c > 0
-  if (!hasMtime) db.exec(`ALTER TABLE jd_jobs ADD COLUMN file_mtime TEXT`)
+  // Seed system_prompts from disk files if table is empty (local dev only)
+  // In production, content is seeded via NeonAdapter.initialize() or a one-time migration.
+  seedSystemPromptsFromDisk(db)
 
-  // Migrate existing DBs that predate action column
-  const hasAction = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_jobs') WHERE name='action'`).get() as { c: number }).c > 0
-  if (!hasAction) db.exec(`ALTER TABLE jd_jobs ADD COLUMN action TEXT`)
+  // Record migration 001 as applied
+  db.prepare(`INSERT INTO schema_migrations (version) VALUES (?) ON CONFLICT DO NOTHING`).run(1)
+}
 
-  // Migrate existing DBs that predate reasoning column
-  const hasReasoning = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_outputs') WHERE name='reasoning'`).get() as { c: number }).c > 0
-  if (!hasReasoning) db.exec(`ALTER TABLE jd_outputs ADD COLUMN reasoning TEXT`)
+/**
+ * Run all pending numbered migrations against the given DB.
+ *
+ * Designed to run as a one-shot ECS task before the application starts.
+ * See docs/ops/MIGRATIONS.md for how to trigger a migration run on ECS.
+ *
+ * Migration 001 = initSchema (full baseline CREATE TABLE IF NOT EXISTS + seeds).
+ * Migration 002 = rename demo_cleartext_pwd -> demo_encrypted_pwd (inline TypeScript).
+ * Migration 003 = all historical ALTER TABLE / CREATE TABLE additions (inline TypeScript).
+ * Migration NNN (NNN > 3) = SQL files in lib/migrations/ matching NNN_*.sql.
+ */
+export function runMigrations(db: DB): void {
+  initSchema(db) // ensures schema_migrations table + migration 001
 
-  // Migrate existing DBs that predate pdf_path column
-  const hasPdfPath = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_outputs') WHERE name='pdf_path'`).get() as { c: number }).c > 0
-  if (!hasPdfPath) db.exec(`ALTER TABLE jd_outputs ADD COLUMN pdf_path TEXT`)
+  const applied = new Set(
+    (db.prepare('SELECT version FROM schema_migrations').all() as { version: number }[]).map(r => r.version)
+  )
 
-  // Migrate existing DBs that predate cover_letter column
-  const hasCoverLetter = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_outputs') WHERE name='cover_letter'`).get() as { c: number }).c > 0
-  if (!hasCoverLetter) db.exec(`ALTER TABLE jd_outputs ADD COLUMN cover_letter TEXT`)
+  // 002: rename demo_cleartext_pwd -> demo_encrypted_pwd
+  // Column name was misleading — value is AES-256-GCM encrypted, not cleartext.
+  if (!applied.has(2)) {
+    if (hasColumn(db, 'users', 'demo_cleartext_pwd')) {
+      db.exec(`ALTER TABLE users RENAME COLUMN demo_cleartext_pwd TO demo_encrypted_pwd`)
+    }
+    db.prepare(`INSERT INTO schema_migrations (version) VALUES (?)`).run(2)
+    applied.add(2)
+  }
 
-  // Migrate existing DBs that predate user_settings table
-  const hasUserSettings = (db.prepare(`SELECT COUNT(*) as c FROM sqlite_master WHERE type='table' AND name='user_settings'`).get() as { c: number }).c > 0
-  if (!hasUserSettings) db.exec(`
+  // 003: all historical column/table additions that previously lived in initSchema.
+  // SQLite before 3.37.0 lacks ADD COLUMN IF NOT EXISTS, so each addition is
+  // guarded by a hasColumn / hasTable check — making the migration idempotent.
+  if (!applied.has(3)) {
+    applyMigration003(db)
+    db.prepare(`INSERT INTO schema_migrations (version) VALUES (?)`).run(3)
+    applied.add(3)
+  }
+
+  // Generic SQL file loader: runs lib/migrations/NNN_*.sql for NNN > 3.
+  // Each file is executed once and recorded in schema_migrations.
+  const migrationsDir = path.join(__dirname, 'migrations')
+  if (fs.existsSync(migrationsDir)) {
+    const sqlFiles = fs.readdirSync(migrationsDir)
+      .filter(f => /^\d{3}_.*\.sql$/.test(f))
+      .sort()
+    for (const file of sqlFiles) {
+      const version = parseInt(file.slice(0, 3), 10)
+      if (version <= 3) continue // 001-003 handled above
+      if (applied.has(version)) continue
+      const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf8')
+      db.exec(sql)
+      db.prepare(`INSERT INTO schema_migrations (version) VALUES (?)`).run(version)
+      applied.add(version)
+    }
+  }
+}
+
+/**
+ * Migration 003 body: all historical pragma_table_info / sqlite_master checks
+ * that were previously inlined in initSchema.
+ * Extracted here so runMigrations stays readable and the logic is tested via
+ * the existing initSchema integration tests (which call runMigrations).
+ */
+function applyMigration003(db: DB): void {
+  if (!hasColumn(db, 'jd_outputs', 'session_id'))
+    db.exec(`ALTER TABLE jd_outputs ADD COLUMN session_id TEXT`)
+
+  if (!hasColumn(db, 'jd_jobs', 'file_mtime'))
+    db.exec(`ALTER TABLE jd_jobs ADD COLUMN file_mtime TEXT`)
+
+  if (!hasColumn(db, 'jd_jobs', 'action'))
+    db.exec(`ALTER TABLE jd_jobs ADD COLUMN action TEXT`)
+
+  if (!hasColumn(db, 'jd_outputs', 'reasoning'))
+    db.exec(`ALTER TABLE jd_outputs ADD COLUMN reasoning TEXT`)
+
+  if (!hasColumn(db, 'jd_outputs', 'pdf_path'))
+    db.exec(`ALTER TABLE jd_outputs ADD COLUMN pdf_path TEXT`)
+
+  if (!hasColumn(db, 'jd_outputs', 'cover_letter'))
+    db.exec(`ALTER TABLE jd_outputs ADD COLUMN cover_letter TEXT`)
+
+  if (!hasTable(db, 'user_settings')) db.exec(`
     CREATE TABLE user_settings (
       user_id       TEXT NOT NULL,
       provider      TEXT NOT NULL,
@@ -272,85 +351,83 @@ export function initSchema(db: DB): void {
     )
   `)
 
-  // Migrate existing DBs that predate ai_usage_log table
-  const hasAiUsageLog = (db.prepare(`SELECT COUNT(*) as c FROM sqlite_master WHERE type='table' AND name='ai_usage_log'`).get() as { c: number }).c > 0
-  if (!hasAiUsageLog) db.exec(`CREATE TABLE ai_usage_log (
-    id INTEGER PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    provider TEXT NOT NULL,
-    model TEXT NOT NULL,
-    feature TEXT NOT NULL,
-    input_tok INTEGER NOT NULL DEFAULT 0,
-    output_tok INTEGER NOT NULL DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`)
+  if (!hasTable(db, 'ai_usage_log')) db.exec(`
+    CREATE TABLE ai_usage_log (
+      id         INTEGER PRIMARY KEY,
+      user_id    TEXT NOT NULL,
+      provider   TEXT NOT NULL,
+      model      TEXT NOT NULL,
+      feature    TEXT NOT NULL,
+      input_tok  INTEGER NOT NULL DEFAULT 0,
+      output_tok INTEGER NOT NULL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
 
-  // Migrate existing DBs that predate users table
-  const hasUsers = (db.prepare(`SELECT COUNT(*) as c FROM sqlite_master WHERE type='table' AND name='users'`).get() as { c: number }).c > 0
-  if (!hasUsers) db.exec(`CREATE TABLE users (
-    id TEXT PRIMARY KEY,
-    email TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,
-    is_demo INTEGER NOT NULL DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`)
+  if (!hasTable(db, 'users')) db.exec(`
+    CREATE TABLE users (
+      id         TEXT PRIMARY KEY,
+      email      TEXT UNIQUE NOT NULL,
+      password   TEXT NOT NULL,
+      is_demo    INTEGER NOT NULL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
 
-  // Migrate existing DBs that predate outreach_brief column on jd_jobs
-  const hasOutreachBrief = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_jobs') WHERE name='outreach_brief'`).get() as { c: number }).c > 0
-  if (!hasOutreachBrief) db.exec(`ALTER TABLE jd_jobs ADD COLUMN outreach_brief TEXT`)
+  if (!hasColumn(db, 'jd_jobs', 'outreach_brief'))
+    db.exec(`ALTER TABLE jd_jobs ADD COLUMN outreach_brief TEXT`)
 
-  const hasClippedAt = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_jobs') WHERE name='clipped_at'`).get() as { c: number }).c > 0
-  if (!hasClippedAt) db.exec(`ALTER TABLE jd_jobs ADD COLUMN clipped_at TEXT`)
+  if (!hasColumn(db, 'jd_jobs', 'clipped_at'))
+    db.exec(`ALTER TABLE jd_jobs ADD COLUMN clipped_at TEXT`)
 
-  const hasHidden = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_jobs') WHERE name='hidden'`).get() as { c: number }).c > 0
-  if (!hasHidden) db.exec(`ALTER TABLE jd_jobs ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0`)
+  if (!hasColumn(db, 'jd_jobs', 'hidden'))
+    db.exec(`ALTER TABLE jd_jobs ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0`)
 
-  const hasApplyUrl = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_jobs') WHERE name='apply_url'`).get() as { c: number }).c > 0
-  if (!hasApplyUrl) db.exec(`ALTER TABLE jd_jobs ADD COLUMN apply_url TEXT`)
+  if (!hasColumn(db, 'jd_jobs', 'apply_url'))
+    db.exec(`ALTER TABLE jd_jobs ADD COLUMN apply_url TEXT`)
 
-  const hasApplicationCase = (db.prepare(`SELECT COUNT(*) as c FROM pragma_table_info('jd_jobs') WHERE name='application_case'`).get() as { c: number }).c > 0
-  if (!hasApplicationCase) db.exec('ALTER TABLE jd_jobs ADD COLUMN application_case TEXT')
+  if (!hasColumn(db, 'jd_jobs', 'application_case'))
+    db.exec(`ALTER TABLE jd_jobs ADD COLUMN application_case TEXT`)
 
-  // Migrate existing DBs that predate outreach_items table
-  const hasOutreachItems = (db.prepare(`SELECT COUNT(*) as c FROM sqlite_master WHERE type='table' AND name='outreach_items'`).get() as { c: number }).c > 0
-  if (!hasOutreachItems) db.exec(`CREATE TABLE outreach_items (
-    id             TEXT PRIMARY KEY,
-    job_id         TEXT NOT NULL REFERENCES jd_jobs(id),
-    user_id        TEXT NOT NULL,
-    kind           TEXT NOT NULL DEFAULT 'person',
-    raw_markdown   TEXT NOT NULL,
-    ai_card        TEXT,
-    role           TEXT,
-    role_custom    TEXT,
-    notes          TEXT,
-    email          TEXT,
-    status         TEXT NOT NULL DEFAULT 'not_contacted',
-    linkedin_draft TEXT,
-    email_draft    TEXT,
-    source_path    TEXT,
-    created_at     TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
-  )`)
+  if (!hasTable(db, 'outreach_items')) db.exec(`
+    CREATE TABLE outreach_items (
+      id             TEXT PRIMARY KEY,
+      job_id         TEXT NOT NULL REFERENCES jd_jobs(id),
+      user_id        TEXT NOT NULL,
+      kind           TEXT NOT NULL DEFAULT 'person',
+      raw_markdown   TEXT NOT NULL,
+      ai_card        TEXT,
+      role           TEXT,
+      role_custom    TEXT,
+      notes          TEXT,
+      email          TEXT,
+      status         TEXT NOT NULL DEFAULT 'not_contacted',
+      linkedin_draft TEXT,
+      email_draft    TEXT,
+      source_path    TEXT,
+      created_at     TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `)
 
-  // Migrate existing DBs that predate resume_profiles table
-  const hasResumeProfiles = (db.prepare(`SELECT COUNT(*) as c FROM sqlite_master WHERE type='table' AND name='resume_profiles'`).get() as { c: number }).c > 0
-  if (!hasResumeProfiles) db.exec(`CREATE TABLE resume_profiles (
-    id         TEXT PRIMARY KEY,
-    user_id    TEXT NOT NULL,
-    name       TEXT NOT NULL,
-    data       TEXT NOT NULL,
-    is_active  INTEGER NOT NULL DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`)
+  if (!hasTable(db, 'resume_profiles')) db.exec(`
+    CREATE TABLE resume_profiles (
+      id         TEXT PRIMARY KEY,
+      user_id    TEXT NOT NULL,
+      name       TEXT NOT NULL,
+      data       TEXT NOT NULL,
+      is_active  INTEGER NOT NULL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `)
 
-  // Migrate existing DBs to add user_id column to data tables
   for (const table of ['jd_jobs', 'jd_outputs', 'jd_metrics', 'chat_messages', 'resume_sessions']) {
     ensureUserIdColumn(db, table)
   }
 
   // FTS5 for full-text search on company / role / raw content
   // Only create if the source columns exist (guards against legacy-schema migration tests)
-  const hasFts = (db.prepare(`SELECT COUNT(*) as c FROM sqlite_master WHERE type='table' AND name='jd_jobs_fts'`).get() as { c: number }).c > 0
+  const hasFts = hasTable(db, 'jd_jobs_fts')
   const ftsColumnsExist = hasColumn(db, 'jd_jobs', 'company') && hasColumn(db, 'jd_jobs', 'raw_content')
   if (!hasFts && ftsColumnsExist) {
     db.exec(`
@@ -378,18 +455,13 @@ export function initSchema(db: DB): void {
   }
 
   // Indexes for filter queries — guarded by column existence for legacy migration tests
-  if (hasColumn(db, 'jd_jobs', 'hidden') && hasColumn(db, 'jd_jobs', 'clipped_at')) {
-    db.exec(`CREATE INDEX IF NOT EXISTS idx_jobs_user_hidden_clipped
-      ON jd_jobs(user_id, hidden, clipped_at DESC)`)
-  }
-  if (hasColumn(db, 'jd_jobs', 'fit_pct')) {
+  if (hasColumn(db, 'jd_jobs', 'hidden') && hasColumn(db, 'jd_jobs', 'clipped_at'))
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_jobs_user_hidden_clipped ON jd_jobs(user_id, hidden, clipped_at DESC)`)
+  if (hasColumn(db, 'jd_jobs', 'fit_pct'))
     db.exec(`CREATE INDEX IF NOT EXISTS idx_jobs_user_fitpct ON jd_jobs(user_id, fit_pct)`)
-  }
-  if (hasColumn(db, 'jd_outputs', 'job_id')) {
+  if (hasColumn(db, 'jd_outputs', 'job_id'))
     db.exec(`CREATE INDEX IF NOT EXISTS idx_outputs_job ON jd_outputs(job_id)`)
-  }
 
-  // Migrate existing users table to add auth columns
   if (!hasColumn(db, 'users', 'email_verified')) {
     db.exec(`ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0`)
     // Pre-existing demo user gets email_verified=0 from the DEFAULT — fix it now.
@@ -401,17 +473,12 @@ export function initSchema(db: DB): void {
     db.exec(`ALTER TABLE users ADD COLUMN deleted_at DATETIME`)
   if (!hasColumn(db, 'users', 'ip_hash'))
     db.exec(`ALTER TABLE users ADD COLUMN ip_hash TEXT`)
-  // Add demo_encrypted_pwd on fresh DBs; old DBs still have demo_cleartext_pwd — migration 002 renames it
+  // Add demo_encrypted_pwd only when neither pwd column exists; migration 002 renames the old one
   if (!hasColumn(db, 'users', 'demo_encrypted_pwd') && !hasColumn(db, 'users', 'demo_cleartext_pwd'))
     db.exec(`ALTER TABLE users ADD COLUMN demo_encrypted_pwd TEXT`)
   db.exec(`CREATE INDEX IF NOT EXISTS idx_users_ip_hash ON users(ip_hash) WHERE is_demo = 1`)
 
-  // Migrate: allow empty password for OAuth-only accounts
-  // (password column already exists; DEFAULT '' is set on new tables above)
-
-  // Auth tables for existing DBs
-  const hasOAuthAccounts = (db.prepare(`SELECT COUNT(*) as c FROM sqlite_master WHERE type='table' AND name='oauth_accounts'`).get() as { c: number }).c > 0
-  if (!hasOAuthAccounts) db.exec(`
+  if (!hasTable(db, 'oauth_accounts')) db.exec(`
     CREATE TABLE oauth_accounts (
       id                  TEXT PRIMARY KEY,
       user_id             TEXT NOT NULL REFERENCES users(id),
@@ -423,8 +490,7 @@ export function initSchema(db: DB): void {
     CREATE INDEX IF NOT EXISTS idx_oauth_provider ON oauth_accounts(provider, provider_account_id);
   `)
 
-  const hasPwResetTokens = (db.prepare(`SELECT COUNT(*) as c FROM sqlite_master WHERE type='table' AND name='password_reset_tokens'`).get() as { c: number }).c > 0
-  if (!hasPwResetTokens) db.exec(`
+  if (!hasTable(db, 'password_reset_tokens')) db.exec(`
     CREATE TABLE password_reset_tokens (
       id         TEXT PRIMARY KEY,
       user_id    TEXT NOT NULL REFERENCES users(id),
@@ -435,8 +501,7 @@ export function initSchema(db: DB): void {
     )
   `)
 
-  const hasEmailVerifTokens = (db.prepare(`SELECT COUNT(*) as c FROM sqlite_master WHERE type='table' AND name='email_verification_tokens'`).get() as { c: number }).c > 0
-  if (!hasEmailVerifTokens) db.exec(`
+  if (!hasTable(db, 'email_verification_tokens')) db.exec(`
     CREATE TABLE email_verification_tokens (
       id         TEXT PRIMARY KEY,
       user_id    TEXT NOT NULL REFERENCES users(id),
@@ -446,16 +511,7 @@ export function initSchema(db: DB): void {
     )
   `)
 
-  // Seed demo user (pre-hashed bcrypt of 'demo', rounds=10) — local/self-hosted mode only
-  if (!isCloud()) {
-    const demoExists = (db.prepare(`SELECT COUNT(*) as c FROM users WHERE email = 'demo@demo.com'`).get() as { c: number }).c > 0
-    if (!demoExists) db.prepare(`INSERT INTO users (id, email, password, is_demo, email_verified) VALUES (?, ?, ?, 1, 1)`)
-      .run('demo-user', 'demo@demo.com', '$2b$10$p/KLnbVfAXylbVN9Eonw/emuhlarCDbTI4P5CZchZET/5zEAd1hmW')
-  }
-
-  // Migrate: add system_prompts table for existing DBs created before this column was added
-  const hasSystemPrompts = (db.prepare(`SELECT COUNT(*) as c FROM sqlite_master WHERE type='table' AND name='system_prompts'`).get() as { c: number }).c > 0
-  if (!hasSystemPrompts) db.exec(`
+  if (!hasTable(db, 'system_prompts')) db.exec(`
     CREATE TABLE system_prompts (
       id         TEXT PRIMARY KEY,
       prompt_key TEXT NOT NULL,
@@ -467,11 +523,6 @@ export function initSchema(db: DB): void {
     )
   `)
 
-  // Seed system_prompts from disk files if table is empty (local dev only)
-  // In production, content is seeded via NeonAdapter.initialize() or a one-time migration.
-  seedSystemPromptsFromDisk(db)
-
-  // Migrate resume_profiles: add kind, source, persona_md, updated_at columns
   if (!hasColumn(db, 'resume_profiles', 'kind'))
     db.exec(`ALTER TABLE resume_profiles ADD COLUMN kind TEXT NOT NULL DEFAULT 'custom'`)
   if (!hasColumn(db, 'resume_profiles', 'source'))
@@ -481,33 +532,9 @@ export function initSchema(db: DB): void {
   if (!hasColumn(db, 'resume_profiles', 'updated_at'))
     db.exec(`ALTER TABLE resume_profiles ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`)
 
-  // One-time cleanup: orphaned jd_outputs rows (user_id='default') whose job has been deleted.
-  // These block demo-user job deletion via FK. Safe to run every init — deletes nothing if already clean.
+  // One-time cleanup: orphaned jd_outputs rows whose job has been deleted.
+  // These can block demo-user job deletion via FK. Safe to run every time — deletes nothing if clean.
   db.exec(`DELETE FROM jd_outputs WHERE job_id NOT IN (SELECT id FROM jd_jobs)`)
-
-  // Record migration 001 as applied
-  db.prepare(`INSERT INTO schema_migrations (version) VALUES (?) ON CONFLICT DO NOTHING`).run(1)
-}
-
-/**
- * Run all pending numbered migrations against the given DB.
- * Migration 001 = initSchema (full baseline schema + all historical ALTER TABLE checks).
- * Add new numbered entries here for future schema changes.
- */
-export function runMigrations(db: DB): void {
-  initSchema(db) // ensures schema_migrations table + migration 001
-
-  const applied = new Set(
-    (db.prepare('SELECT version FROM schema_migrations').all() as { version: number }[]).map(r => r.version)
-  )
-
-  // 002: rename demo_cleartext_pwd → demo_encrypted_pwd (column name was misleading — value is AES-256-GCM encrypted)
-  if (!applied.has(2)) {
-    if (hasColumn(db, 'users', 'demo_cleartext_pwd')) {
-      db.exec(`ALTER TABLE users RENAME COLUMN demo_cleartext_pwd TO demo_encrypted_pwd`)
-    }
-    db.prepare(`INSERT INTO schema_migrations (version) VALUES (?)`).run(2)
-  }
 }
 
 // Seed system_prompts from disk files when the table is empty.

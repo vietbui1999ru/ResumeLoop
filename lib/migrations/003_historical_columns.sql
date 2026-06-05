@@ -1,0 +1,42 @@
+-- Migration 003: historical column and table additions for pre-existing databases
+-- Applied inline in runMigrations() in lib/db.ts using TypeScript + hasColumn guards.
+--
+-- SQLite versions before 3.37.0 do not support ALTER TABLE ADD COLUMN IF NOT EXISTS,
+-- so each addition is guarded by a pragma_table_info / sqlite_master check in TypeScript.
+-- The migration is idempotent: guards are conditional checks, not unconditional statements.
+--
+-- Columns and tables covered (in application order):
+--   jd_outputs.session_id          TEXT
+--   jd_jobs.file_mtime             TEXT
+--   jd_jobs.action                 TEXT
+--   jd_outputs.reasoning           TEXT
+--   jd_outputs.pdf_path            TEXT
+--   jd_outputs.cover_letter        TEXT
+--   user_settings                  TABLE (created if missing)
+--   ai_usage_log                   TABLE (created if missing)
+--   users                          TABLE (created if missing, minimal schema)
+--   jd_jobs.outreach_brief         TEXT
+--   jd_jobs.clipped_at             TEXT
+--   jd_jobs.hidden                 INTEGER NOT NULL DEFAULT 0
+--   jd_jobs.apply_url              TEXT
+--   jd_jobs.application_case       TEXT
+--   outreach_items                 TABLE (created if missing)
+--   resume_profiles                TABLE (created if missing)
+--   user_id on data tables         ensured via ensureUserIdColumn()
+--   jd_jobs_fts                    VIRTUAL TABLE (FTS5, created if missing + column guards)
+--   indexes                        idx_jobs_user_hidden_clipped, idx_jobs_user_fitpct, idx_outputs_job
+--   users.email_verified           INTEGER NOT NULL DEFAULT 0
+--   users.password_changed_at      DATETIME
+--   users.deleted_at               DATETIME
+--   users.ip_hash                  TEXT
+--   users.demo_encrypted_pwd       TEXT (only if neither pwd column exists)
+--   idx_users_ip_hash              INDEX
+--   oauth_accounts                 TABLE (created if missing)
+--   password_reset_tokens          TABLE (created if missing)
+--   email_verification_tokens      TABLE (created if missing)
+--   system_prompts                 TABLE (created if missing)
+--   resume_profiles.kind           TEXT NOT NULL DEFAULT 'custom'
+--   resume_profiles.source         TEXT NOT NULL DEFAULT 'upload'
+--   resume_profiles.persona_md     TEXT
+--   resume_profiles.updated_at     DATETIME DEFAULT CURRENT_TIMESTAMP
+--   jd_outputs orphan cleanup      DELETE orphaned rows not in jd_jobs
