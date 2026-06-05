@@ -1,10 +1,10 @@
 import { randomUUID } from 'crypto'
-import bcrypt from 'bcryptjs'
 import { getAdapter } from './db-adapter'
 import { encrypt, decrypt } from './crypto'
 import { parseJd } from './jd-parser'
 import { scoreJd } from './fit-scorer'
 import { DEMO_TTL_MS } from './config'
+import { hashPassword } from './password'
 
 // Generic redacted profile — no real personal data.
 // Schema matches pipeline/master_resume_data.json:
@@ -719,19 +719,24 @@ export async function seedDemoUser(userId: string): Promise<void> {
   // Lazy cleanup as a safety net — the cron route is the primary cleanup path
   await cleanupExpiredDemoUsers()
 
+  // Build all ops upfront so we can pass them to runInTransaction atomically.
+  // UUIDs and parsed values are computed here (outside the transaction) since
+  // they don't require DB reads — only the writes need to be atomic.
+  const ops: Array<{ sql: string; params?: unknown[] }> = []
+
   // Seed profile
   const profileId = randomUUID()
-  await db.run(
-    `INSERT INTO resume_profiles (id, user_id, name, data, is_active) VALUES (?, ?, ?, ?, 1)`,
-    [profileId, userId, 'Demo Profile — Alex Chen', DEMO_PROFILE_DATA],
-  )
+  ops.push({
+    sql: `INSERT INTO resume_profiles (id, user_id, name, data, is_active) VALUES (?, ?, ?, ?, 1)`,
+    params: [profileId, userId, 'Demo Profile — Alex Chen', DEMO_PROFILE_DATA],
+  })
 
   // Default resume session — needed so /api/chat works without generating a resume first
   const defaultSessionId = `default:${userId}`
-  await db.run(
-    `INSERT INTO resume_sessions (id, name, data, user_id) VALUES (?, ?, ?, ?) ON CONFLICT (id) DO NOTHING`,
-    [defaultSessionId, 'Default', DEMO_PROFILE_DATA, userId],
-  )
+  ops.push({
+    sql: `INSERT INTO resume_sessions (id, name, data, user_id) VALUES (?, ?, ?, ?) ON CONFLICT (id) DO NOTHING`,
+    params: [defaultSessionId, 'Default', DEMO_PROFILE_DATA, userId],
+  })
 
   const outputJobIds: Record<string, string> = {}
   for (const { filePath, content } of DEMO_JOB_MARKDOWNS) {
@@ -739,12 +744,12 @@ export async function seedDemoUser(userId: string): Promise<void> {
     const scored = scoreJd(parsed.raw_content)
     const jobId  = randomUUID()
 
-    await db.run(
-      `INSERT INTO jd_jobs
+    ops.push({
+      sql: `INSERT INTO jd_jobs
          (id, file_path, company, role_title, tags, visa_status, role_track, fit_pct,
           raw_content, action, clipped_at, apply_url, hidden, user_id, scanned_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, CURRENT_TIMESTAMP)`,
-      [
+      params: [
         jobId,
         parsed.file_path,
         parsed.company,
@@ -759,7 +764,7 @@ export async function seedDemoUser(userId: string): Promise<void> {
         parsed.apply_url,
         userId,
       ],
-    )
+    })
 
     if (['Wefunder', 'Coinbase', 'Crusoe Energy'].includes(parsed.company)) {
       outputJobIds[parsed.company] = jobId
@@ -770,12 +775,12 @@ export async function seedDemoUser(userId: string): Promise<void> {
 
   if (outputJobIds['Wefunder']) {
     const jobId = outputJobIds['Wefunder']
-    await db.run(
-      `INSERT INTO jd_outputs
+    ops.push({
+      sql: `INSERT INTO jd_outputs
          (id, job_id, session_id, docx_path, pdf_path, variant, tagline,
           projects_used, work_ids_used, reasoning, cover_letter, user_id, built_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-      [
+      params: [
         randomUUID(), jobId, defaultSessionId,
         's3:demo/AlexChen_Wefunder_Resume.docx',
         's3:demo/AlexChen_Wefunder_Resume.pdf',
@@ -787,20 +792,20 @@ export async function seedDemoUser(userId: string): Promise<void> {
         `Dear Wefunder Hiring Team,\n\nI'm excited to apply for the Full-Stack Engineer role at Wefunder. Your mission of democratizing startup investment aligns closely with my interest in building products that expand access to capital markets.\n\nIn my current role at Acme Startup, I built an LLM-powered analytics pipeline in Python and FastAPI that reduced reporting latency by 60% and served 200+ daily active investors. I also led a React dashboard migration that improved page load by 40%. These projects gave me direct experience with the data-intensive, product-first development culture I see in Wefunder's engineering blog.\n\nI'd love to bring this experience to Wefunder's platform team. Happy to discuss how my background fits your roadmap.\n\nBest,\nAlex Chen`,
         userId,
       ],
-    )
-    await db.run(
-      `UPDATE jd_jobs SET application_case = ? WHERE id = ? AND user_id = ?`,
-      [
+    })
+    ops.push({
+      sql: `UPDATE jd_jobs SET application_case = ? WHERE id = ? AND user_id = ?`,
+      params: [
         `## Company Overview\nWefunder is the leading equity crowdfunding platform, enabling retail investors to back early-stage startups. Raised $75M Series B in 2023. Engineering team of ~20, known for rapid product iteration.\n\n## Role Fit\n**Strengths**: FastAPI/React stack matches exactly. Prior LLM pipeline work maps to their data-science feature roadmap. Full-stack delivery cadence (2-week sprints) aligns with demonstrated velocity.\n**Watch-outs**: No prior fintech compliance experience — highlight audit-trail work in API Platform.\n\n## Outreach Angle\nReference their recent "Founder Stories" blog post series — shows genuine product empathy. Mention the API Platform case study as a concrete signal of product-first thinking.`,
         jobId, userId,
       ],
-    )
-    await db.run(
-      `INSERT INTO outreach_items
+    })
+    ops.push({
+      sql: `INSERT INTO outreach_items
          (id, job_id, user_id, kind, raw_markdown, role, notes,
           linkedin_draft, email_draft, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
+      params: [
         randomUUID(), jobId, userId, 'person',
         `# Priya Sharma\n**Title**: Engineering Manager, Platform\n**Company**: Wefunder\n**LinkedIn**: linkedin.com/in/priyasharma-wefunder\n**Email**: priya@wefunder.com\n\nLeads the platform team. Previously at Stripe (Payments Infra). Posts regularly about API design and data quality.`,
         'Engineering Manager',
@@ -809,17 +814,17 @@ export async function seedDemoUser(userId: string): Promise<void> {
         `Subject: Full-Stack Engineer Application — Alex Chen\n\nHi Priya,\n\nI'm applying for the Full-Stack Engineer role at Wefunder. Your recent a16z talk on payment API design resonated with a challenge I solved at Acme Startup — rebuilding our webhook retry system to be fully idempotent.\n\nI've attached my resume and would love to chat about how my FastAPI + React background maps to your platform roadmap.\n\nBest,\nAlex Chen | alex.chen@example.com`,
         'not_contacted',
       ],
-    )
+    })
   }
 
   if (outputJobIds['Coinbase']) {
     const jobId = outputJobIds['Coinbase']
-    await db.run(
-      `INSERT INTO outreach_items
+    ops.push({
+      sql: `INSERT INTO outreach_items
          (id, job_id, user_id, kind, raw_markdown, role, notes,
           linkedin_draft, email_draft, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
+      params: [
         randomUUID(), jobId, userId, 'person',
         `# Marcus Webb\n**Title**: Staff Engineer, Exchange Infrastructure\n**Company**: Coinbase\n**LinkedIn**: linkedin.com/in/marcuswebb\n**Email**: marcus@coinbase.com\n\nLeads the exchange matching engine team. Previously at Jane Street (HFT infra). Posts about distributed systems reliability and Go concurrency patterns.`,
         'Staff Engineer',
@@ -828,13 +833,13 @@ export async function seedDemoUser(userId: string): Promise<void> {
         `Subject: Backend Engineer Application — Alex Chen\n\nHi Marcus,\n\nI'm applying for the Backend Engineer role on your Exchange Infrastructure team. Your recent post on goroutine leak detection resonated — I dealt with similar concurrency debugging building the API Platform's Go event bus handling 10k events/sec.\n\nI'd love to discuss how my distributed systems background maps to the matching engine challenges at Coinbase's scale.\n\nBest,\nAlex Chen | alex.chen@example.com`,
         'not_contacted',
       ],
-    )
-    await db.run(
-      `INSERT INTO jd_outputs
+    })
+    ops.push({
+      sql: `INSERT INTO jd_outputs
          (id, job_id, session_id, docx_path, pdf_path, variant, tagline,
           projects_used, work_ids_used, reasoning, cover_letter, user_id, built_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-      [
+      params: [
         randomUUID(), jobId, defaultSessionId,
         's3:demo/AlexChen_Coinbase_Resume.docx',
         's3:demo/AlexChen_Coinbase_Resume.pdf',
@@ -846,24 +851,24 @@ export async function seedDemoUser(userId: string): Promise<void> {
         `Dear Coinbase Engineering Team,\n\nI'm writing to express my interest in the Backend Engineer role on the Exchange Infrastructure team. Coinbase's commitment to building financial infrastructure for the open economy aligns with my background in high-reliability distributed systems.\n\nMy most relevant project is the API Platform — a Go event bus handling 10k events/sec with <5ms p99 latency using goroutines and channels. I also operate a 3-node Proxmox homelab running Kubernetes, Prometheus, and Grafana, which gave me practical experience with the observability patterns your SRE team uses at scale.\n\nI'd welcome the opportunity to discuss how my systems background fits Coinbase's infrastructure roadmap.\n\nBest regards,\nAlex Chen`,
         userId,
       ],
-    )
-    await db.run(
-      `UPDATE jd_jobs SET application_case = ? WHERE id = ? AND user_id = ?`,
-      [
+    })
+    ops.push({
+      sql: `UPDATE jd_jobs SET application_case = ? WHERE id = ? AND user_id = ?`,
+      params: [
         `## Company Overview\nCoinbase is the leading US crypto exchange (~$200B+ annual volume). Engineering org of ~1,000. Backend team owns the exchange matching engine, custody APIs, and financial reporting pipeline.\n\n## Role Fit\n**Strengths**: Go experience in Startup role (10k events/sec event bus); financial data integrity demonstrated in API Platform. Homelab infra maps to their k8s-heavy backend.\n**Watch-outs**: No prior crypto/blockchain domain experience — frame as "financial systems" angle instead.\n\n## Outreach Angle\nCoinbase engineers blog heavily on reliability and incident culture. Reference a specific post — shows genuine engineering curiosity beyond the crypto hype.`,
         jobId, userId,
       ],
-    )
+    })
   }
 
   if (outputJobIds['Crusoe Energy']) {
     const jobId = outputJobIds['Crusoe Energy']
-    await db.run(
-      `INSERT INTO outreach_items
+    ops.push({
+      sql: `INSERT INTO outreach_items
          (id, job_id, user_id, kind, raw_markdown, role, notes,
           linkedin_draft, email_draft, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
+      params: [
         randomUUID(), jobId, userId, 'person',
         `# Anya Petrova\n**Title**: ML Platform Lead\n**Company**: Crusoe Energy\n**LinkedIn**: linkedin.com/in/anyapetrova-crusoe\n**Email**: anya@crusoe.ai\n\nOwns the GPU cluster orchestration and MLOps tooling. Previously at Lambda Labs. Speaks at ML infrastructure conferences.`,
         'ML Platform Lead',
@@ -872,13 +877,13 @@ export async function seedDemoUser(userId: string): Promise<void> {
         `Subject: ML Engineer Application — Alex Chen\n\nHi Anya,\n\nI'm applying for the ML Engineer role at Crusoe. Your work on sustainable GPU infrastructure genuinely excites me — I built a Core ML rep-counting model for my iOS Fitness Tracker that runs fully on-device, which gave me hands-on experience with the memory bandwidth constraints of real-time inference.\n\nI'd love to discuss how that experience maps to Crusoe's cluster orchestration challenges.\n\nBest,\nAlex Chen | alex.chen@example.com`,
         'not_contacted',
       ],
-    )
-    await db.run(
-      `INSERT INTO jd_outputs
+    })
+    ops.push({
+      sql: `INSERT INTO jd_outputs
          (id, job_id, session_id, docx_path, pdf_path, variant, tagline,
           projects_used, work_ids_used, reasoning, cover_letter, user_id, built_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-      [
+      params: [
         randomUUID(), jobId, defaultSessionId,
         's3:demo/AlexChen_Crusoe_Resume.docx',
         's3:demo/AlexChen_Crusoe_Resume.pdf',
@@ -890,15 +895,17 @@ export async function seedDemoUser(userId: string): Promise<void> {
         `Dear Crusoe Energy Team,\n\nI'm applying for the ML Engineer role at Crusoe. Your mission of repurposing stranded energy for sustainable compute resonates deeply — I've followed your work on flare gas utilization since your Series B announcement.\n\nMy most relevant project is the iOS Fitness Tracker: I trained a Core ML model for rep counting from accelerometer data, which required me to reason about memory bandwidth and on-device inference tradeoffs directly. The University research role adds PyTorch DQN training and CUDA kernel work on NVIDIA hardware.\n\nI'd love to discuss how my ML background aligns with Crusoe's compute platform roadmap.\n\nBest,\nAlex Chen`,
         userId,
       ],
-    )
-    await db.run(
-      `UPDATE jd_jobs SET application_case = ? WHERE id = ? AND user_id = ?`,
-      [
+    })
+    ops.push({
+      sql: `UPDATE jd_jobs SET application_case = ? WHERE id = ? AND user_id = ?`,
+      params: [
         `## Company Overview\nCrusoe Energy repurposes otherwise-wasted energy (flare gas, excess renewable) to power GPU compute clusters for AI training. Series C ($500M), 200+ employees. Engineering team owns the cluster orchestration, GPU scheduling, and customer-facing MLOps tooling.\n\n## Role Fit\n**Strengths**: PyTorch + Core ML hands-on experience; Homelab Infra Dashboard k8s background maps to cluster ops; on-device inference experience is differentiating.\n**Watch-outs**: No prior cloud provider experience at scale — emphasize adaptability and infra-from-scratch mindset.\n\n## Outreach Angle\nCrusoe's CTO posts on sustainable AI infrastructure. Reference the flare gas → compute whitepaper — shows you understand the business thesis, not just the tech stack.`,
         jobId, userId,
       ],
-    )
+    })
   }
+
+  await db.runInTransaction(ops)
 }
 
 
@@ -909,7 +916,7 @@ async function createFreshDemoForIp(
   const id            = randomUUID()
   const email         = `demo_${id}@demo.local`
   const password      = randomUUID()
-  const hash          = await bcrypt.hash(password, 10)
+  const hash          = await hashPassword(password)
   const encryptedPwd  = await encrypt(password)
   await db.run(
     `INSERT INTO users (id, email, password, is_demo, email_verified, ip_hash, demo_encrypted_pwd)
