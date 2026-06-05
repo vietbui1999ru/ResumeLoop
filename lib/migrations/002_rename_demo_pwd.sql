@@ -1,0 +1,5 @@
+-- Migration 002: rename demo_cleartext_pwd -> demo_encrypted_pwd
+-- Applied inline in runMigrations() in lib/db.ts
+-- The column name was misleading; the value is AES-256-GCM encrypted, not cleartext.
+-- SQLite does not support ALTER TABLE RENAME COLUMN until 3.25.0; handled in TypeScript
+-- with a hasColumn guard so it is idempotent on both old and new databases.

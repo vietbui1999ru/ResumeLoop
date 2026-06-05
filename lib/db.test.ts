@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import Database from 'better-sqlite3'
-import { initSchema } from './db'
+import { initSchema, runMigrations } from './db'
 
 describe('db schema', () => {
   it('creates jd_jobs with required columns', () => {
@@ -36,7 +36,7 @@ describe('action column migration', () => {
       'role_title TEXT, tags TEXT, visa_status TEXT, role_track TEXT, ' +
       'fit_pct INTEGER, raw_content TEXT, scanned_at DATETIME)'
     db.exec(legacyDdl)
-    initSchema(db)
+    runMigrations(db)
     const cols = db.prepare('PRAGMA table_info(jd_jobs)').all() as Array<{ name: string }>
     expect(cols.map(c => c.name)).toContain('action')
     db.close()
@@ -63,7 +63,7 @@ describe('reasoning column migration', () => {
     )
     const colsBefore = db.prepare('PRAGMA table_info(jd_outputs)').all() as Array<{ name: string }>
     expect(colsBefore.map(c => c.name)).not.toContain('reasoning')
-    initSchema(db)
+    runMigrations(db)
     const colsAfter = db.prepare('PRAGMA table_info(jd_outputs)').all() as Array<{ name: string }>
     expect(colsAfter.map(c => c.name)).toContain('reasoning')
     db.close()
@@ -81,7 +81,7 @@ describe('pdf_path column migration', () => {
     )
     const colsBefore = db.prepare('PRAGMA table_info(jd_outputs)').all() as Array<{ name: string }>
     expect(colsBefore.map(c => c.name)).not.toContain('pdf_path')
-    initSchema(db)
+    runMigrations(db)
     const colsAfter = db.prepare('PRAGMA table_info(jd_outputs)').all() as Array<{ name: string }>
     expect(colsAfter.map(c => c.name)).toContain('pdf_path')
     db.close()
@@ -131,7 +131,7 @@ describe('users table deleted_at column', () => {
     const before = db.prepare('PRAGMA table_info(users)').all() as Array<{ name: string }>
     expect(before.map(c => c.name)).not.toContain('deleted_at')
 
-    initSchema(db)
+    runMigrations(db)
 
     const after = db.prepare('PRAGMA table_info(users)').all() as Array<{ name: string }>
     expect(after.map(c => c.name)).toContain('deleted_at')

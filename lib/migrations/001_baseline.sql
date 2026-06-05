@@ -1,0 +1,4 @@
+-- Migration 001: baseline schema handled by initSchema() in lib/db.ts
+-- This file documents that version 1 was applied via the TypeScript initSchema function.
+-- initSchema() creates all tables with CREATE TABLE IF NOT EXISTS, seeds the demo user,
+-- seeds system_prompts from disk, and records version 1 in schema_migrations.
