@@ -85,3 +85,6 @@ logs/
 .claude/tasks.json
 .claude/ralph-log.md
 .claude/ralph-protocol.md
+
+# ResumeLoop workspace index (rebuildable)
+.cache/

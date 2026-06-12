@@ -3,6 +3,8 @@ import { runPipeline, SSEEvent } from './generate-pipeline'
 
 vi.mock('./db-adapter', () => ({ getAdapter: vi.fn() }))
 vi.mock('./ai-reason', () => ({ reasonForJob: vi.fn() }))
+// Stub the PDF render so unit tests never launch a real headless browser.
+vi.mock('./providers/spine', () => ({ renderResumePdf: vi.fn(async () => Buffer.from('%PDF- test')) }))
 vi.mock('./settings', () => ({ getSetting: vi.fn().mockResolvedValue('/tmp/test-output') }))
 vi.mock('./sessions', () => ({
   ensureDefaultSession: vi.fn(),
