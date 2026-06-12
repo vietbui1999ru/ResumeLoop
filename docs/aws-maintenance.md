@@ -7,6 +7,8 @@ updated: 2026-05-11
 
 # AWS Maintenance Runbook
 
+> **⚠️ DEPRECATED — cloud-era doc.** Describes the frozen cloud build (AWS App Runner / ECS + Neon + NextAuth + server-side API keys), preserved on `legacy/cloud-v1` (tag `v1.0-cloud-final`). It does **not** apply to local-first ResumeLoop, which has no AWS footprint — it runs on `127.0.0.1`. See [`DEPRECATED.md`](../DEPRECATED.md) and [ADR 0001](adr/0001-pivot-to-local-first.md).
+
 Operational reference for the production deployment on AWS App Runner. See [docs/deploy.md](./deploy.md) for initial setup.
 
 ---
