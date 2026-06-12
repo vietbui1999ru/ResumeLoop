@@ -1,5 +1,12 @@
-import { spawn } from 'node:child_process'
-import type { CliRunner, RunOptions } from './types'
+import type { CliRunner } from './types'
+import type { SpawnSpec } from './registry'
+import { spawnRunner } from './spawn'
+
+const CLAUDE_SPEC: SpawnSpec = {
+  id: 'claude', label: 'Claude Code', transport: 'spawn',
+  bin: 'claude', args: ['-p', '--output-format', 'json'],
+  promptVia: 'stdin', envelope: 'claude', nativeJson: true,
+}
 
 /**
  * Pull the assistant's answer text out of `claude -p --output-format json`.
@@ -27,35 +34,9 @@ export function parseClaudeEnvelope(stdout: string): string {
 
 /**
  * A CliRunner that drives the user's `claude` CLI in headless print mode.
- * Prompt is written to stdin (no arg-length limits); the JSON envelope's
- * `.result` is returned for the adapter to extract structured output from.
+ * Delegates to the generic spawnRunner with the claude envelope parser.
  */
 export function claudeRunner(config: { bin?: string } = {}): CliRunner {
-  const bin = config.bin ?? 'claude'
-  return (prompt: string, opts: RunOptions = {}) =>
-    new Promise<string>((resolve, reject) => {
-      const child = spawn(bin, ['-p', '--output-format', 'json'], {
-        stdio: ['pipe', 'pipe', 'pipe'],
-      })
-
-      let stdout = ''
-      let stderr = ''
-      child.stdout.on('data', d => (stdout += d))
-      child.stderr.on('data', d => (stderr += d))
-      child.on('error', reject)
-      child.on('close', code => {
-        if (code !== 0) {
-          return reject(new Error(`claude exited ${code}: ${stderr.slice(0, 300) || '(no stderr)'}`))
-        }
-        resolve(parseClaudeEnvelope(stdout))
-      })
-
-      if (opts.signal) {
-        opts.signal.addEventListener('abort', () => child.kill(), { once: true })
-      }
-
-      const body = opts.system ? `${opts.system}\n\n${prompt}` : prompt
-      child.stdin.write(body)
-      child.stdin.end()
-    })
+  const spec = config.bin ? { ...CLAUDE_SPEC, bin: config.bin } : CLAUDE_SPEC
+  return spawnRunner(spec, parseClaudeEnvelope)
 }
