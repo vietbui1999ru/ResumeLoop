@@ -1,0 +1,47 @@
+# Provider registry — the brains ResumeLoop can drive (ADR 0001 §1).
+# Each entry is a transport spec. `spawn` shells to a local CLI; `http` POSTs to
+# an OpenAI-compatible endpoint. No API keys: the user's own CLI/subscription is
+# the brain. Edit this file to add or retune a provider.
+#
+# Invocations were verified live (2026-06) — flags here are load-bearing
+# (e.g. gemini refuses headless runs without --skip-trust).
+
+providers:
+  - id: claude
+    label: Claude Code
+    transport: spawn
+    bin: claude
+    args: [-p, --output-format, json]
+    promptVia: stdin
+    envelope: claude        # unwrap the JSON session envelope's .result
+    nativeJson: true        # native structured-output fast path
+
+  - id: codex
+    label: Codex CLI
+    transport: spawn
+    bin: codex
+    args: [exec, "-"]       # trailing "-" makes codex read the prompt from stdin
+    promptVia: stdin
+    envelope: raw
+
+  - id: gemini
+    label: Gemini CLI
+    transport: spawn
+    bin: gemini
+    args: [--skip-trust, -o, text, -p]   # --skip-trust required for headless dirs
+    promptVia: arg                        # prompt is appended as the -p value
+    envelope: raw
+
+  - id: opencode
+    label: opencode
+    transport: spawn
+    bin: opencode
+    args: [run]
+    promptVia: arg
+    envelope: raw
+
+  - id: ollama
+    label: Ollama (local model)
+    transport: http
+    baseUrl: http://localhost:11434/v1
+    model: qwen2.5:7b
