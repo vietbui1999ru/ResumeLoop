@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
-import { decideForJob, renderDocxBuffer, SpineDecisionSchema, type SpineDecision } from './spine'
+import { decideForJob, renderDocxBuffer, renderResumePdf, assembleResumeData, SpineDecisionSchema, type SpineDecision } from './spine'
 import { claudeRunner } from './claude'
 
 const masterDataJson = fs.readFileSync(
@@ -36,6 +36,17 @@ describe('decideForJob', () => {
   })
 })
 
+describe('assembleResumeData', () => {
+  it('maps a decision into the shared ResumeData shape with trimmed bullets', () => {
+    const data = assembleResumeData(fixtureDecision, masterDataJson)
+    expect(data.work.length).toBe(3)
+    expect(data.projects.length).toBe(3)
+    expect(data.skills.length).toBe(2)
+    expect(data.tagline).toBe(fixtureDecision.tagline)
+    for (const w of data.work) for (const b of w.bullets) expect(b.length).toBeLessThanOrEqual(116)
+  })
+})
+
 describe('renderDocxBuffer', () => {
   it('renders a non-empty ATS .docx Buffer from a decision (no LibreOffice)', async () => {
     const buf = await renderDocxBuffer(fixtureDecision, masterDataJson)
@@ -57,12 +68,18 @@ describe.runIf(runE2E)('spine end-to-end (live claude)', () => {
     expect(decision.fitPct).toBeLessThanOrEqual(100)
     expect(decision.workIds.length).toBeGreaterThanOrEqual(1)
 
-    const buf = await renderDocxBuffer(decision, masterDataJson)
     const outDir = path.join(process.cwd(), 'test-results')
     fs.mkdirSync(outDir, { recursive: true })
-    const outPath = path.join(outDir, 'spine-demo.docx')
-    fs.writeFileSync(outPath, buf)
-    expect(fs.statSync(outPath).size).toBeGreaterThan(1000)
-    console.info(`[spine] fit=${decision.fitPct}% track="${decision.track}" -> ${outPath} (${(buf.length / 1024).toFixed(1)}KB)`)
-  }, 120_000)
+
+    const docx = await renderDocxBuffer(decision, masterDataJson)
+    fs.writeFileSync(path.join(outDir, 'spine-demo.docx'), docx)
+    expect(docx.subarray(0, 2).toString('latin1')).toBe('PK')
+
+    // Both outputs from one decision (ADR §5): pretty PDF via Playwright, no LibreOffice.
+    const pdf = await renderResumePdf(decision, masterDataJson)
+    fs.writeFileSync(path.join(outDir, 'spine-demo.pdf'), pdf)
+    expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-')
+
+    console.info(`[spine] fit=${decision.fitPct}% track="${decision.track}" -> .docx (${(docx.length / 1024).toFixed(1)}KB) + .pdf (${(pdf.length / 1024).toFixed(1)}KB)`)
+  }, 180_000)
 })
