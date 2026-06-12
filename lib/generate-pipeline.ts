@@ -4,6 +4,7 @@ import { spawn } from 'child_process'
 import { createRequire } from 'node:module'
 import { randomUUID } from 'crypto'
 import { reasonForJob, type ReasoningResult } from './ai-reason'
+import { renderResumePdf } from './providers/spine'
 import { getAdapter } from './db-adapter'
 import { getSetting } from './settings'
 import { PATHS } from './paths'
@@ -154,24 +155,21 @@ export async function* runPipeline(jobId: string, sessionId = 'default', userId 
 
   if (!docxPath) { yield emit(errEvent('finalize', 'DOCX path not set after pipeline')); logger.finish('failed'); return }
 
-  // Stage: PDF generation (non-fatal)
+  // Stage: PDF generation (non-fatal) — render the pretty PDF from the same data
+  // via Playwright HTML→PDF (ADR 0001 §5). No LibreOffice, no DOCX→PDF conversion.
   yield emit({ stage: 'pdf', status: 'running', data: {} })
   let pdfPath: string | null = null
   const base = docxName.endsWith('.docx') ? docxName.slice(0, -5) : docxName
   const pdfName = `${base}.pdf`
   const pdfExpected = path.join(jobBuildDir, pdfName)
-  const toPdfScript = path.join(process.cwd(), 'harness', 'to-pdf.js')
   try {
-    const pdfResult = await spawnAsync('node', [toPdfScript, docxPath, pdfExpected], process.cwd(), signal)
-    if (pdfResult.code === 0) {
-      pdfPath = pdfExpected
-      yield emit({ stage: 'pdf', status: 'ok', data: { pdf: pdfPath } })
-    } else {
-      logger.stage({ stage: 'pdf', status: 'fail', data: { message: pdfResult.stderr } })
-      yield emit({ stage: 'pdf', status: 'fail', data: { message: 'PDF generation failed (non-fatal)' } })
-    }
+    const pdfBuf = await renderResumePdf(decision, masterDataJson)
+    fs.writeFileSync(pdfExpected, pdfBuf)
+    pdfPath = pdfExpected
+    yield emit({ stage: 'pdf', status: 'ok', data: { pdf: pdfPath } })
   } catch (e) {
-    yield emit({ stage: 'pdf', status: 'fail', data: { message: String(e) } })
+    logger.stage({ stage: 'pdf', status: 'fail', data: { message: String(e) } })
+    yield emit({ stage: 'pdf', status: 'fail', data: { message: 'PDF generation failed (non-fatal)' } })
   }
 
 

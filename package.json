@@ -43,6 +43,7 @@
     "next-auth": "^5.0.0-beta.31",
     "openai": "^6.37.0",
     "p-limit": "^7.3.0",
+    "playwright": "^1.60.0",
     "react": "^18",
     "react-dom": "^18",
     "react-markdown": "^10.1.0",
