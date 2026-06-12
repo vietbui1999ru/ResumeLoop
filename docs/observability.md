@@ -7,6 +7,8 @@ updated: 2026-05-21
 
 # Observability Stack
 
+> **⚠️ DEPRECATED — cloud-era doc.** The Prometheus/Grafana/Tempo/OTEL stack instrumented the frozen cloud build (preserved on `legacy/cloud-v1`, tag `v1.0-cloud-final`). Per-user local installs ship **no telemetry stack** — the app runs on `127.0.0.1`. The hosted demo may use a subset at the edge; privacy-friendly web analytics (Plausible/Umami) replace per-request tracing. See [`DEPRECATED.md`](../DEPRECATED.md) and [ADR 0001](adr/0001-pivot-to-local-first.md).
+
 ResumeLoop's observability layer consists of four components running on a homelab Docker Compose stack, plus OTEL instrumentation in the Next.js app itself.
 
 ```

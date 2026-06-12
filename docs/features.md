@@ -1,6 +1,6 @@
 ---
 title: "Feature Guide"
-description: "User-facing guide to every feature in ResumeLoop — onboarding, dashboard, jobs list, resume generation, chat, settings, and auth."
+description: "User-facing guide to every feature in ResumeLoop — onboarding, dashboard, jobs list, resume generation, chat, outreach, and settings."
 tags: [guide, features, overview]
 updated: 2026-05-21
 ---
@@ -39,23 +39,19 @@ Once at least one source shows **Done**, click **Merge sources**. The AI combine
 
 ### Accepting
 
-After reviewing the merged profile and resolving any conflicts, click **Accept profile**. This creates a `resume_profile` record in the database and unlocks the rest of the app.
+After reviewing the merged profile and resolving any conflicts, click **Accept profile**. This writes your profile to `data/profile.json` (the runtime source of truth) and unlocks the rest of the app.
 
 > For detailed API and schema documentation, see [`docs/ingest.md`](ingest.md).
 
 ---
 
-## Authentication
+## Access (no sign-in)
 
-### Sign up
+ResumeLoop is **local-first and single-user**. The app binds to `127.0.0.1`; your OS account is the trust boundary. There is no sign-up, no login, and no API key to store — you open the app and you are in.
 
-Navigate to `/auth/signup`. Enter an email address and a password of at least 8 characters. After a successful registration the app automatically signs you in and redirects to the Dashboard.
+The brain is **your own AI CLI** (`claude` / `codex` / `gemini` / `opencode`) or a local OpenAI-compatible endpoint, configured once in Settings (see [Settings → AI Provider](#ai-provider)).
 
-### Sign in
-
-Navigate to `/auth/signin`. Enter your email and password. On success you are redirected to the Dashboard.
-
-**Demo account** — for quick exploration, use `demo@demo.com` / `demo`.
+> The hosted demo at [resumeloop.me](https://resumeloop.me) runs anonymous, ephemeral sessions backed by a small self-hosted model — also no account.
 
 ---
 
@@ -283,13 +279,13 @@ Each job passes through these stages in order:
 | Stage | What happens |
 |---|---|
 | `preflight` | Creates the build directory, copies `master_resume_data.json` and `buildv2.js` into it, installs `docx` if needed. |
-| `ai-reason` | Calls the active AI provider with the JD and your profile. The AI selects: role track, work variant (`genai` / `systems` / `IT-track`), three work experience IDs, three project IDs, a tagline (≤ 76 chars), five skills rows, and a reasoning narrative. |
+| `ai-reason` | Runs your configured AI CLI through the provider adapter (`lib/providers/`) with the JD and your profile. The AI returns a validated `SpineDecision`: role track, work variant (`genai` / `systems` / `fullstack` / `sre` / `IT-track`), three work experience IDs, three project IDs, a tagline (≤ 76 chars), five skills rows, and a reasoning narrative. |
 | `write-script` | Writes a Node.js build script that passes the AI's selections to `buildv2.js`. |
 | `build` | Runs the build script with `node`. Produces a DOCX file. |
 | `validate` | Runs `validate.js` to check hard limits (tagline ≤ 76 chars, bullets ≤ 116 chars). |
 | `fix-loop` | If validation fails, applies automatic fixes and retries. Tagline overruns are trimmed at a word boundary. Bullet overruns are not auto-fixed and will fail the pipeline. Up to 3 attempts total. |
-| `pdf` | Converts the DOCX to PDF. Non-fatal: generation continues even if PDF conversion fails. |
-| `finalize` | Moves DOCX and PDF to the output folder (or uploads to S3 in cloud mode), writes the output record to the database, updates the JD frontmatter tag from `un-resume` to `resume-ed`. |
+| `pdf` | Renders a polished PDF via the Playwright HTML→PDF template (headless Chromium, no LibreOffice). Non-fatal: generation continues even if PDF rendering fails. |
+| `finalize` | Writes the DOCX and PDF to `data/resumes/`, records the output in the local index, and updates the JD frontmatter tag from `un-resume` to `resume-ed`. |
 
 ### Stage indicators
 
@@ -316,7 +312,7 @@ After each job completes, a 1–3 rating widget appears in the Generation Panel.
 
 ## Resume Profiles
 
-Resume Profiles let you maintain multiple named variants of your resume data (`master_resume_data.json`). Each profile is stored in the database as a separate snapshot, and you can activate one to use it for all future generations.
+Resume Profiles let you maintain multiple named variants of your resume data (the `profile.json` shape). Each profile is a separate named snapshot in your workspace, and you can activate one to use it for all future generations.
 
 ### Accessing profiles
 
@@ -437,29 +433,19 @@ The status panel at the bottom of the page shows whether each folder path curren
 
 ### AI Provider
 
-Configure which LLM provider and model the pipeline uses for reasoning and cover letter generation. See [AI Providers](./ai-providers.md) for per-provider setup details.
+Choose which AI **CLI** (or local endpoint) acts as the generation brain. There are **no API keys** — ResumeLoop shells out to a tool you already have, through the provider adapter (`lib/providers/`).
 
-**Note:** The Chat feature uses a separate hardcoded model configuration independent of this setting.
+**Pick a provider:**
 
-**Configured providers** are listed with their key hint, model name, and active badge. Each has **Set active** and **Remove** buttons.
+1. Onboarding detects installed CLIs (`which claude codex gemini opencode`). Pick one from the list.
+2. For a local model, choose the `http` transport and point it at an OpenAI-compatible endpoint (e.g. Ollama's Base URL).
+3. Click **Test & Save** — the app runs a small validation call (Claude via `--output-format json`; others via the fenced-JSON + retry contract) to confirm the provider responds before saving.
 
-**Add / update a provider:**
-
-1. Select a provider from the dropdown.
-2. Enter or confirm the model name. The field pre-fills with the default model for that provider.
-3. Enter the API key (or Base URL for Ollama).
-4. Optionally check **Set as active provider**.
-5. Click **Test & Save**. The app makes a live one-token request to verify the key before saving.
-
-The button is disabled until an API key is entered (Ollama does not require one).
+Claude Code gets a native JSON fast-path; every other provider is first-class via the universal fenced-JSON adapter. No provider stores a secret on disk.
 
 ### Firecrawl API Key
 
 An optional API key for [Firecrawl](https://firecrawl.dev) — a web scraping service that handles JavaScript-rendered pages. Used by the URL ingestion source in onboarding.
 
 Enter a key starting with `fc-` and click **Save**. Without a key, URL ingestion uses a plain `fetch` + HTML-stripping fallback that works for most static sites. See [`docs/ingest.md`](ingest.md) for details.
-
-### Sign out
-
-Click **Sign out** at the bottom of the Settings page to end your session and return to the sign-in page.
 
