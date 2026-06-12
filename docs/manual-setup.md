@@ -7,6 +7,8 @@ updated: 2026-05-12
 
 # Manual Setup Checklist
 
+> **⚠️ DEPRECATED — cloud-era doc.** Lists the platform credentials, keys, and secrets the frozen cloud build needed (preserved on `legacy/cloud-v1`, tag `v1.0-cloud-final`). Local-first ResumeLoop needs **no credentials or secrets** — the brain is your own AI CLI and there is no cloud account. See onboarding in [README](../README.md), and [`DEPRECATED.md`](../DEPRECATED.md) / [ADR 0001](adr/0001-pivot-to-local-first.md).
+
 Everything that can't be scripted: platform logins, key generation, copy-paste secrets, and one-time toggles. Work top-to-bottom — each section depends on the previous.
 
 ---

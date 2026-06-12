@@ -1,123 +1,183 @@
 ---
 title: "Architecture"
 type: explanation
-description: "System design, data flow, key files, and design decisions behind ResumeLoop."
-tags: [architecture, data-flow, design]
-updated: 2026-05-21
+description: "System design, data flow, key files, and design decisions behind local-first ResumeLoop."
+tags: [architecture, data-flow, design, local-first]
+updated: 2026-06-12
 ---
 
 # Architecture
 
-ResumeLoop is a Next.js 14 App Router application. It operates in two modes determined by the `APP_MODE` environment variable:
+ResumeLoop is a **local-first, single-user** Next.js App Router application. It binds to `127.0.0.1`, stores data as plain files the user owns, and uses the user's own AI **CLI** as the generation brain. There are no accounts, no API keys, and no cloud backend.
 
-- **Local** (`APP_MODE` unset) — SQLite database (`resume.db`), local filesystem for file I/O
-- **Cloud** (`APP_MODE=cloud`) — Neon serverless Postgres, S3 for file storage
-
-Both modes share the same application code. The `DbAdapter` interface (`lib/db-adapter.ts`) abstracts the difference.
+> **Migration note.** This document describes the architecture of record ([ADR 0001](adr/0001-pivot-to-local-first.md)). The prior cloud build (AWS ECS + Neon + NextAuth) is frozen on `legacy/cloud-v1` / tag `v1.0-cloud-final`. Some modules still contain cloud-era code being removed; where a file disagrees with this doc, the doc is the target. The provider **spine** (`lib/providers/`) is the landed tracer bullet proving the model end-to-end.
 
 ---
 
-## Data Flow
+## The three seams
 
-### Onboarding ingestion path
+Everything in ResumeLoop hangs off three seams. Understand these and the rest follows.
 
-```
-User input (paste / GitHub / URL)
-        │
-        │  POST /api/ingest/{paste|github|url}
-        ▼
-  lib/ingest/extract-{paste,github,url}.ts
-        │  AI tool-use (generateText + toolChoice: 'required')
-        │  → SparseProfile (partial — only fields found in input)
-        ▼
-  ingestion_sources table (status: done | failed)
-        │
-        │  POST /api/ingest/merge
-        ▼
-  lib/ingest/merge.ts
-        │  AI merges all 'done' partials: most-specific-wins + additive arrays
-        │  → MergeResult { profile: SparseProfile, conflicts: ConflictEntry[] }
-        ▼
-  User accepts → resume_profiles table
-```
+1. **Brain** — `lib/providers/`: the only place the system talks to an AI. A provider adapter shells out to the user's CLI (or an `http` endpoint) and enforces a structured-output contract.
+2. **State** — the user's `data/` workspace is canonical; `.cache/index.db` is a rebuildable SQLite index over it.
+3. **Engine** — `pipeline/buildv2.js` + a Playwright PDF template turn an AI decision into an ATS `.docx` and a polished `.pdf`, under strict validation.
 
-### Scan path (write)
+---
+
+## Brain: the provider adapter
+
+ResumeLoop never imports a model SDK in application code. Instead, `lib/providers/` exposes one seam:
 
 ```
-Obsidian vault (.md files)
+ProviderAdapter.runStructured(schema, prompt, opts)
         │
+        │  build prompt: instruction + shapeHint + "return one ```json block"
+        ▼
+   CliRunner(prompt)            ← transport: spawn CLI or POST http
+        │  claude -p --output-format json | codex exec | gemini -p | opencode run | http
+        ▼
+   raw stdout
+        │  extractLastJsonBlock()       ← lib/providers/extract-json.ts
+        ▼
+   JSON.parse → schema.parse (Zod)
+        │  on failure: retry ONCE, appending the validation error to the prompt
+        ▼
+   validated T
+```
+
+- **`types.ts`** — `CliRunner` (a `(prompt, opts) => Promise<string>` transport) and `ProviderAdapter` (the `runStructured<T>` contract). The runner is injected, so the adapter is unit-testable with a fake.
+- **`adapter.ts`** — the universal adapter: fenced-JSON instruction, last-block extraction, Zod validation, one retry.
+- **`claude.ts`** — the Claude Code runner. Runs `claude` in headless print mode and unwraps the JSON envelope's `.result` as a native fast-path; falls back to the universal fenced-JSON path otherwise.
+- **`extract-json.ts`** — pulls the last ` ```json ` fenced block out of CLI stdout (CLIs often print prose around the JSON).
+- **`spine.ts`** — the domain entry points: `decideForJob(jdText, masterData, runner)` returns a Zod-validated `SpineDecision`; `renderDocxBuffer(decision, masterData)` renders it to a `.docx` buffer.
+
+The hosted demo and a local ollama both ride the same adapter via the `http` transport — there is exactly one brain seam to test and reason about.
+
+### SpineDecision
+
+The brain returns a single structured object per JD (`SpineDecisionSchema` in `spine.ts`):
+
+```ts
+{
+  fitPct:      number,        // 0–100
+  fitNote:     string,        // one sentence
+  track:       string,        // role-track label
+  workVariant: 'genai' | 'systems' | 'fullstack' | 'sre' | 'IT-track',
+  workIds:     string[],      // 3 work entry ids
+  projects:    string[],      // 3 project ids
+  tagline:     string,        // ≤76 chars
+  skillsRows:  string[],      // "Label: a · b · c", 3–5 rows
+}
+```
+
+---
+
+## State: files canonical, DB is a cache
+
+```
+data/                     ← the user's workspace (git-trackable, authoritative)
+  profile.json              resume content: experience[], projects[], skills{}, contact
+  jobs/*.md                 JD body + frontmatter (Action 0–6, visa, apply_url, clipped_at, tags)
+  evaluations/*.md          fit %, score, outreach brief
+  resumes/                  generated .docx / .pdf
+
+.cache/
+  index.db                  SQLite index over data/ — for fast filtering & funnel metrics
+```
+
+The database is a **cache**, not the source of truth:
+
+- **Files are authoritative** for all content: profile, job text, tags, visa language, pipeline stage.
+- **The index is the query layer**: fast filtering, aggregation, and funnel metrics over hundreds of jobs without re-parsing every file.
+- **Writes go to files first.** A pipeline-stage change writes the job's `.md` frontmatter, then updates the index. A crash between the two is safe — the next scan re-reads the correct value.
+- **Resetting the index loses nothing.** Delete `.cache/index.db`; a rescan reconstructs it from `data/`.
+
+There is no `user_id`, no multi-tenant filtering, no encrypted key store — there is one user and no keys.
+
+---
+
+## Data flows
+
+### Onboarding (two phases)
+
+```
+phase 1 — deterministic (no brain required)
+  detect installed CLIs (which claude codex gemini opencode)
+    → user picks provider → validate with a test spawn → capture name/targets
+    → write provider choice + skeleton to data/
+
+phase 2 — AI ingestion (needs a working brain)
+  user input (paste CV / GitHub handle / portfolio URL)
+        │  lib/ingest/extract-{paste,github,url}.ts  (provider adapter, structured)
+        ▼  SparseProfile (only fields found in the input)
+  merge: lib/ingest/merge.ts  → most-specific-wins + conflict flags
+        ▼
+  user confirms → data/profile.json
+```
+
+### Job intake / scan (write)
+
+```
+Obsidian clip / paste JD / drop .md   → data/jobs/*.md
         │  POST /api/batch/scan
         ▼
-   jd-parser.ts          ← parse frontmatter → company, role_title, tags,
-                            visa_status, clipped_at
-   fit-scorer.ts         ← assign role_track + fit_pct
-        │
-        │  upsert (skip unchanged by file_mtime)
+   jd-parser.ts     parse frontmatter → company, role_title, tags, visa_status, clipped_at
+   fit-scorer.ts    assign role_track + fit_pct (via provider adapter)
+        │  upsert into the index (skip unchanged: file_mtime matches AND clipped_at non-null)
         ▼
-   jd_jobs table         ← source of truth for the query path
+   index.db         the query layer
 ```
 
-Incremental: files are skipped if `file_mtime` has not changed since the last scan.
-
-### Generation path
+### Generation
 
 ```
-jd_jobs row
-        │
-        │  POST /api/generate (select job IDs)
+selected job(s)
+        │  POST /api/generate
         ▼
-   generate-pipeline.ts  ← streams SSE events per stage
-        │
-        ├── preflight     copy master_resume_data.json + buildv2.js, install deps
-        ├── ai-reason     LLM selects: track, work IDs, project IDs, tagline, skills, reasoning
-        ├── write-script  emit Node.js build script
-        ├── build         run buildv2.js → DOCX
-        ├── validate      check hard limits (tagline ≤76, bullets ≤116)
-        ├── fix-loop      auto-fix tagline overruns; retry up to 3×
-        ├── pdf           DOCX → PDF (non-fatal)
-        └── finalize      move outputs, write jd_outputs row, tag JD file
+   generate-pipeline.ts          streams SSE events per stage
+        ├── read profile          data/profile.json (fallback: pipeline/master_resume_data.json)
+        ├── decide                lib/providers/spine.decideForJob() → SpineDecision (Zod-validated)
+        ├── build                 buildv2.js → DOCX (T()/TL() enforce ≤116 / ≤76 on word boundary)
+        ├── validate              verb-uniqueness, em-dash ban, 1-page paragraph budget
+        ├── pdf                   Playwright HTML→PDF template (non-fatal)
+        └── finalize              write data/resumes/*.docx + *.pdf, update index, tag the JD file
 ```
 
-### Query path (read)
+### Query (read)
 
 ```
-SQLite / Neon
-        │
+SQLite index
         │  GET /api/jobs, /api/metrics, /api/jobs/[id]
         ▼
    Next.js API routes → React client components
 ```
 
-No file I/O on the read path — keeps the UI fast even with 500+ JD files.
+No file I/O on the read path — the UI stays fast even with 500+ jobs.
 
 ---
 
-## Auth
+## Trust boundary (no auth)
 
-NextAuth v5 with credentials provider. All API routes call `auth()` and gate on `session.user.id`. Every data table has a `user_id` column; all queries are scoped to the authenticated user.
+The app binds to `127.0.0.1` and is single-user. **The OS account is the trust boundary.** There is no NextAuth, no session/JWT layer, no per-route auth guard, and no `user_id` scoping. These were part of the multi-tenant cloud build and are removed.
 
-A demo account (`demo@demo.com` / `demo`) is seeded automatically on first startup (local mode only).
-
----
-
-## AI Layer
-
-`lib/ai-client.ts` exposes `getModel(userId)` which reads the user's active provider + model from `user_settings` and returns a Vercel AI SDK `LanguageModel`. Application code (generate pipeline, cover letter, chat) does not branch on provider.
-
-Supported providers: Anthropic, OpenAI, Google Gemini, Groq, OpenRouter, Ollama.
-
-Chat requires Anthropic (uses tool-use streaming which is Anthropic-specific in the current implementation).
+If the app is ever exposed beyond localhost (e.g. the hosted demo), that is handled at the edge — a reverse proxy with rate-limiting — not by reintroducing in-app auth. The demo additionally runs anonymous, ephemeral sessions with no PII.
 
 ---
 
-## Source of Truth: `.md` Files vs. Database
+## Generation engine (no LibreOffice)
 
-The database is a **cache**, not the source of truth.
+- **ATS `.docx`** is produced by `pipeline/buildv2.js` using the pure-JS `docx` package. `T()` and `TL()` truncate bullets (≤116) and the tagline (≤76) on a word boundary using the limits in `lib/config.ts`.
+- **Polished `.pdf`** is produced by an HTML→PDF Playwright template (headless Chromium, auto-installed ~150 MB on first run).
+- **LibreOffice is gone** — it was a ~400 MB system dependency that broke the local-install story (ADR 0001 §5).
 
-- **`.md` files are authoritative** for all content: job text, tags, visa language, and pipeline stage.
-- **Database is the query layer**: enables fast filtering, aggregation, and Sankey metrics without re-parsing every file.
-- **Action writes go to `.md` first.** `PATCH /api/jobs/[id]/action` writes the frontmatter before updating the database. A crash after the file write but before the SQL update is safe — the next Scan re-reads the correct value.
-- **Resetting the DB loses nothing.** All data can be reconstructed from the `.md` folder via Scan.
+---
+
+## Interfaces share one core
+
+The web app and the optional **Ink TUI** share the same Zod schemas, TypeScript types, and file/index layer. The TUI is not a parallel implementation — it is a second front-end over the same `lib/`:
+
+- **Web** (Next.js, `127.0.0.1`) — full editing: jobs, chat/bullets editor, profile, settings.
+- **TUI** (Ink, optional) — onboarding Q&A, a read-only pipeline dashboard, and quick status bumps.
 
 ---
 
@@ -125,94 +185,66 @@ The database is a **cache**, not the source of truth.
 
 | File | Role |
 |---|---|
-| `lib/db.ts` | SQLite connection (WAL mode), `initSchema`, migration guards |
-| `lib/db-adapter.ts` | `DbAdapter` interface, `SqliteAdapter`, `NeonAdapter`, `getAdapter()` |
-| `lib/auth.ts` / `lib/auth.config.ts` | NextAuth configuration |
-| `lib/ai-client.ts` | `getModel(userId)` — resolves Vercel AI SDK `LanguageModel` |
-| `lib/ai-usage.ts` | Token usage logging per feature call |
-| `lib/generate-pipeline.ts` | End-to-end resume generation pipeline (SSE streaming) |
+| `lib/providers/types.ts` | `CliRunner` + `ProviderAdapter` contracts |
+| `lib/providers/adapter.ts` | Universal fenced-JSON + Zod-validate + one-retry adapter |
+| `lib/providers/claude.ts` | `claude -p --output-format json` runner (envelope `.result` fast-path) |
+| `lib/providers/extract-json.ts` | Extract last fenced JSON block from CLI stdout |
+| `lib/providers/spine.ts` | `decideForJob()` + `renderDocxBuffer()`; `SpineDecisionSchema` |
+| `lib/db.ts` | SQLite index connection (WAL), `initSchema`, numbered migrations |
+| `lib/db-adapter.ts` | `DbAdapter` interface, `SqliteAdapter`, `getAdapter()` |
+| `lib/generate-pipeline.ts` | End-to-end generation pipeline (SSE streaming) |
 | `lib/jd-parser.ts` | Frontmatter parser: company, role_title, tags, visa_status, clipped_at |
 | `lib/fit-scorer.ts` | `role_track` + `fit_pct` scoring |
-| `lib/sessions.ts` | CRUD for `resume_sessions` |
-| `lib/cover-letter.ts` | Streaming cover letter generation |
-| `lib/outreach.ts` | Outreach contact CRUD, AI card generation, email/LinkedIn draft generation |
-| `lib/settings.ts` | `app_settings` read/write; path validation |
-| `lib/crypto.ts` | AES-256 encryption for stored API keys |
-| `lib/actions.ts` | Canonical `ActionStage` values |
-| `lib/ingest/types.ts` | `SparseProfile`, `IngestionSource`, `MergeResult` — ingest type definitions |
-| `lib/ingest/db.ts` | `ingestion_sources` CRUD (`createIngestionSource`, `updateIngestionSource`, `listIngestionSources`, `deleteIngestionSource`) |
-| `lib/ingest/extract-paste.ts` | Freeform text → AI → `SparseProfile` |
-| `lib/ingest/extract-github.ts` | GitHub API fetch → AI → `SparseProfile` (projects + narrative only) |
-| `lib/ingest/extract-url.ts` | Firecrawl/fetch-fallback scrape → AI → `SparseProfile` |
-| `lib/ingest/merge.ts` | `SparseProfile[]` → AI → `MergeResult` (most-specific-wins + conflict flagging) |
-| `master_resume_data.json` | All bullets, projects, work experience, skills — single source of truth |
-| `buildv2.js` | DOCX generation engine |
-| `harness/validate.js` | Hard-limit checker (tagline ≤76, bullets ≤116) |
-| `instrumentation.ts` | Next.js OTEL SDK registration (`@vercel/otel`) — trace export to homelab Collector |
+| `lib/config.ts` | Char limits, word-boundary mins, UI timing constants |
+| `lib/ingest/extract-{paste,github,url}.ts` | Source → provider adapter → `SparseProfile` |
+| `lib/ingest/merge.ts` | `SparseProfile[]` → `MergeResult` (most-specific-wins + conflicts) |
+| `pipeline/master_resume_data.json` | Engine data **shape** / bootstrap template |
+| `pipeline/buildv2.js` | DOCX generation engine (`T()`/`TL()` gates) |
+| `data/profile.json` | Runtime resume content (source of truth) |
+| `.cache/index.db` | Rebuildable SQLite index over `data/` |
 
 ---
 
-## Directory Structure
+## Directory structure
 
 ```
 app/
-├── api/                  API routes (Next.js App Router)
-│   ├── batch/scan/       POST — scan JD folder
+├── api/                  Local REST routes (no auth)
+│   ├── batch/scan/       POST — scan jobs/ folder into the index
 │   ├── generate/         POST — start generation; SSE stream
 │   ├── jobs/             GET list; PATCH action; GET/stream output
 │   ├── jobs/[id]/
 │   │   ├── cover-letter/ streaming cover letter
 │   │   └── outreach/     outreach items CRUD + AI drafts
-│   ├── ingest/           Onboarding ingestion
-│   │   ├── paste/        POST — freeform text extraction
-│   │   ├── github/       POST — GitHub profile/repo extraction
-│   │   ├── url/          POST — web page extraction (Firecrawl or fetch)
-│   │   ├── merge/        POST — AI merge of all done sources
-│   │   └── sources/      GET list + DELETE per source
+│   ├── ingest/           Onboarding ingestion (paste/github/url/merge/sources)
 │   ├── chat/             streaming chat + profile apply
-│   ├── sessions/         CRUD for resume sessions
-│   ├── settings/         folder paths + AI provider config (incl. Firecrawl key)
-│   ├── metrics/          aggregated dashboard stats
-│   ├── github/           GitHub repo ingestion (legacy chat tab)
-│   └── auth/             NextAuth handlers
-├── (app)/onboarding/     Onboarding board page (gate: zero profiles)
-├── jobs/                 Jobs list page
-├── settings/             Settings page
-├── chat/                 Chat + GitHub ingestion page
-└── auth/                 Sign in / sign up pages
+│   ├── sessions/         resume session CRUD
+│   ├── settings/         workspace paths + provider config
+│   └── metrics/          aggregated dashboard stats
+├── (app)/                pages: onboarding · jobs · chat · profile · settings
+└── …
 
 lib/
-├── ingest/               Onboarding ingestion library
-│   ├── types.ts          SparseProfile, IngestionSource, MergeResult types
-│   ├── db.ts             ingestion_sources CRUD
-│   ├── extract-paste.ts  text → AI → SparseProfile
-│   ├── extract-github.ts GitHub API → AI → SparseProfile
-│   ├── extract-url.ts    Firecrawl/fetch → AI → SparseProfile
-│   └── merge.ts          SparseProfile[] → AI → MergeResult
-└── …                     Other business logic (no React)
+├── providers/            BRAIN seam — CLI/http adapter + spine
+├── ingest/               onboarding ingestion (extract → merge)
+└── …                     business logic (no React)
 
-components/
-└── onboarding/           Onboarding UI components
-    ├── SmartInput.tsx    Auto-detecting input (paste / GitHub / URL)
-    ├── SourceCard.tsx    Per-source status card with extracted summary
-    ├── SourceBoard.tsx   Board of all source cards + merge trigger
-    ├── ProfileReview.tsx Merged profile preview before accept
-    └── ConflictBanner.tsx Conflict resolution UI
+pipeline/
+├── master_resume_data.json   engine data shape / template
+└── buildv2.js                DOCX engine
 
-docs/                     Documentation
-infra/
-├── prometheus/           Prometheus config
-├── grafana/              Grafana provisioning (datasources, dashboards, alerting)
-├── tempo.yml             Tempo trace storage config
-├── otel-collector.yml    OTEL Collector (bearer token auth + Tempo export)
-└── docker-compose.homelab.yml  4-service homelab observability stack
-instrumentation.ts        Next.js OTEL SDK registration (project root)
+tui/                      optional Ink terminal UI (shares lib/ + schemas)
+data/                     user workspace (profile.json, jobs/, evaluations/, resumes/)
+docs/
+└── legacy/               archived cloud-era operational docs
 ```
 
 ---
 
-## Related Pages
+## Related pages
 
-- [`docs/database.md`](database.md) — full schema reference
-- [`docs/ai-providers.md`](ai-providers.md) — per-provider configuration
-- [`docs/deploy.md`](deploy.md) — Docker and AWS deployment
+- [`CONTEXT.md`](../CONTEXT.md) — shared vocabulary + invariants
+- [`TLDR.md`](../TLDR.md) — one-screen overview
+- [`docs/adr/0001-pivot-to-local-first.md`](adr/0001-pivot-to-local-first.md) — the pivot decision of record
+- [`DEPRECATED.md`](../DEPRECATED.md) — cloud → local-first change table
+- [`docs/legacy/`](legacy/) — archived cloud-era deploy / AWS / observability docs

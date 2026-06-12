@@ -32,7 +32,7 @@ User supplies input (text / GitHub / URL)
         ▼
   User reviews conflicts, accepts merged profile
         │
-        │  Profile accepted → resume_profile created
+        │  Profile accepted → data/profile.json written
         ▼
   Generation pipeline ready
 ```
@@ -153,7 +153,7 @@ The onboarding UI presents conflicts to the user for manual resolution before th
 
 **API:** `GET /api/ingest/sources`
 
-Returns all `ingestion_sources` rows for the authenticated user, newest first.
+Returns all `ingestion_sources` rows, newest first.
 
 ```json
 {
@@ -225,13 +225,13 @@ The `id` fields for experience and projects become lookup keys in the resume gen
 
 ## Onboarding Gate
 
-When a new user signs up (no `resume_profiles` rows), the `OnboardingGate` client component redirects them to `/onboarding` after every navigation.
+Until a profile exists (no `data/profile.json` yet), the `OnboardingGate` client component redirects you to `/onboarding` after every navigation.
 
-The gate calls `GET /api/profiles` client-side. Users are redirected only if:
-- They are not already on `/onboarding` or `/auth`
+The gate calls `GET /api/profiles` client-side. You are redirected only if:
+- You are not already on `/onboarding`
 - The profile list is empty
 
-After the user accepts a merged profile and a `resume_profile` is created, the gate check passes and normal navigation resumes.
+After you accept a merged profile and `data/profile.json` is written, the gate check passes and normal navigation resumes.
 
 ---
 
@@ -260,7 +260,7 @@ The SmartInput renders a confirmation chip ("Detected: github") and a submit but
 2. Enter your key (format: `fc-…`)
 3. Click **Save**
 
-The key is stored per-user in the `app_settings` table under the key `firecrawl_key:{userId}`. The key field is rendered as a password input so the key is not visible.
+The key is stored in the `app_settings` table under the key `firecrawl_key`. The key field is rendered as a password input so the key is not visible.
 
 Without Firecrawl, URL ingestion uses a plain `fetch` + HTML stripping fallback. Most static portfolio pages work fine. SPAs (React, Vue, Next.js) may return empty or partial content without Firecrawl.
 
@@ -276,7 +276,7 @@ Without Firecrawl, URL ingestion uses a plain `fetch` + HTML stripping fallback.
 | `GitHub user not found…` | 422 | Username does not exist or GitHub API is rate-limited |
 | `Invalid URL` | 400 | Malformed URL on url endpoint |
 | `Failed to fetch URL: HTTP …` | 422 | URL returned non-2xx response |
-| `No AI provider configured` | 422 | No active AI provider in Settings → AI |
+| `No AI provider configured` | 422 | No AI CLI / endpoint selected in Settings → AI Provider |
 | `No completed sources to merge` | 422 | Merge called with zero done sources |
 
 Failed sources have `status = 'failed'` and `errorMsg` set to the error message. They remain in the source board so the user can diagnose and re-submit.

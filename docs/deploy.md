@@ -7,6 +7,8 @@ updated: 2026-05-11
 
 # Deployment Guide
 
+> **⚠️ DEPRECATED — cloud-era doc.** Describes deploying the frozen cloud build (Docker + AWS/homelab), preserved on `legacy/cloud-v1` (tag `v1.0-cloud-final`). Local-first ResumeLoop is **run, not deployed per-user**: `npm run dev` from source, or the `resumeloop` npm CLI (see [README](../README.md)). The hosted demo is reverse-proxied at the edge. See [`DEPRECATED.md`](../DEPRECATED.md) and [ADR 0001](adr/0001-pivot-to-local-first.md).
+
 ResumeLoop runs as a Next.js 14 application in two modes:
 
 - **Local** — SQLite database, filesystem storage, Ollama for LLM calls. No AWS account needed.
