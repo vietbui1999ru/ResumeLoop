@@ -3,6 +3,7 @@ import path from 'node:path'
 import { z } from 'zod'
 import { createAdapter } from './adapter'
 import type { CliRunner } from './types'
+import { renderPdfBuffer, type ResumeData } from '../pdf-render'
 import {
   MAX_BULLET_CHARS, MAX_TAGLINE_CHARS,
   BULLET_WORD_BOUNDARY_MIN, TAGLINE_WORD_BOUNDARY_MIN,
@@ -34,8 +35,21 @@ export const SpineDecisionSchema = z.object({
 })
 export type SpineDecision = z.infer<typeof SpineDecisionSchema>
 
+/**
+ * The minimal selection needed to assemble a resume. Both SpineDecision and the
+ * pipeline's ReasoningResult structurally satisfy this, so the render functions
+ * serve both the spine and the existing generation pipeline.
+ */
+export interface ResumeSelection {
+  workVariant: string
+  workIds: string[]
+  projects: string[]
+  tagline: string
+  skillsRows: string[]
+}
+
 interface MasterData {
-  contact?: { name?: string }
+  contact?: { name?: string; email?: string; phone?: string; location?: string; linkedin?: string; portfolio?: string }
   experience: Array<{
     id: string; title: string; company: string; location: string; dates: string
     bullets: Record<string, string[]>
@@ -81,9 +95,44 @@ export async function decideForJob(
   })
 }
 
-/** Render an ATS .docx from a decision + master data using the buildv2 (docx npm) engine. */
-export async function renderDocxBuffer(decision: SpineDecision, masterDataJson: string): Promise<Buffer> {
+/**
+ * Map a decision + master data into the shared ResumeData shape (bullets/tagline
+ * trimmed to the hard limits). Both the .docx and .pdf engines render from this.
+ */
+export function assembleResumeData(decision: ResumeSelection, masterDataJson: string): ResumeData {
   const master = JSON.parse(masterDataJson) as MasterData
+  const trimB = (b: string) => trimTo(b, MAX_BULLET_CHARS, BULLET_WORD_BOUNDARY_MIN)
+
+  const work = decision.workIds.map(id => {
+    const exp = master.experience.find(e => e.id === id)
+    if (!exp) throw new Error(`Unknown work id "${id}". Valid: ${master.experience.map(e => e.id).join(', ')}`)
+    const bullets = (exp.bullets[decision.workVariant] ?? exp.bullets['genai'] ?? []).slice(0, 5)
+    return { id, title: exp.title, company: exp.company, location: exp.location, dates: exp.dates,
+             bullets: bullets.map(trimB) }
+  })
+
+  const projects = decision.projects.map(id => {
+    const p = master.projects.find(x => x.id === id)
+    if (!p) throw new Error(`Unknown project id "${id}". Valid: ${master.projects.map(x => x.id).join(', ')}`)
+    return { id, name: p.name, url: p.url, stack: p.short_stack, date: p.date ?? p.dates,
+             bullets: p.bullets.slice(0, 3).map(trimB) }
+  })
+
+  const skills = decision.skillsRows.map(s => {
+    const i = s.indexOf(': ')
+    return i > 0 ? { label: s.slice(0, i), vals: s.slice(i + 2) } : { label: '', vals: s }
+  })
+
+  return {
+    name: master.contact?.name, contact: master.contact,
+    tagline: trimTo(decision.tagline, MAX_TAGLINE_CHARS, TAGLINE_WORD_BOUNDARY_MIN),
+    work, projects, skills,
+  }
+}
+
+/** Render an ATS .docx from a decision + master data using the buildv2 (docx npm) engine. */
+export async function renderDocxBuffer(decision: ResumeSelection, masterDataJson: string): Promise<Buffer> {
+  const data = assembleResumeData(decision, masterDataJson)
 
   // Anchor at the tracked buildv2.js; 'docx' resolves up to the root node_modules (a real dep).
   const anchor = path.join(process.cwd(), 'pipeline', 'buildv2.js')
@@ -93,27 +142,17 @@ export async function renderDocxBuffer(decision: SpineDecision, masterDataJson: 
   const { Packer } = req('docx') as any
   /* eslint-enable @typescript-eslint/no-explicit-any */
 
-  const work = decision.workIds.map(id => {
-    const exp = master.experience.find(e => e.id === id)
-    if (!exp) throw new Error(`Unknown work id "${id}". Valid: ${master.experience.map(e => e.id).join(', ')}`)
-    const bullets = (exp.bullets[decision.workVariant] ?? exp.bullets['genai'] ?? []).slice(0, 5)
-    return { id, title: exp.title, company: exp.company, location: exp.location, dates: exp.dates,
-             bullets: bullets.map((b: string) => T(trimTo(b, MAX_BULLET_CHARS, BULLET_WORD_BOUNDARY_MIN))) }
+  // T()/TL() validate against the hard ceilings (no-ops here since data is pre-trimmed).
+  const doc = makeDoc({
+    name: data.name, contact: data.contact, tagline: TL(data.tagline ?? ''),
+    work: data.work.map(w => ({ ...w, bullets: w.bullets.map((b: string) => T(b)) })),
+    projects: data.projects.map(p => ({ ...p, bullets: p.bullets.map((b: string) => T(b)) })),
+    skills: data.skills,
   })
-
-  const projects = decision.projects.map(id => {
-    const p = master.projects.find(x => x.id === id)
-    if (!p) throw new Error(`Unknown project id "${id}". Valid: ${master.projects.map(x => x.id).join(', ')}`)
-    return { id, name: p.name, url: p.url, stack: p.short_stack, date: p.date ?? p.dates,
-             bullets: p.bullets.slice(0, 3).map((b: string) => T(trimTo(b, MAX_BULLET_CHARS, BULLET_WORD_BOUNDARY_MIN))) }
-  })
-
-  const skills = decision.skillsRows.map(s => {
-    const i = s.indexOf(': ')
-    return i > 0 ? { label: s.slice(0, i), vals: s.slice(i + 2) } : { label: '', vals: s }
-  })
-
-  const doc = makeDoc({ name: master.contact?.name, contact: master.contact,
-    tagline: TL(trimTo(decision.tagline, MAX_TAGLINE_CHARS, TAGLINE_WORD_BOUNDARY_MIN)), work, projects, skills })
   return Packer.toBuffer(doc) as Promise<Buffer>
+}
+
+/** Render the "pretty" .pdf from the same data via the Playwright HTML→PDF engine. */
+export function renderResumePdf(decision: ResumeSelection, masterDataJson: string): Promise<Buffer> {
+  return renderPdfBuffer(assembleResumeData(decision, masterDataJson))
 }
