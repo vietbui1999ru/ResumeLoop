@@ -2,6 +2,9 @@
   "name": "resume-loop",
   "version": "0.1.0",
   "private": true,
+  "bin": {
+    "resumeloop": "bin/resumeloop.ts"
+  },
   "scripts": {
     "dev": "next dev -H 127.0.0.1",
     "build": "next build",
@@ -10,7 +13,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "workspace:init": "tsx bin/resumeloop.ts init",
+    "reindex": "tsx bin/resumeloop.ts reindex"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.76",
@@ -69,6 +74,7 @@
     "eslint-config-next": "15.5.18",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.22.4",
     "typescript": "^6",
     "vite-tsconfig-paths": "^4.3.2",
     "vitest": "^1.6.0"
