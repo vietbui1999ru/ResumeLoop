@@ -142,5 +142,8 @@ export async function renderPdfBuffer(
 
 async function defaultLaunch(): Promise<Browser> {
   const { chromium } = await import('playwright')
-  return chromium.launch({ headless: true })
+  // In the container we point Playwright at the distro Chromium (PLAYWRIGHT_CHROMIUM_PATH);
+  // locally, fall back to Playwright's own downloaded browser.
+  const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined
+  return chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}) })
 }

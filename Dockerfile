@@ -23,23 +23,22 @@ ENV APP_MODE=${APP_MODE}
 RUN npm run build
 
 # ── Stage 2: runtime ──────────────────────────────────────────────────────────
-# node:22-slim (Debian) — needed for libreoffice-writer apt package.
-# Alpine libreoffice is ~500 MB with poor font support; slim + libreoffice-writer is ~200 MB.
+# node:22-slim (Debian) — Chromium for Playwright HTML→PDF needs glibc + system libs.
 FROM node:22-slim AS runner
 
 WORKDIR /app
 ENV NODE_ENV=production PORT=3000
 
-# LibreOffice headless for faithful DOCX → PDF conversion.
-# Chromium is kept as the puppeteer fallback when libreoffice is unavailable (shouldn't happen
-# in this image, but to-pdf.js gracefully degrades to mammoth+puppeteer if it does).
+# Chromium for the Playwright HTML→PDF engine (ADR 0001 §5). We install the distro
+# Chromium (which pulls its runtime libs) and point Playwright at it, avoiding a
+# separate ~150 MB Playwright browser download. LibreOffice is gone — PDFs are
+# rendered from resume data, not converted from the DOCX.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libreoffice-writer \
     chromium \
     && rm -rf /var/lib/apt/lists/*
 
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+# lib/pdf-render.ts launches this system Chromium instead of a bundled browser.
+ENV PLAYWRIGHT_CHROMIUM_PATH=/usr/bin/chromium
 
 # Next.js standalone includes pre-compiled node_modules (incl. better-sqlite3 .node)
 COPY --from=builder /app/.next/standalone ./
