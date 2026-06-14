@@ -7,6 +7,8 @@ updated: 2026-05-21
 
 # Database Reference
 
+> **⚠️ PARTIALLY DEPRECATED — cloud-era framing.** Documents the dual SQLite (local) + Neon Postgres (cloud) model where the **DB is the source of truth**. In local-first ResumeLoop that is inverted: **files in `data/` are canonical** and SQLite `.cache/index.db` is a **rebuildable index**; the Neon/Postgres path is removed. The schema details below remain useful for the SQLite index, but ignore the multi-tenant / Neon / `user_id` sections. See [CONTEXT.md](../CONTEXT.md), [architecture](architecture.md), and [`DEPRECATED.md`](../DEPRECATED.md).
+
 ResumeLoop uses two database backends selected by the `APP_MODE` environment variable:
 
 - **Local** (`APP_MODE` unset): `better-sqlite3`, file at `resume.db` in the project root

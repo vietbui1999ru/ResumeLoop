@@ -5,6 +5,7 @@ import { getAdapter } from '@/lib/db-adapter'
 import { isCloud } from '@/lib/app-mode'
 import { parseJd } from '@/lib/jd-parser'
 import { scoreJd } from '@/lib/fit-scorer'
+import { JobPostInputSchema } from '@/lib/schemas/jobs'
 
 const BASE_COLS = `
   j.id, j.company, j.role_title, j.role_track, j.fit_pct, j.visa_status,
@@ -87,10 +88,12 @@ export async function POST(req: Request) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const userId = session.user.id
 
-  const body = await req.json() as { content?: string }
-  const content = (body.content ?? '').trim()
-  if (!content) return NextResponse.json({ error: 'content is required' }, { status: 400 })
-  if (content.length > 200_000) return NextResponse.json({ error: 'content too large (200 KB max)' }, { status: 400 })
+  const bodyParse = JobPostInputSchema.safeParse(await req.json())
+  if (!bodyParse.success) {
+    const message = bodyParse.error.errors[0]?.message ?? 'Invalid request body'
+    return NextResponse.json({ error: message }, { status: 400 })
+  }
+  const content = bodyParse.data.content.trim()
 
   const parsed = parseJd('pasted.md', content)
   if (!parsed.company || parsed.company === 'Unknown') {

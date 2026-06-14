@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { getAdapter } from '@/lib/db-adapter'
+import { JobPatchInputSchema } from '@/lib/schemas/jobs'
 
 type Ctx = { params: Promise<{ id: string }> }
 
@@ -26,21 +27,20 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const userId = session.user.id
 
   const { id } = await params
-  const body = await req.json() as { hidden?: number; apply_url?: string | null; tags?: string[]; role_title?: string }
+  const bodyParse = JobPatchInputSchema.safeParse(await req.json())
+  if (!bodyParse.success) {
+    const message = bodyParse.error.errors[0]?.message ?? 'Invalid request body'
+    return NextResponse.json({ error: message }, { status: 400 })
+  }
+  const body = bodyParse.data
   const db = await getAdapter()
 
-  if ('hidden' in body) {
-    if (body.hidden !== 0 && body.hidden !== 1) {
-      return NextResponse.json({ error: 'hidden must be 0 or 1' }, { status: 400 })
-    }
+  if ('hidden' in body && body.hidden !== undefined) {
     await db.run('UPDATE jd_jobs SET hidden = ? WHERE id = ? AND user_id = ?', [body.hidden, id, userId])
   }
 
   if ('apply_url' in body) {
     const url = body.apply_url?.trim() || null
-    if (url && !/^https?:\/\//i.test(url)) {
-      return NextResponse.json({ error: 'apply_url must start with http:// or https://' }, { status: 400 })
-    }
     await db.run('UPDATE jd_jobs SET apply_url = ? WHERE id = ? AND user_id = ?', [url, id, userId])
   }
 
@@ -49,10 +49,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
       [JSON.stringify(body.tags), id, userId])
   }
 
-  if ('role_title' in body) {
-    const title = body.role_title?.trim()
-    if (!title) return NextResponse.json({ error: 'role_title cannot be empty' }, { status: 400 })
-    await db.run('UPDATE jd_jobs SET role_title = ? WHERE id = ? AND user_id = ?', [title, id, userId])
+  if ('role_title' in body && body.role_title !== undefined) {
+    await db.run('UPDATE jd_jobs SET role_title = ? WHERE id = ? AND user_id = ?', [body.role_title, id, userId])
   }
 
   return NextResponse.json({ ok: true })

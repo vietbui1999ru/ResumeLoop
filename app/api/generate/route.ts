@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { getAdapter } from '@/lib/db-adapter'
 import { checkRateLimitBucket } from '@/lib/rate-limit'
+import { GenerateInputSchema } from '@/lib/schemas/generate'
 
 export async function POST(req: Request) {
   const session = await auth()
@@ -12,13 +13,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
   }
 
-  const { jobIds }: { jobIds: string[] } = await req.json()
-  if (!Array.isArray(jobIds) || jobIds.length === 0) {
-    return NextResponse.json({ error: 'jobIds must be non-empty array' }, { status: 400 })
+  const bodyParse = GenerateInputSchema.safeParse(await req.json())
+  if (!bodyParse.success) {
+    const message = bodyParse.error.errors[0]?.message ?? 'Invalid request body'
+    return NextResponse.json({ error: message }, { status: 400 })
   }
-  if (jobIds.length > 50) {
-    return NextResponse.json({ error: 'Too many jobs — max 50 per request' }, { status: 400 })
-  }
+  const { jobIds } = bodyParse.data
 
   const db = await getAdapter()
   const unknown: string[] = []

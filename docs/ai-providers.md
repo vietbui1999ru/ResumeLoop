@@ -7,6 +7,8 @@ updated: 2026-05-11
 
 # AI Provider Configuration
 
+> **⚠️ DEPRECATED — cloud-era doc.** Describes configuring providers via **stored API keys** (the frozen cloud model, preserved on `legacy/cloud-v1`). Local-first ResumeLoop has no key store: the brain is **your own AI CLI** (`claude` / `codex` / `gemini` / `opencode`) or a local OpenAI-compatible endpoint, invoked through the provider adapter (`lib/providers/`). See the "brain" section of [README](../README.md) and [architecture](architecture.md), plus [`DEPRECATED.md`](../DEPRECATED.md).
+
 ResumeLoop supports six LLM providers. One provider is active at a time and is used for all AI operations: resume reasoning (`ai-reason` pipeline stage), cover letter generation, and Chat.
 
 > **Note:** The Chat feature currently requires **Anthropic** to be set as the active provider. Other providers work for generation and cover letters but not for Chat.

@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { getOutreachItem, updateOutreachItem, deleteOutreachItem } from '@/lib/outreach'
-import type { OutreachItem, OutreachStatus } from '@/lib/outreach'
+import { OutreachPatchInputSchema } from '@/lib/schemas/outreach'
 
 type Params = { params: Promise<{ id: string; itemId: string }> }
-
-const VALID_STATUSES: OutreachStatus[] = ['not_contacted', 'drafted', 'sent', 'replied']
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export async function PATCH(req: Request, { params }: Params) {
   const session = await auth()
@@ -14,16 +11,13 @@ export async function PATCH(req: Request, { params }: Params) {
   const userId = session.user.id
   const { id: jobId, itemId } = await params
 
-  const body: Partial<Pick<OutreachItem, 'role' | 'role_custom' | 'notes' | 'email' | 'status' | 'linkedin_draft' | 'email_draft'>> = await req.json()
-
-  if ('status' in body && body.status !== undefined && !VALID_STATUSES.includes(body.status)) {
-    return NextResponse.json({ error: `status must be one of: ${VALID_STATUSES.join(', ')}` }, { status: 400 })
-  }
-  if ('email' in body && body.email && !EMAIL_RE.test(body.email)) {
-    return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
+  const bodyParse = OutreachPatchInputSchema.safeParse(await req.json())
+  if (!bodyParse.success) {
+    const message = bodyParse.error.errors[0]?.message ?? 'Invalid request body'
+    return NextResponse.json({ error: message }, { status: 400 })
   }
 
-  const updated = await updateOutreachItem(itemId, jobId, userId, body)
+  const updated = await updateOutreachItem(itemId, jobId, userId, bodyParse.data)
   if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json(updated)
 }

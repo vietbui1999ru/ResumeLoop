@@ -2,6 +2,9 @@
   "name": "resume-loop",
   "version": "0.1.0",
   "private": true,
+  "bin": {
+    "resumeloop": "bin/resumeloop.ts"
+  },
   "scripts": {
     "dev": "next dev -H 127.0.0.1",
     "build": "next build",
@@ -10,7 +13,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "workspace:init": "tsx bin/resumeloop.ts init",
+    "reindex": "tsx bin/resumeloop.ts reindex"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.76",
@@ -32,6 +37,7 @@
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.9.0",
     "diff": "^9.0.0",
+    "docx": "^8.5.0",
     "framer-motion": "^12.38.0",
     "gray-matter": "^4.0.3",
     "html2canvas": "^1.4.1",
@@ -42,6 +48,7 @@
     "next-auth": "^5.0.0-beta.31",
     "openai": "^6.37.0",
     "p-limit": "^7.3.0",
+    "playwright": "^1.60.0",
     "react": "^18",
     "react-dom": "^18",
     "react-markdown": "^10.1.0",
@@ -55,6 +62,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",
     "@types/diff": "^7.0.2",
+    "@types/js-yaml": "^4.0.9",
     "@types/json-source-map": "^0.6.0",
     "@types/node": "^25",
     "@types/react": "^18",
@@ -66,6 +74,7 @@
     "eslint-config-next": "15.5.18",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.22.4",
     "typescript": "^6",
     "vite-tsconfig-paths": "^4.3.2",
     "vitest": "^1.6.0"
