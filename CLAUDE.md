@@ -10,7 +10,7 @@ This file is a **contributor + agent guide to the engine**. It is not anyone's p
 
 > **Engine vs data — read first.** The public repo ships the *generic engine* only: validation mechanics, the role-track *schema*, the ATS keyword-bank *schema*, and the renderers. **All personal data** — a specific person's profile, role-track picks, keyword banks, verb-conflict overrides — lives in that user's `data/` workspace (`data/profile.json`), seeded from blank templates and bootstrapped by AI onboarding. Never commit personal profile content to this repo. The maintainer's full private harness is preserved at `docs/reference/CLAUDE.md` and on branch `legacy/cloud-v1`; do not inline it here.
 
-> **Direction of record:** [ADR 0001](docs/adr/0001-pivot-to-local-first.md). Cloud v1 is frozen on `legacy/cloud-v1` (tag `v1.0-cloud-final`); see [`DEPRECATED.md`](DEPRECATED.md). Architecture: [`docs/architecture.md`](docs/architecture.md). Invariants + vocabulary: [`CONTEXT.md`](CONTEXT.md) — read before any non-trivial task.
+> **Direction of record:** [ADR 0002](docs/adr/0002-cli-and-electron-desktop.md) (CLI + Electron desktop; the Next.js web UI is being removed), building on [ADR 0001](docs/adr/0001-pivot-to-local-first.md). Do not invest in `app/`, `components/` or the cloud libraries. Cloud v1 is frozen on `legacy/cloud-v1` (tag `v1.0-cloud-final`); see [`DEPRECATED.md`](DEPRECATED.md). Architecture: [`docs/architecture.md`](docs/architecture.md). Invariants + vocabulary: [`CONTEXT.md`](CONTEXT.md) — read before any non-trivial task.
 
 ## The three seams
 
@@ -22,13 +22,12 @@ This file is a **contributor + agent guide to the engine**. It is not anyone's p
 
 ```bash
 npm install
-npm run dev            # http://localhost:3000 (binds 127.0.0.1)
 npm test               # Vitest — unit + integration, once
 npm test -- --watch    # watch mode
-npx playwright test    # cross-browser E2E
+npx tsx bin/resumeloop.ts <init|onboard|import|generate|reindex> [args]
 ```
 
-Target distribution (npm CLI, in progress): `npm i -g resumeloop` → `resumeloop init ~/career` → `resumeloop` (web) / `resumeloop tui` (Ink). On first PDF render, Playwright auto-installs headless Chromium (~150 MB).
+Interfaces (ADR 0002): the **CLI** (`bin/resumeloop.ts`) now, and an **Electron desktop app** (`desktop/`, planned). Both call one engine facade (`lib/engine`, planned). The Next.js web UI still in the tree is frozen and scheduled for deletion. On first PDF render from the CLI, Playwright auto-installs headless Chromium (~150 MB); the desktop app renders PDFs with Electron's own Chromium.
 
 ## The provider seam (`lib/providers/`)
 
