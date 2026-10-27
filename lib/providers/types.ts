@@ -20,5 +20,7 @@ export type CliRunner = (prompt: string, opts?: RunOptions) => Promise<string>
 
 /** The structured-output contract every provider satisfies. */
 export interface ProviderAdapter {
-  runStructured<T>(schema: ZodType<T>, prompt: string, opts?: RunOptions): Promise<T>
+  // unknown input so schemas using .default()/.optional() (divergent
+  // input vs output types) are accepted, not just identity-typed schemas.
+  runStructured<T>(schema: ZodType<T, unknown>, prompt: string, opts?: RunOptions): Promise<T>
 }

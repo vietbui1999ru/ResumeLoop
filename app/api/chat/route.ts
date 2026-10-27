@@ -11,6 +11,9 @@ import { auth } from '@/lib/auth'
 import { checkRateLimitBucket } from '@/lib/rate-limit'
 import { ensureDefaultSession } from '@/lib/sessions'
 import { GRILL_SYSTEM_PROMPT } from '@/lib/grill-prompt'
+import { isDemoPublic } from '@/lib/demo-mode'
+import { acquireInferenceSlot } from '@/lib/inference-semaphore'
+import { incrCounter } from '@/lib/metrics-counters'
 
 const BASE_SYSTEM_PROMPT = `You are a resume profile editor for the user's master resume data.
 
@@ -131,14 +134,22 @@ export async function POST(req: Request) {
       const send = (obj: Record<string, unknown>) =>
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`))
 
+      // Box-wide inference gate — see lib/inference-semaphore.ts
+      const slot = await acquireInferenceSlot()
+      if (!slot.ok) {
+        incrCounter(`resumeloop_demo_429_total{route="chat",reason="${slot.reason}"}`)
+        send({ type: 'error', message: 'The demo is busy right now — try again in a moment.' })
+        controller.close()
+        return
+      }
+
       try {
         let model
         try {
           model = await getModel(userId)
         } catch (e) {
           send({ type: 'error', message: String(e) })
-          controller.close()
-          return
+          return // finally releases the slot and closes the controller
         }
 
         const history = await loadHistory(db, realSessionId, userId)
@@ -149,10 +160,14 @@ export async function POST(req: Request) {
           systemPrompt = `${GRILL_SYSTEM_PROMPT}\n\n${systemPrompt}`
         }
 
+        // Wall-clock ceiling: stepCountIs bounds tool-call steps, not time — on a
+        // CPU-only local model each step can take tens of seconds. Fewer steps in
+        // public-demo mode cuts round-trips through the slow model per turn.
         const result = streamText({
           model,
           system: systemPrompt,
-          stopWhen: stepCountIs(8),
+          stopWhen: stepCountIs(isDemoPublic() ? 4 : 8),
+          abortSignal: AbortSignal.timeout(Number(process.env.DEMO_CHAT_TIMEOUT_MS ?? '90000')),
           messages,
           tools: {
             read_file: {
@@ -211,6 +226,7 @@ export async function POST(req: Request) {
         const userMsg = msg.includes('No AI provider') ? msg : 'Internal error'
         send({ type: 'error', message: userMsg })
       } finally {
+        slot.release()
         controller.close()
       }
     },

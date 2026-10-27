@@ -1,19 +1,15 @@
-# Drop this into your Prometheus scrape_configs.
+# Drop this into an EXISTING external Prometheus's scrape_configs (e.g. a separate
+# homelab monitoring box scraping over Tailscale). The self-hosted demo stack in
+# docker-compose.prod.yml runs its own Prometheus using infra/prometheus/prometheus.yml
+# instead — this fragment is only for scraping from outside the compose network.
 #
 # Prerequisites:
-#   1. Set METRICS_TOKEN env var on the ECS task (any random string, keep it secret)
-#   2. Add the same token to your homelab Prometheus config (see bearer_token below)
+#   1. Set METRICS_TOKEN in .env.prod (any random string, keep it secret)
+#   2. Add the same token below
 #
-# ECS task env var:
 #   METRICS_TOKEN=<generate with: openssl rand -hex 32>
-#
-# To add to your existing prometheus.yml:
-#   scrape_configs:
-#     ... (existing jobs)
-#     - <<include contents below>>
 
 - job_name: resumeloop
-  scheme: https
   metrics_path: /api/metrics/prometheus
   scrape_interval: 60s
   scrape_timeout: 15s
@@ -24,11 +20,8 @@
 
   static_configs:
     - targets:
-        - fh7gi2vfe2.execute-api.us-east-1.amazonaws.com
+        # Host port published by docker-compose.prod.yml (app 3000 → host 3010)
+        - <tailscale-hostname>:3010
       labels:
-        env: production
+        env: demo
         app: resumeloop
-
-  # API Gateway adds latency — relax TLS verification only if needed
-  tls_config:
-    insecure_skip_verify: false

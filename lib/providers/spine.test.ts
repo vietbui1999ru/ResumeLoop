@@ -55,6 +55,18 @@ describe('renderDocxBuffer', () => {
     // DOCX files are zip archives — first two bytes are "PK".
     expect(buf.subarray(0, 2).toString('latin1')).toBe('PK')
   })
+
+  it('works when cwd is not the repo root (resumeloop generate runs from a data workspace)', async () => {
+    const tmpDir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'spine-cwd-'))
+    const cwdSpy = vi.spyOn(process, 'cwd').mockReturnValue(tmpDir)
+    try {
+      const buf = await renderDocxBuffer(fixtureDecision, masterDataJson)
+      expect(buf.subarray(0, 2).toString('latin1')).toBe('PK')
+    } finally {
+      cwdSpy.mockRestore()
+      fs.rmSync(tmpDir, { recursive: true, force: true })
+    }
+  })
 })
 
 // Full spine, real CLI: opt in with RESUMELOOP_E2E_CLAUDE=1.

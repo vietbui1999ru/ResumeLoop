@@ -5,6 +5,16 @@ import { logAiUsage } from './ai-usage'
 import { getActiveConfig } from './user-settings'
 import { parseCandidateInfo } from './candidate-info'
 import { MAX_TAGLINE_CHARS, MAX_PERSONA_TITLE_CHARS, TAGLINE_WORD_BOUNDARY_MIN } from './config'
+import { incrCounter } from './metrics-counters'
+
+// Per-call wall-clock ceilings. Env-overridable because CPU-only local models
+// (public demo box) may need substantially longer than the API-provider defaults —
+// set from the on-hardware benchmark, not guessed.
+const REASON_TIMEOUT_MS       = () => Number(process.env.AI_REASON_TIMEOUT_MS ?? '60000')
+const REASON_RETRY_TIMEOUT_MS = () => Number(process.env.AI_REASON_RETRY_TIMEOUT_MS ?? '120000')
+
+const reasonPath = (path: 'tool_call' | 'text_fallback' | 'json_retry' | 'failed') =>
+  incrCounter(`resumeloop_ai_reason_path_total{path="${path}"}`)
 
 export interface ReasoningResult {
   track:        string
@@ -85,7 +95,7 @@ export async function reasonForJob(rawContent: string, masterData?: string, user
       ;({ toolCalls, text, finishReason, usage } = await generateText({
         model,
         maxOutputTokens: 2048,
-        abortSignal: signal ? AbortSignal.any([signal, AbortSignal.timeout(60_000)]) : AbortSignal.timeout(60_000),
+        abortSignal: signal ? AbortSignal.any([signal, AbortSignal.timeout(REASON_TIMEOUT_MS())]) : AbortSignal.timeout(REASON_TIMEOUT_MS()),
         system: systemPrompt,
         tools: {
           resume_decision: {
@@ -127,6 +137,7 @@ export async function reasonForJob(rawContent: string, masterData?: string, user
           validateResult(parsed)
           if (masterData) validateResultAgainstProfile(parsed, masterData)
           console.info('[ai-reason] text-fallback succeeded (fence extraction)')
+          reasonPath('text_fallback')
           if (cfg) await logAiUsage(userId, cfg.provider, cfg.model, 'reason', usage?.inputTokens ?? 0, usage?.outputTokens ?? 0)
           return parsed
         } catch (e) {
@@ -155,7 +166,7 @@ export async function reasonForJob(rawContent: string, masterData?: string, user
     } = await generateText({
       model,
       maxOutputTokens: 16384,
-      abortSignal: signal ? AbortSignal.any([signal, AbortSignal.timeout(120_000)]) : AbortSignal.timeout(120_000),
+      abortSignal: signal ? AbortSignal.any([signal, AbortSignal.timeout(REASON_RETRY_TIMEOUT_MS())]) : AbortSignal.timeout(REASON_RETRY_TIMEOUT_MS()),
       system: systemPrompt,
       messages: [{
         role: 'user',
@@ -194,6 +205,7 @@ export async function reasonForJob(rawContent: string, masterData?: string, user
         validateResult(parsed)
         if (masterData) validateResultAgainstProfile(parsed, masterData)
         console.info('[ai-reason] JSON-mode retry succeeded')
+        reasonPath('json_retry')
         if (cfg) {
           const totalIn  = (usage?.inputTokens ?? 0) + (retryUsage.inputTokens ?? 0)
           const totalOut = (usage?.outputTokens ?? 0) + (retryUsage.outputTokens ?? 0)
@@ -205,6 +217,7 @@ export async function reasonForJob(rawContent: string, masterData?: string, user
       }
     }
 
+    reasonPath('failed')
     throw new Error(
       `No resume_decision tool call in AI response after retry. ` +
       `finishReason=${finishReason}, retryFinishReason=${retryFinishReason}, ` +
@@ -215,6 +228,7 @@ export async function reasonForJob(rawContent: string, masterData?: string, user
   const result = call.input as ReasoningResult
   validateResult(result)
   if (masterData) validateResultAgainstProfile(result, masterData)
+  reasonPath('tool_call')
   if (cfg) await logAiUsage(userId, cfg.provider, cfg.model, 'reason', usage?.inputTokens ?? 0, usage?.outputTokens ?? 0)
   return result
 }

@@ -1,13 +1,9 @@
+# DISABLED 2026-07-01: AWS infra (ECS/ALB/API GW/secrets/ECR/S3/IAM) torn down to stop
+# billing — see ADR 0001. Kept for reference if AWS deploy is revived; push trigger removed
+# so this can't fire against infra that no longer exists.
 name: Deploy
 
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - 'README.md'
-      - 'docs/**'
-      - '*.md'
-      - '.claude/**'
   workflow_dispatch:
 
 env:

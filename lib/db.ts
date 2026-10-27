@@ -33,8 +33,13 @@ export function getDb(): DB {
   let dbPath: string
   if (process.env.DB_PATH) {
     const resolved = path.resolve(process.cwd(), process.env.DB_PATH)
-    if (!resolved.startsWith(process.cwd() + path.sep) && resolved !== process.cwd()) {
-      throw new Error(`DB_PATH must be within the project directory: ${resolved}`)
+    // Allowed roots: the project cwd (existing behavior) or the resumeloop CLI's
+    // workspace root — `resumeloop` boot points DB_PATH at <RESUMELOOP_HOME>/.cache/.
+    const allowedRoots = [process.cwd()]
+    if (process.env.RESUMELOOP_HOME) allowedRoots.push(path.resolve(process.env.RESUMELOOP_HOME))
+    const withinAllowedRoot = allowedRoots.some(root => resolved === root || resolved.startsWith(root + path.sep))
+    if (!withinAllowedRoot) {
+      throw new Error(`DB_PATH must be within the project directory or RESUMELOOP_HOME: ${resolved}`)
     }
     dbPath = resolved
   } else {
@@ -43,6 +48,10 @@ export function getDb(): DB {
   _db = new Database(dbPath)
   _db.pragma('journal_mode = WAL')
   _db.pragma('foreign_keys = ON')
+  // Retry instead of erroring immediately when another process/connection is
+  // mid-write on the same file (e.g. two processes opening a fresh db.sqlite
+  // at nearly the same moment, as e2e/global-setup.ts and the dev server do).
+  _db.pragma('busy_timeout = 5000')
   runMigrations(_db)
   globalForDb._db = _db
   return _db

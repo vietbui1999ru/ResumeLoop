@@ -1,4 +1,4 @@
-import NextAuth from 'next-auth'
+import NextAuth, { type Session } from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import GitHub from 'next-auth/providers/github'
 import Google from 'next-auth/providers/google'
@@ -8,6 +8,7 @@ import { authConfig } from './auth.config'
 import { validateCredentials, type UserRow } from './auth-credentials'
 import { checkRateLimitAsync } from './rate-limit'
 import { seedWelcomeOutput } from './account'
+import { isAuthRequired } from './app-mode'
 
 declare module 'next-auth' {
   interface Session {
@@ -21,7 +22,7 @@ declare module 'next-auth' {
 }
 
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+const { handlers, auth: nextAuthAuth, signIn, signOut } = NextAuth({
   ...authConfig,
   callbacks: {
     ...authConfig.callbacks,
@@ -176,3 +177,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
 })
+
+export { handlers, signIn, signOut }
+
+// Single-user local mode: skip real NextAuth entirely and hand back a synthetic
+// session for the fixed 'default' user_id every route already scopes its
+// queries by. Cloud/demo-public/e2e-CI paths are untouched — real multi-tenant
+// auth stays fully in effect there (see lib/app-mode.ts::isAuthRequired).
+const LOCAL_SESSION: Session = {
+  user: { id: 'default', email: 'local@resumeloop', isDemo: false },
+  expires: '2099-01-01T00:00:00.000Z',
+}
+
+// Every call site in this codebase uses the zero-arg form (await auth()) — the
+// higher-order middleware-wrapping form isn't used outside middleware.ts, which
+// builds its own NextAuth(authConfig) instance from the Edge-safe config.
+export async function auth(): Promise<Session | null> {
+  if (!isAuthRequired()) return LOCAL_SESSION
+  return nextAuthAuth()
+}

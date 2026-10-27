@@ -1,0 +1,31 @@
+# Full Prometheus config for the self-hosted demo stack (docker-compose.prod.yml).
+# Mounted as /etc/prometheus/prometheus.yml in the prometheus service.
+#
+# The app scrape is authorized by METRICS_TOKEN: write the token (no trailing
+# newline) to infra/prometheus/metrics-token on the host —
+#   echo -n "$METRICS_TOKEN" > infra/prometheus/metrics-token
+
+global:
+  scrape_interval: 60s
+  scrape_timeout: 15s
+
+scrape_configs:
+  - job_name: resumeloop
+    metrics_path: /api/metrics/prometheus
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/metrics-token
+    static_configs:
+      - targets:
+          - app:3000
+        labels:
+          env: demo
+          app: resumeloop
+
+  - job_name: node
+    static_configs:
+      - targets:
+          - node-exporter:9100
+        labels:
+          env: demo
+          app: resumeloop

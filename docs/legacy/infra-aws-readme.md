@@ -1,5 +1,11 @@
 # AWS Deployment Setup
 
+> **⚠️ ARCHIVED 2026-07-07.** All AWS infrastructure was torn down on 2026-07-06
+> (ECS/ALB/API Gateway/EventBridge/Secrets Manager/ECR/S3/IAM — see the
+> `chore: disable AWS deploy workflow` commit). This doc also describes an older
+> App Runner + SSM shape ("resumeanalyze") that predates even the ECS deployment.
+> Kept for historical reference only. Current demo hosting: [`docs/demo-hosting.md`](../demo-hosting.md).
+
 ResumeLoop runs on AWS App Runner (compute) + Neon serverless Postgres (database) + S3 (DOCX/PDF outputs).
 
 All secrets are stored in AWS Systems Manager Parameter Store and injected at runtime. No secrets live in GitHub or the Docker image.

@@ -5,7 +5,13 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ThemeToggle } from '@/components/ThemeToggle'
 
-export default function SignInForm({ oauthProviders = [] }: { oauthProviders?: ('github' | 'google')[] }) {
+export default function SignInForm({
+  oauthProviders = [],
+  demoPublicOnly = false,
+}: {
+  oauthProviders?: ('github' | 'google')[]
+  demoPublicOnly?: boolean
+}) {
   const router = useRouter()
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
@@ -115,6 +121,8 @@ export default function SignInForm({ oauthProviders = [] }: { oauthProviders?: (
           </>
         )}
 
+        {/* Public demo: credential sign-in hidden — Try Demo is the only entry point */}
+        {!demoPublicOnly && (
         <form onSubmit={submit} className="space-y-4">
           <div>
             <label htmlFor="email" className="text-xs text-text-muted block mb-1">Email</label>
@@ -150,11 +158,14 @@ export default function SignInForm({ oauthProviders = [] }: { oauthProviders?: (
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
+        )}
 
+        {!demoPublicOnly && (
         <p className="text-xs text-text-muted mt-6 text-center">
           No account?{' '}
           <Link href="/auth/signup" className="text-accent hover:text-accent/80">Sign up</Link>
         </p>
+        )}
 
       </div>
     </div>

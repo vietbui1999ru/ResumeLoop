@@ -7,5 +7,5 @@ export default function SignInPage() {
     ...(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET ? ['github' as const] : []),
     ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET ? ['google' as const] : []),
   ]
-  return <SignInForm oauthProviders={oauthProviders} />
+  return <SignInForm oauthProviders={oauthProviders} demoPublicOnly={process.env.DEMO_PUBLIC === '1'} />
 }

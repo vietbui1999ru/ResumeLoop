@@ -15,6 +15,9 @@ interface OllamaTagsResponse {
 export async function GET(req: Request) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  // Demo sessions may not probe arbitrary private-network Ollama hosts —
+  // validateOllamaUrl allows RFC-1918 ranges, which is fine for the owner, not visitors.
+  if (session.user.isDemo) return NextResponse.json({ error: 'Not available on demo accounts' }, { status: 403 })
 
   const url       = new URL(req.url)
   const rawBase   = url.searchParams.get('base_url') ?? OLLAMA_DEFAULT_BASE_URL

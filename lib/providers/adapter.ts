@@ -26,7 +26,7 @@ type Attempt<T> =
  */
 export function createAdapter(runner: CliRunner): ProviderAdapter {
   return {
-    async runStructured<T>(schema: ZodType<T>, prompt: string, opts: RunOptions = {}): Promise<T> {
+    async runStructured<T>(schema: ZodType<T, unknown>, prompt: string, opts: RunOptions = {}): Promise<T> {
       const basePrompt = `${prompt}${jsonInstruction(opts.shapeHint)}`
 
       const attempt = async (p: string): Promise<Attempt<T>> => {

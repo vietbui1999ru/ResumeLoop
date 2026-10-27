@@ -15,6 +15,9 @@ export const BULLET_WORD_BOUNDARY_MIN  = 90
 
 // ── Demo account ─────────────────────────────────────────────────────────────
 export const DEMO_TTL_MS = 12 * 60 * 60 * 1000  // 12 hours
+// JD paste ceiling for demo sessions — bounds prompt size for the CPU-only local
+// model on the public demo box (general schema ceiling is 200KB).
+export const DEMO_JD_MAX_CHARS = 20_000
 
 // ── Ollama local inference ────────────────────────────────────────────────────
 export const OLLAMA_DEFAULT_PORT     = '11434'

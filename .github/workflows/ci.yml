@@ -90,6 +90,12 @@ jobs:
       - name: Run E2E tests
         run: npm run test:e2e
         env:
+          # e2e exercises real credential auth + user_id scoping against the SQLite
+          # DB seeded by e2e/global-setup.ts, so the local-mode auth bypass must be
+          # off — but APP_MODE=cloud would ALSO switch the DB/storage backend to
+          # Neon+S3 (lib/db-adapter.ts), which there's no Postgres for in CI.
+          # RESUMELOOP_REQUIRE_AUTH is the narrower signal for just the auth half.
+          RESUMELOOP_REQUIRE_AUTH: '1'
           NEXTAUTH_SECRET: test-secret-for-e2e-only
           NEXTAUTH_URL: http://localhost:3001
 

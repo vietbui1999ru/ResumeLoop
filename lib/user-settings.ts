@@ -1,6 +1,8 @@
 import 'server-only'
 import { getAdapter } from './db-adapter'
 import { encrypt, decrypt } from './crypto'
+import { isDemoPublic } from './demo-mode'
+import { OLLAMA_DEFAULT_BASE_URL } from './config'
 import type { Provider } from './provider-config'
 export type { Provider } from './provider-config'
 export { PROVIDERS, PROVIDER_LABELS } from './provider-config'
@@ -38,6 +40,7 @@ export interface ProviderHint {
 
 // Active provider stored in app_settings under key 'active_ai_provider'
 export async function getActiveProvider(userId: string): Promise<Provider | null> {
+  if (isDemoPublic()) return 'ollama'
   const db = await getAdapter()
   const row = await db.queryOne<{ value: string }>(
     `SELECT value FROM app_settings WHERE key = ?`,
@@ -55,6 +58,16 @@ export async function setActiveProvider(userId: string, provider: Provider): Pro
 }
 
 export async function getActiveConfig(userId: string): Promise<ProviderConfig | null> {
+  // Public demo: every session runs the local Ollama model — DB provider rows are
+  // ignored so a visitor can never route generation anywhere else.
+  if (isDemoPublic()) {
+    return {
+      provider: 'ollama',
+      apiKey:   '',
+      model:    process.env.DEMO_OLLAMA_MODEL ?? DEFAULT_MODELS.ollama,
+      baseUrl:  process.env.DEMO_OLLAMA_BASE_URL ?? OLLAMA_DEFAULT_BASE_URL,
+    }
+  }
   const provider = await getActiveProvider(userId)
   if (!provider) return null
   return getProviderConfig(userId, provider)

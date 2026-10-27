@@ -87,6 +87,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (session.user.isDemo) return NextResponse.json({ error: 'Demo accounts cannot change AI providers' }, { status: 403 })
   const USER_ID = session.user.id
 
   if (!checkRateLimit(`settings:${USER_ID}`)) {
@@ -167,6 +168,7 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (session.user.isDemo) return NextResponse.json({ error: 'Demo accounts cannot change AI providers' }, { status: 403 })
   const USER_ID = session.user.id
 
   const url      = new URL(req.url)
@@ -182,6 +184,7 @@ export async function DELETE(req: Request) {
 export async function PATCH(req: Request) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (session.user.isDemo) return NextResponse.json({ error: 'Demo accounts cannot change AI providers' }, { status: 403 })
   const USER_ID = session.user.id
 
   let body: { provider?: string }

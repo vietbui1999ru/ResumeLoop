@@ -4,10 +4,14 @@ import { createUser } from '@/lib/account'
 import { sendVerificationEmail } from '@/lib/email'
 import { checkRateLimitAsync } from '@/lib/rate-limit'
 import { isCloud } from '@/lib/app-mode'
+import { isDemoPublic } from '@/lib/demo-mode'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export async function POST(req: Request) {
+  if (isDemoPublic()) {
+    return NextResponse.json({ error: 'Signups are disabled on the public demo' }, { status: 403 })
+  }
   const ip = (await headers()).get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
   const rl = await checkRateLimitAsync(`auth:signup:${ip}`, 5, 60_000)
   if (!rl.success) {

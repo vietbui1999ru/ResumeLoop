@@ -6,6 +6,7 @@ import { isCloud } from '@/lib/app-mode'
 import { parseJd } from '@/lib/jd-parser'
 import { scoreJd } from '@/lib/fit-scorer'
 import { JobPostInputSchema } from '@/lib/schemas/jobs'
+import { DEMO_JD_MAX_CHARS } from '@/lib/config'
 
 const BASE_COLS = `
   j.id, j.company, j.role_title, j.role_track, j.fit_pct, j.visa_status,
@@ -94,6 +95,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status: 400 })
   }
   const content = bodyParse.data.content.trim()
+
+  // Demo JDs run through a CPU-only local model — bound the prompt size well below
+  // the schema's general 200KB ceiling.
+  if (session.user.isDemo && content.length > DEMO_JD_MAX_CHARS) {
+    return NextResponse.json(
+      { error: `Demo job descriptions are capped at ${DEMO_JD_MAX_CHARS.toLocaleString()} characters — paste the core JD, not the full page` },
+      { status: 400 },
+    )
+  }
 
   const parsed = parseJd('pasted.md', content)
   if (!parsed.company || parsed.company === 'Unknown') {

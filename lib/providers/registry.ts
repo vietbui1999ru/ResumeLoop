@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import yaml from 'js-yaml'
 import { z } from 'zod'
 
@@ -43,7 +44,8 @@ export function parseRegistry(yamlText: string): ProviderSpec[] {
 }
 
 export function registryPath(): string {
-  return path.join(process.cwd(), 'config', 'providers.yml')
+  const packageRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
+  return path.join(packageRoot, 'config', 'providers.yml')
 }
 
 let cached: ProviderSpec[] | null = null

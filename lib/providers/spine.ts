@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 import { createAdapter } from './adapter'
 import type { CliRunner } from './types'
@@ -134,8 +135,11 @@ export function assembleResumeData(decision: ResumeSelection, masterDataJson: st
 export async function renderDocxBuffer(decision: ResumeSelection, masterDataJson: string): Promise<Buffer> {
   const data = assembleResumeData(decision, masterDataJson)
 
-  // Anchor at the tracked buildv2.js; 'docx' resolves up to the root node_modules (a real dep).
-  const anchor = path.join(process.cwd(), 'pipeline', 'buildv2.js')
+  // Anchor at the tracked buildv2.js by this module's own location, not the
+  // invoker's cwd — resumeloop generate runs with cwd = the user's data
+  // workspace, not this package's install directory.
+  const packageRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
+  const anchor = path.join(packageRoot, 'pipeline', 'buildv2.js')
   const req = createRequire(anchor)
   /* eslint-disable @typescript-eslint/no-explicit-any */
   const { makeDoc, T, TL } = req('./buildv2.js') as any

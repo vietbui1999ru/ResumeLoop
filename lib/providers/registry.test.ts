@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { parseRegistry, getRegistry, getSpec } from './registry'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { parseRegistry, getRegistry, getSpec, registryPath } from './registry'
 
 describe('parseRegistry', () => {
   it('parses spawn + http specs and applies defaults', () => {
@@ -39,6 +41,12 @@ describe('parseRegistry', () => {
 })
 
 describe('getRegistry (shipped config/providers.yml)', () => {
+  it('resolves the shipped registry from the package root, not caller cwd', () => {
+    const packageRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
+    expect(registryPath()).toBe(path.join(packageRoot, 'config', 'providers.yml'))
+    expect(getRegistry().some(p => p.id === 'claude')).toBe(true)
+  })
+
   it('loads claude (spawn) + ollama (http) + gemini', () => {
     const r = getRegistry()
     expect(r.find(p => p.id === 'claude')?.transport).toBe('spawn')

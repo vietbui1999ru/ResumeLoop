@@ -7,8 +7,10 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 
 export default function SignUpForm({
   oauthProviders = [],
+  demoPublicOnly = false,
 }: {
   oauthProviders?: ('github' | 'google')[]
+  demoPublicOnly?: boolean
 }) {
   const router = useRouter()
   const [email,        setEmail]        = useState('')
@@ -121,6 +123,9 @@ export default function SignUpForm({
           </div>
         )}
 
+        {/* Public demo: account creation hidden — Try Demo is the only entry point */}
+        {!demoPublicOnly && (
+        <>
         <div className="flex items-center gap-3 mb-6">
           <div className="flex-1 h-px bg-border-subtle" />
           <span className="text-xs text-text-secondary">or create account</span>
@@ -164,6 +169,8 @@ export default function SignUpForm({
           Already have an account?{' '}
           <Link href="/auth/signin" className="text-accent hover:text-accent/80">Sign in</Link>
         </p>
+        </>
+        )}
       </div>
     </div>
   )

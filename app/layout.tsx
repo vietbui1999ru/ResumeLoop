@@ -4,6 +4,9 @@ import './globals.css'
 import { Providers } from './providers'
 import { buildFontInitScript } from '@/lib/font-size'
 import { buildThemeInitScript } from '@/lib/theme'
+import { ensureDemoCleanupScheduler } from '@/lib/demo-cleanup-scheduler'
+
+ensureDemoCleanupScheduler()
 
 // display: 'swap' is set explicitly so Next.js emits a matching preload hint.
 // Without it, Next.js 14 preloads a size-adjusted fallback variant (.s.p.woff2)

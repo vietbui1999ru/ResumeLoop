@@ -2,6 +2,9 @@ import { NextRequest } from 'next/server'
 import { getAdapter } from '@/lib/db-adapter'
 import { isCloud } from '@/lib/app-mode'
 import { DEMO_TTL_MS, DEFAULT_DB_FILENAME } from '@/lib/config'
+import { getHostPressure, isHostUnderPressure } from '@/lib/host-guard'
+import { inferenceStats } from '@/lib/inference-semaphore'
+import { counterEntries } from '@/lib/metrics-counters'
 import fs from 'fs'
 import path from 'path'
 
@@ -51,6 +54,40 @@ export async function GET(req: NextRequest) {
 
   parts.push(line('resumeloop_nodejs_rss_bytes', 'Resident set size', 'gauge',
     [gauge('resumeloop_nodejs_rss_bytes', mem.rss)]))
+
+  // ── Host pressure + inference gate (public demo) ────────────────────────────
+
+  const host  = getHostPressure()
+  const slots = inferenceStats()
+
+  parts.push(line('resumeloop_host_load1', '1-minute load average', 'gauge',
+    [gauge('resumeloop_host_load1', host.load1)]))
+  parts.push(line('resumeloop_host_load_per_core', '1-minute load average per core', 'gauge',
+    [gauge('resumeloop_host_load_per_core', host.loadPerCore)]))
+  parts.push(line('resumeloop_host_free_mem_pct', 'Free memory fraction of total', 'gauge',
+    [gauge('resumeloop_host_free_mem_pct', host.freeMemPct)]))
+  parts.push(line('resumeloop_host_pressure', '1 when the host circuit breaker is refusing new inference', 'gauge',
+    [gauge('resumeloop_host_pressure', isHostUnderPressure() ? 1 : 0)]))
+  parts.push(line('resumeloop_inference_slots_used', 'Inference slots currently held', 'gauge',
+    [gauge('resumeloop_inference_slots_used', slots.inUse)]))
+  parts.push(line('resumeloop_inference_queue_depth', 'Requests waiting for an inference slot', 'gauge',
+    [gauge('resumeloop_inference_queue_depth', slots.queued)]))
+
+  // Process-lifetime counters (429s by route, ai-reason fallback paths) — keys are
+  // full Prometheus series including labels, emitted verbatim.
+  const counters = counterEntries()
+  if (counters.length > 0) {
+    const byName = new Map<string, string[]>()
+    for (const [series, value] of counters) {
+      const name = series.split('{')[0]
+      const samples = byName.get(name) ?? []
+      samples.push(`${series} ${value}`)
+      byName.set(name, samples)
+    }
+    for (const [name, samples] of byName) {
+      parts.push(line(name, 'Process-lifetime counter (resets on restart)', 'counter', samples))
+    }
+  }
 
   // ── DB size (SQLite only — Neon Postgres manages its own storage) ────────────
 

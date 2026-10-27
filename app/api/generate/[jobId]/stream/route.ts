@@ -3,6 +3,8 @@ import { runPipeline } from '@/lib/generate-pipeline'
 import { auth } from '@/lib/auth'
 import { getActiveProvider } from '@/lib/user-settings'
 import { getAdapter } from '@/lib/db-adapter'
+import { acquireInferenceSlot } from '@/lib/inference-semaphore'
+import { incrCounter } from '@/lib/metrics-counters'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,6 +57,18 @@ export async function GET(
   if (userJobs.size >= 3) {
     return new Response('Too many concurrent generations', { status: 429 })
   }
+
+  // Box-wide inference gate — the per-user map above can't stop N distinct demo
+  // sessions from stacking concurrent generations on one CPU-only Ollama.
+  const slot = await acquireInferenceSlot()
+  if (!slot.ok) {
+    incrCounter(`resumeloop_demo_429_total{route="generate",reason="${slot.reason}"}`)
+    return NextResponse.json(
+      { error: 'The demo is busy right now — try again in a moment.' },
+      { status: slot.reason === 'host_pressure' ? 503 : 429, headers: { 'Retry-After': '15' } },
+    )
+  }
+
   userJobs.add(jobId)
   inFlight.set(userId, userJobs)
 
@@ -74,6 +88,7 @@ export async function GET(
           stage: 'error', status: 'fail', data: { message: safe }
         }))
       } finally {
+        slot.release()
         inFlight.get(userId)?.delete(jobId)
         controller.close()
       }

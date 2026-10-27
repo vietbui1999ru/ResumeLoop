@@ -104,6 +104,7 @@ async function validateRedirectChain(rawUrl: string): Promise<string> {
 export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (session.user.isDemo) return NextResponse.json({ error: 'Profile import is not available on demo accounts' }, { status: 403 })
   const userId = session.user.id
 
   const body = await req.json() as { url?: string }

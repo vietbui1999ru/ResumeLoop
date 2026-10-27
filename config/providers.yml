@@ -40,6 +40,14 @@ providers:
     promptVia: arg
     envelope: raw
 
+  - id: pi
+    label: Pi
+    transport: spawn
+    bin: pi
+    args: [-p, --no-session, --no-extensions, --no-skills, --no-tools]
+    promptVia: arg     # prompt appended as the final positional message
+    envelope: raw
+
   - id: ollama
     label: Ollama (local model)
     transport: http
