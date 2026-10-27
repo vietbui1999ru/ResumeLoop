@@ -29,7 +29,7 @@ export const ExtractedProfileSchema = z.object({
     bullets:     z.array(z.string()).default([]),
   })).default([]),
   // category label → comma-separated tech list, e.g. { Languages: "Python, Go" }
-  skills: z.record(z.string()).default({}),
+  skills: z.record(z.string(), z.string()).default({}),
 })
 export type ExtractedProfile = z.infer<typeof ExtractedProfileSchema>
 

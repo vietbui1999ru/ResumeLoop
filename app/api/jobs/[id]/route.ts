@@ -29,7 +29,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const { id } = await params
   const bodyParse = JobPatchInputSchema.safeParse(await req.json())
   if (!bodyParse.success) {
-    const message = bodyParse.error.errors[0]?.message ?? 'Invalid request body'
+    const message = bodyParse.error.issues[0]?.message ?? 'Invalid request body'
     return NextResponse.json({ error: message }, { status: 400 })
   }
   const body = bodyParse.data

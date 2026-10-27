@@ -91,7 +91,7 @@ export async function POST(req: Request) {
 
   const bodyParse = JobPostInputSchema.safeParse(await req.json())
   if (!bodyParse.success) {
-    const message = bodyParse.error.errors[0]?.message ?? 'Invalid request body'
+    const message = bodyParse.error.issues[0]?.message ?? 'Invalid request body'
     return NextResponse.json({ error: message }, { status: 400 })
   }
   const content = bodyParse.data.content.trim()
