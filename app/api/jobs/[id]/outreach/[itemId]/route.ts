@@ -13,7 +13,7 @@ export async function PATCH(req: Request, { params }: Params) {
 
   const bodyParse = OutreachPatchInputSchema.safeParse(await req.json())
   if (!bodyParse.success) {
-    const message = bodyParse.error.errors[0]?.message ?? 'Invalid request body'
+    const message = bodyParse.error.issues[0]?.message ?? 'Invalid request body'
     return NextResponse.json({ error: message }, { status: 400 })
   }
 
