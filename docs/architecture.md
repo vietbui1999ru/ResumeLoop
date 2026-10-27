@@ -174,10 +174,12 @@ If the app is ever exposed beyond localhost (e.g. the hosted demo), that is hand
 
 ## Interfaces share one core
 
-The web app and the optional **Ink TUI** share the same Zod schemas, TypeScript types, and file/index layer. The TUI is not a parallel implementation — it is a second front-end over the same `lib/`:
+> **Superseded by [ADR 0002](adr/0002-cli-and-electron-desktop.md).** The web UI and the Ink TUI are dropped. The sections above that mention Next.js routes describe code scheduled for deletion.
 
-- **Web** (Next.js, `127.0.0.1`) — full editing: jobs, chat/bullets editor, profile, settings.
-- **TUI** (Ink, optional) — onboarding Q&A, a read-only pipeline dashboard, and quick status bumps.
+Two front-ends sit over one engine facade, `lib/engine` (planned). It exposes `workspace`, `onboard`, `importCv`, `jobs`, `generate`, `providers` and `profile`. Neither front-end reaches past it into `lib/`:
+
+- **CLI** (`bin/resumeloop.ts`, with handlers moving to `lib/cli/*`) handles scripting and headless use.
+- **Electron desktop** (`desktop/`, planned) runs the engine in-process in the main process. A React renderer talks to it over a typed IPC API designed per use case, with no `/api` route emulation. PDFs come from a `PdfRenderer` interface: `printToPDF` in the desktop app, Playwright in the CLI.
 
 ---
 

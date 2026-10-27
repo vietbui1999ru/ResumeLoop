@@ -1,6 +1,6 @@
 # ADR 0002 — Drop the web UI; ship a CLI and an Electron desktop app
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-27
 - **Deciders:** Quoc-Viet Bui
 - **Supersedes in part:** [ADR 0001](0001-pivot-to-local-first.md) decisions 1 (UI wiring), 4 (hosted demo), 7 (Ink TUI) and 11 (distribution). The other ADR 0001 decisions stand.

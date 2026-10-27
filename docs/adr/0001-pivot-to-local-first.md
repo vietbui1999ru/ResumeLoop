@@ -1,6 +1,7 @@
 # ADR 0001 — Pivot ResumeLoop to a local-first, BYO-AI open-source tool
 
 - **Status:** Accepted
+- **Superseded in part by:** [ADR 0002](0002-cli-and-electron-desktop.md) — decisions 1 (web UI wiring), 4 (hosted demo), 7 (Ink TUI) and 11 (distribution). Decision 6 is completed by ADR 0002.
 - **Date:** 2026-06-10
 - **Deciders:** Quoc-Viet Bui
 - **Supersedes:** the cloud architecture (AWS ECS Fargate + ALB + Neon + NextAuth), frozen on branch `legacy/cloud-v1`, tag `v1.0-cloud-final`.

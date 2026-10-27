@@ -54,6 +54,12 @@ These ceilings are generic engine mechanics. `buildv2.js` enforces them at rende
 
 **SpineDecision** — the one structured object the brain returns per JD (`lib/providers/spine.ts`): `{ fitPct, fitNote, track, workVariant, workIds[3], projects[3], tagline, skillsRows }`. Validated by Zod before rendering.
 
+**engine facade** — `lib/engine` (planned, ADR 0002), the only engine API the CLI and the desktop app may call. Everything else in `lib/` is internal to it.
+
+**desktop app** — the Electron front-end in `desktop/` (ADR 0002). It runs the engine in-process in the main process. It replaces the Next.js web UI.
+
+**IPC API** — the typed channels (for example `jobs.list`, `generate.run`) between the desktop renderer and the main process. They are designed per use case and derived from the engine facade's types, not from the old `/api` routes.
+
 ## Architectural invariants
 
 ### Single-user, no auth
