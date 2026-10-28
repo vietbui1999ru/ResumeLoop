@@ -188,6 +188,7 @@ Cross-browser E2E (Playwright) covers the web UI journeys.
 | `lib/jd-parser.ts` | JD markdown → frontmatter (visa, action, clipped_at, apply_url, tags) |
 | `CONTEXT.md` | Shared vocabulary + architectural invariants — read before any task |
 | `docs/adr/0001-pivot-to-local-first.md` | The pivot decision of record |
+| `docs/superpowers/specs/2026-10-26-apply-assist-design.md` | Planned: human-in-the-loop ATS form filling (draft spec, no code yet) |
 
 ## Deprecation
 
